@@ -1,2 +1,2 @@
-# Gearshift
-Gearshift is a programming language.
+# Cogwheel
+Cogwheel is a programming language.
