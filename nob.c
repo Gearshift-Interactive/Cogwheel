@@ -17,32 +17,32 @@ Nob_Cmd cmd = {0};
 
 static void Task_build(void)
 {
-    nob_mkdir_if_not_exists(DIR_BIN);
-    nob_cmd_append(&cmd, ARGS, "-o", FILE_BIN, DIR_SRC"/main.c");
-    if (!nob_cmd_run(&cmd)) exit(1);
+	nob_mkdir_if_not_exists(DIR_BIN);
+	nob_cmd_append(&cmd, ARGS, "-o", FILE_BIN, DIR_SRC"/main.c");
+	if (!nob_cmd_run(&cmd)) exit(1);
 }
 static void Task_help(void)
 {
-    printf(
-        "Available commands:\n"
-        "  build - compile the binary file\n"
-        "  help  - show this message\n"
-    );
+	printf(
+		"Available commands:\n"
+		"  build - compile the binary file\n"
+		"  help  - show this message\n"
+	);
 }
 
 int main(int argc, char **argv)
 {
-    NOB_GO_REBUILD_URSELF(argc, argv);
-    size_t i = 1;
-    for (; i < argc; i++)
-        if (!strcmp(argv[i], "build"))
-            Task_build();
-        else if (!strcmp(argv[i], "help"))
-            Task_help();
-    if (i == 1)
-    {
-        printf("There is nothing to do.\n");
-        Task_help();
-    }
-    return 0;
+	NOB_GO_REBUILD_URSELF(argc, argv);
+	size_t i = 1;
+	for (; i < argc; i++)
+		if (!strcmp(argv[i], "build"))
+			Task_build();
+		else if (!strcmp(argv[i], "help"))
+			Task_help();
+	if (i == 1)
+	{
+		printf("There is nothing to do.\n");
+		Task_help();
+	}
+	return 0;
 }
