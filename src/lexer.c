@@ -183,7 +183,6 @@ TokenStream tokenize(const char *text)
 	};
 	while (tokenizer.offset < tokenizer.text.count)
 	{
-		printf("curChar: %c\n", *(tokenizer.text.data + tokenizer.offset));
 		if (Tokenizer_checkSymbolBeginning(&tokenizer))
 			da_append(&tokens, Tokenizer_handleSymbol(&tokenizer));
 		else if (Tokenizer_checkNumber(&tokenizer))
@@ -193,6 +192,5 @@ TokenStream tokenize(const char *text)
 		else
 			da_append(&tokens, Tokenizer_handleOperator(&tokenizer));
 	}
-cleanup:
 	return tokens;
 }
