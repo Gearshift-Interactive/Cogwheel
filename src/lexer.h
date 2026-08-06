@@ -2,24 +2,38 @@
 
 #include "nob.h"
 
-typedef union {
-	TOKEN_NUMBER;
-	TOKEN_STRING;
-	TOKEN_ADD;
-	TOKEN_SUB;
-	TOKEN_MUL;
-	TOKEN_DIV;
-	TOKEN_POW;
-	TOKEN_ASSIGN;
-	TOKEN_LPAREN;
-	TOKEN_RPAREN;
-	// keywords
-	TOKEN_LET;
+#define TOKEN_TYPE \
+	X(NUMBER) \
+	X(STRING) \
+	X(SYMBOL) \
+	\
+	X(ADD) \
+	X(SUB) \
+	X(MUL) \
+	X(DIV) \
+	X(POW) \
+	X(ASSIGN) \
+	\
+	X(LPAREN) \
+	X(RPAREN) \
+	\
+	X(LET) \
+
+
+typedef enum {
+#define X(name) TOKEN_##name,
+	TOKEN_TYPE
+#undef X
 } TokenType;
+typedef struct {
+	char *origin;
+	size_t start;
+	size_t length;
+} TokenPosition;
 
 typedef struct {
 	TokenType type;
-	String_View content;
+	TokenPosition pos;
 } Token;
 
 typedef struct {
@@ -29,7 +43,9 @@ typedef struct {
 	size_t next;
 } TokenStream;
 
-Token TokenStream_next(TokenStream *const);
-Token *TokenStream_peek(const TokenStream *const);
-void TokenStream_free(const TokenStream *const);
-TokenStream tokenize(const char *const);
+void Token_print(const Token);
+Token TokenStream_consume(TokenStream *);
+Token *TokenStream_current(const TokenStream *);
+Token *TokenStream_peek(const TokenStream *);
+void TokenStream_free(const TokenStream *);
+TokenStream tokenize(const char *);
