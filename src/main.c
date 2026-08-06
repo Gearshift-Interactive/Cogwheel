@@ -7,7 +7,6 @@
 int main(void)
 {
 	TokenStream tokens = tokenize("let a := 10");
-	TokenStream_free(&tokens);
 	Token token;
 	for (;;)
 	{
@@ -17,6 +16,7 @@ int main(void)
 		if (!TokenStream_peek(&tokens))
 			break;
 	}
+	TokenStream_free(&tokens);
     return 0;
 }
 

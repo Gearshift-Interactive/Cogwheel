@@ -65,9 +65,7 @@ Token *TokenStream_peek(const TokenStream *this)
 		return NULL;
 	return this->items + this->next;
 }
-void TokenStream_free(const TokenStream *this)
-{
-	assert(this);
+void TokenStream_free(const TokenStream *this) { assert(this);
 	free(this->items);
 }
 typedef struct {
@@ -75,29 +73,47 @@ typedef struct {
 	String_View text;
 	size_t offset;
 } Tokenizer;
-void Tokenizer_advance(Tokenizer *this)
-{
-	assert(this);
+static void Tokenizer_advance(Tokenizer *this) { assert(this);
 	this->offset += bytes_for_utf8[(uint8_t)*(this->text.data + this->offset)];
 }
-Token Tokenizer_handleSymbol(Tokenizer *this)
+static bool Tokenizer_checkSymbolBeginning(const Tokenizer *this) { assert(this);
+	return strchr(LETTERS, *(int *)(this->text.data + this->offset));
+}
+static bool Tokenizer_checkSymbolContinueation(const Tokenizer *this) { assert(this);
+	return strchr(LETTERS_AND_NUMBERS, *(int *)(this->text.data + this->offset));
+}
+static TokenType Tokenizer_matchSymbol(const Tokenizer *this, const TokenPosition pos) {
+	assert(this);
+	char *const buf = calloc(pos.length + 1, 1);
+	memcpy(buf, pos.origin + pos.start, pos.length);
+	TokenType result = TOKEN_SYMBOL;
+	for (size_t i = 0; i < ARRAY_LEN(KEYWORDS); i++)
+		if (!strcmp(buf, KEYWORDS[i].lit)) {
+			result = KEYWORDS[i].type;
+			break;
+		}
+	free(buf);
+	printf("%s\n", TokenType_toString(result));
+	return result;
+}
+static Token Tokenizer_handleSymbol(Tokenizer *this)
 {
 	assert(this);
 	const size_t start = this->offset;
 	size_t length = 0;
-	while (
-		strchr(LETTERS_AND_NUMBERS, *(int *)(this->text.data + this->offset))
-	) {
+	while (Tokenizer_checkSymbolContinueation(this))
+	{
 		length++;
 		Tokenizer_advance(this);
 	}
+	const TokenPosition pos = {
+		.origin = this->origin,
+		.start = start,
+		.length = length,
+	};
 	return (Token){
-		.type = TOKEN_SYMBOL,
-		.pos = (TokenPosition) {
-			.origin = this->origin,
-			.start = start,
-			.length = length,
-		},
+		.type = Tokenizer_matchSymbol(this, pos),
+		.pos = pos,
 	};
 }
 TokenStream tokenize(const char *text)
@@ -112,7 +128,7 @@ TokenStream tokenize(const char *text)
 	while (tokenizer.offset < tokenizer.text.count)
 	{
 		printf("curChar: %c\n", *(tokenizer.text.data + tokenizer.offset));
-		if (strchr(LETTERS, *(int *)(tokenizer.text.data + tokenizer.offset)))
+		if (Tokenizer_checkSymbolBeginning(&tokenizer))
 			da_append(&tokens, Tokenizer_handleSymbol(&tokenizer));
 		else
 			Tokenizer_advance(&tokenizer);
