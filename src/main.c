@@ -6,7 +6,7 @@
 
 int main(void)
 {
-	TokenStream tokens = tokenize("let a := 10");
+	TokenStream tokens = tokenize("let a = (10 - 3) * 3");
 	Token token;
 	for (;;)
 	{

@@ -7,6 +7,7 @@ typedef struct {
 	TokenType type;
 } SymbolInfo;
 
+// longer first
 static const SymbolInfo OPERATORS[] = {
 	{ "+", TOKEN_ADD },
 	{ "-", TOKEN_SUB },
@@ -23,6 +24,8 @@ static const SymbolInfo KEYWORDS[] = {
 static const char LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char LETTERS_AND_NUMBERS[] =
 	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789";
+static const char WHITESPACE[] = "\t\n ";
+static const char NUMBERS[] = "0123456789";
 
 static const char *TokenType_toString(const TokenType tt)
 {
@@ -76,6 +79,9 @@ typedef struct {
 static void Tokenizer_advance(Tokenizer *this) { assert(this);
 	this->offset += bytes_for_utf8[(uint8_t)*(this->text.data + this->offset)];
 }
+static bool Tokenizer_checkWhitespace(const Tokenizer *this) { assert(this);
+	return strchr(WHITESPACE, *(int *)(this->text.data + this->offset));
+}
 static bool Tokenizer_checkSymbolBeginning(const Tokenizer *this) { assert(this);
 	return strchr(LETTERS, *(int *)(this->text.data + this->offset));
 }
@@ -116,6 +122,56 @@ static Token Tokenizer_handleSymbol(Tokenizer *this)
 		.pos = pos,
 	};
 }
+static Token Tokenizer_handleOperator(Tokenizer *this)
+{
+	assert(this);
+	bool success = false;
+	Token result;
+	for (size_t i = 0; i < ARRAY_LEN(OPERATORS); i++)
+	{
+		const SymbolInfo *const cur = &OPERATORS[i];
+		const size_t opLen = strlen(cur->lit);
+		if (!memcmp(cur->lit, this->text.data + this->offset, opLen))
+		{
+			result = (Token){
+				.type = cur->type,
+				.pos = (TokenPosition) {
+					.origin = this->origin,
+					.start = this->offset,
+					.length = opLen,
+				},
+			};
+			success = true;
+			for (size_t j = 0; j < opLen; j++)
+				Tokenizer_advance(this);
+		}
+	}
+	if (success)
+		return result;
+	nob_log(ERROR, "Illegal character \"%c\"", *(this->text.data + this->offset));
+	exit(0);
+}
+static bool Tokenizer_checkNumber(const Tokenizer *this) { assert(this);
+	return strchr(NUMBERS, *(int *)(this->text.data + this->offset));
+}
+static Token Tokenizer_handleNumber(Tokenizer *this)
+{
+	const size_t start = this->offset;
+	size_t length = 0;
+	while (Tokenizer_checkNumber(this))
+	{
+		length++;
+		Tokenizer_advance(this);
+	}
+	return (Token){
+		.type = TOKEN_NUMBER,
+		.pos = (TokenPosition){
+			.origin = this->origin,
+			.start = start,
+			.length = length,
+		},
+	};
+}
 TokenStream tokenize(const char *text)
 {
 	assert(text);
@@ -130,8 +186,13 @@ TokenStream tokenize(const char *text)
 		printf("curChar: %c\n", *(tokenizer.text.data + tokenizer.offset));
 		if (Tokenizer_checkSymbolBeginning(&tokenizer))
 			da_append(&tokens, Tokenizer_handleSymbol(&tokenizer));
-		else
+		else if (Tokenizer_checkNumber(&tokenizer))
+			da_append(&tokens, Tokenizer_handleNumber(&tokenizer));
+		else if (Tokenizer_checkWhitespace(&tokenizer))
 			Tokenizer_advance(&tokenizer);
+		else
+			da_append(&tokens, Tokenizer_handleOperator(&tokenizer));
 	}
+cleanup:
 	return tokens;
 }
