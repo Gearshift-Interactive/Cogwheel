@@ -17,6 +17,7 @@ typedef enum {
 } InfixType;
 
 #define NODE_TYPE \
+	X(BLOCK) \
 	X(INFIX) \
 	X(LET) \
 
@@ -29,6 +30,10 @@ typedef enum {
 typedef struct Node {
 	NodeType type;
 	union {
+		struct {
+			struct Node **items;
+			size_t count, capacity;
+		} block;
 		struct {
 			struct Node *left, *right;
 			InfixType type;
