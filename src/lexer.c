@@ -8,7 +8,7 @@ typedef struct {
 } SymbolInfo;
 
 // longer first
-static const SymbolInfo OPERATORS[] = {
+static const SymbolInfo PUNCTUATION[] = {
 	{ "+", TOKEN_ADD },
 	{ "-", TOKEN_SUB },
 	{ "*", TOKEN_MUL },
@@ -17,6 +17,9 @@ static const SymbolInfo OPERATORS[] = {
 	{ "=", TOKEN_ASSIGN },
 	{ "(", TOKEN_LPAREN },
 	{ ")", TOKEN_RPAREN },
+	{ "{", TOKEN_LBRACE },
+	{ "}", TOKEN_RBRACE },
+	{ ";", TOKEN_SEMICOLON },
 };
 static const SymbolInfo KEYWORDS[] = {
 	{ "let", TOKEN_LET },
@@ -133,9 +136,9 @@ static Token Tokenizer_handleOperator(Tokenizer *this)
 	assert(this);
 	bool success = false;
 	Token result;
-	for (size_t i = 0; i < ARRAY_LEN(OPERATORS); i++)
+	for (size_t i = 0; i < ARRAY_LEN(PUNCTUATION); i++)
 	{
-		const SymbolInfo *const cur = &OPERATORS[i];
+		const SymbolInfo *const cur = &PUNCTUATION[i];
 		const size_t opLen = strlen(cur->lit);
 		if (!memcmp(cur->lit, this->text.data + this->offset, opLen))
 		{

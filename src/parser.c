@@ -17,9 +17,9 @@ static const BindingPower BINDING_POWERS[] = {
 	{ TOKEN_LPAREN, 11.0f, 11.1f },
 	{ TOKEN_RPAREN, 11.0f, 11.1f },
 };
-// static const TokenType TAIL_TOKENS[] = {
-// 	TOKEN_EOF,
-// }
+static const TokenType TAIL_TOKENS[] = {
+	TOKEN_SEMICOLON, TOKEN_RPAREN,
+};
 
 static BindingPower getBindingFor(TokenType tt)
 {
@@ -46,7 +46,7 @@ static const char *InfixType_toString(InfixType it)
 static void printIndent(const size_t indent)
 {
 	for (size_t i = 0; i < indent; i++)
-		printf("  ");
+		printf("    ");
 }
 static void Node_printImpl(const Node *node, const size_t indent)
 {
@@ -126,9 +126,23 @@ static InfixType getInfixType(TokenType tt)
 		}
 	}
 }
+static bool isTailToken(TokenType tt)
+{
+	for (size_t i = 0; i < ARRAY_LEN(TAIL_TOKENS); i++)
+		if (TAIL_TOKENS[i] == tt)
+			return true;
+	return false;
+}
 static Node *parseExpr(TokenStream *tokens, float parentBind);
 static Node *parseExprHead(TokenStream *tokens)
 {
+	if (TokenStream_peek(tokens)->type == TOKEN_LPAREN)
+	{
+		TokenStream_consume(tokens);
+		Node *right = parseExpr(tokens, 0);
+		TokenStream_consume(tokens);
+		return right;
+	}
 	return parseAtom(tokens);
 }
 static Node *parseExprTail(TokenStream *tokens, float parentBind, Node *left)
@@ -136,9 +150,10 @@ static Node *parseExprTail(TokenStream *tokens, float parentBind, Node *left)
 	while (TokenStream_peek(tokens))
 	{
 		Token *op = TokenStream_peek(tokens);
+		if (isTailToken(op->type)) break;
 		BindingPower bind = getBindingFor(op->type);
 		if (bind.right < parentBind) break;
-		else if (bind.right == parentBind && bind.left < bind.right) break;
+		if (bind.right == parentBind && bind.left < bind.right) break;
 		TokenStream_consume(tokens);
 		Node *right = parseExpr(tokens, bind.left);
 		Node *newLeft = Node_make();

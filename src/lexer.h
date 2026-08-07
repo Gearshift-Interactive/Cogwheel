@@ -3,20 +3,24 @@
 #include "nob.h"
 
 #define TOKEN_TYPE \
+	/* atoms */ \
 	X(NUMBER) \
 	X(STRING) \
 	X(SYMBOL) \
-	\
+	/* infix */ \
 	X(ADD) \
 	X(SUB) \
 	X(MUL) \
 	X(DIV) \
 	X(POW) \
 	X(ASSIGN) \
-	\
+	/* punctuation */ \
 	X(LPAREN) \
 	X(RPAREN) \
-	\
+	X(LBRACE) \
+	X(RBRACE) \
+	X(SEMICOLON) \
+	/* keywords */ \
 	X(LET) \
 
 

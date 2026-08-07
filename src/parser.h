@@ -3,12 +3,12 @@
 #include "lexer.h"
 
 #define INFIX_TYPE \
-	X(ASSIGN, =) \
-	X(ADD, +) \
-	X(SUB, -) \
-	X(DIV, /) \
-	X(MUL, *) \
-	X(POW, ^) \
+	X(ASSIGN, =)   \
+	X(ADD, +)      \
+	X(SUB, -)      \
+	X(DIV, /)      \
+	X(MUL, *)      \
+	X(POW, ^)      \
 
 typedef enum {
 #define X(name, op) INFIX_##name,
@@ -18,10 +18,10 @@ typedef enum {
 
 #define NODE_TYPE \
 	X(NUMBER_LIT) \
-	X(SYMBOL) \
-	X(BLOCK) \
-	X(INFIX) \
-	X(LET) \
+	X(SYMBOL)     \
+	X(BLOCK)      \
+	X(INFIX)      \
+	X(LET)        \
 
 typedef enum {
 #define X(name) NODE_##name,
