@@ -30,7 +30,7 @@ static const char LETTERS_AND_NUMBERS[] =
 static const char WHITESPACE[] = "\t\n ";
 static const char NUMBERS[] = "0123456789";
 
-static const char *TokenType_toString(const TokenType tt)
+const char *TokenType_toString(const TokenType tt)
 {
 	switch (tt)
 	{
@@ -55,7 +55,8 @@ Token TokenStream_consume(TokenStream *this)
 	assert(this);
 	if (this->next >= this->count)
 		exit(EXIT_FAILURE);
-	return *(this->items + (this->next++));
+	Token token = *(this->items + (this->next++));
+	return token;
 }
 Token *TokenStream_current(const TokenStream *this)
 {
@@ -85,6 +86,7 @@ typedef struct {
 	char *origin;
 	String_View text;
 	size_t offset;
+	size_t lastAdvancement;
 } Tokenizer;
 static void Tokenizer_advance(Tokenizer *this) { assert(this);
 	this->offset += bytes_for_utf8[(uint8_t)*(this->text.data + this->offset)];
@@ -153,6 +155,7 @@ static Token Tokenizer_handleOperator(Tokenizer *this)
 			success = true;
 			for (size_t j = 0; j < opLen; j++)
 				Tokenizer_advance(this);
+			break;
 		}
 	}
 	if (success)
@@ -192,6 +195,7 @@ TokenStream tokenize(const char *text)
 	};
 	while (tokenizer.offset < tokenizer.text.count)
 	{
+		// printf("curchar %c\n", *(tokenizer.text.data + tokenizer.offset));
 		if (Tokenizer_checkSymbolBeginning(&tokenizer))
 			da_append(&tokens, Tokenizer_handleSymbol(&tokenizer));
 		else if (Tokenizer_checkNumber(&tokenizer))

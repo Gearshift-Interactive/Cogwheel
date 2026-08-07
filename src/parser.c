@@ -21,6 +21,16 @@ static const TokenType TAIL_TOKENS[] = {
 	TOKEN_SEMICOLON, TOKEN_RPAREN,
 };
 
+static Token TokenStream_consumeExpect(TokenStream *this, TokenType tt)
+{
+	Token token = TokenStream_consume(this);
+	if (token.type != tt) {
+		nob_log(ERROR, "Unexpected token of type %s, expected %s",
+			TokenType_toString(token.type), TokenType_toString(tt));
+		exit(EXIT_FAILURE);
+	}
+	return token;
+}
 static BindingPower getBindingFor(TokenType tt)
 {
 	for (size_t i = 0; i < ARRAY_LEN(BINDING_POWERS); i++)
@@ -138,9 +148,9 @@ static Node *parseExprHead(TokenStream *tokens)
 {
 	if (TokenStream_peek(tokens)->type == TOKEN_LPAREN)
 	{
-		TokenStream_consume(tokens);
+		TokenStream_consumeExpect(tokens, TOKEN_LPAREN);
 		Node *right = parseExpr(tokens, 0);
-		TokenStream_consume(tokens);
+		TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
 		return right;
 	}
 	return parseAtom(tokens);
@@ -170,7 +180,16 @@ static Node *parseExpr(TokenStream *tokens, float parentBind)
 	Node *left = parseExprHead(tokens);
 	return parseExprTail(tokens, parentBind, left);
 }
-static Node *parseBlock(TokenStream *tokens);
+static Node *parseBlockInside(TokenStream *tokens)
+{
+	Node *block = Node_make();
+	block->block.items = 0;
+	block->block.count = 0;
+	block->block.capacity = 0;
+}
+static Node *parseBlock(TokenStream *tokens)
+{
+}
 Node *parse(TokenStream tokens) {
 	Node *result = parseExpr(&tokens, 0);
 	TokenStream_free(&tokens);

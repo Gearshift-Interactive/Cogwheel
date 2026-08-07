@@ -47,6 +47,7 @@ typedef struct {
 	size_t next;
 } TokenStream;
 
+const char *TokenType_toString(const TokenType);
 void TokenPosition_print(const TokenPosition);
 void Token_print(const Token);
 Token TokenStream_consume(TokenStream *);

@@ -7,7 +7,7 @@
 
 int main(void)
 {
-	TokenStream tokens = tokenize("a = (10 + 2 * 3);");
+	TokenStream tokens = tokenize("a = 10 + 2 * 3;");
 	da_foreach(Token, i, &tokens)
 	{
 		Token_print(*i);
