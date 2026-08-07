@@ -1,22 +1,21 @@
 #include "stdio.h"
 
 #include "lexer.h"
+#include "parser.h"
 
 #ifdef COG_STANDALONE
 
 int main(void)
 {
-	TokenStream tokens = tokenize("let a = (10 - 3) * 3");
-	Token token;
-	for (;;)
+	TokenStream tokens = tokenize("a = 10 + 3");
+	da_foreach(Token, i, &tokens)
 	{
-		token = TokenStream_consume(&tokens);
-		Token_print(token);
+		Token_print(*i);
 		printf("\n");
-		if (!TokenStream_peek(&tokens))
-			break;
 	}
-	TokenStream_free(&tokens);
+	Node *ast = parse(tokens);
+	Node_print(ast);
+	Node_free(ast);
     return 0;
 }
 

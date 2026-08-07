@@ -37,7 +37,7 @@ static const char *TokenType_toString(const TokenType tt)
 	}
 	return "INVALID";
 }
-static void TokenPosition_print(const TokenPosition tp)
+void TokenPosition_print(const TokenPosition tp)
 {
 	printf("%.*s", (int)tp.length, tp.origin + tp.start);
 }
@@ -67,6 +67,13 @@ Token *TokenStream_peek(const TokenStream *this)
 	if (this->next >= this->count)
 		return NULL;
 	return this->items + this->next;
+}
+Token *TokenStream_peekForward(const TokenStream *this, size_t countForward)
+{
+	assert(this);
+	if (this->next + countForward >= this->count)
+		return NULL;
+	return this->items + this->next + countForward;
 }
 void TokenStream_free(const TokenStream *this) { assert(this);
 	free(this->items);
@@ -99,7 +106,6 @@ static TokenType Tokenizer_matchSymbol(const Tokenizer *this, const TokenPositio
 			break;
 		}
 	free(buf);
-	printf("%s\n", TokenType_toString(result));
 	return result;
 }
 static Token Tokenizer_handleSymbol(Tokenizer *this)
