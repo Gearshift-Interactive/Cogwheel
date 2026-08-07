@@ -77,6 +77,16 @@ static void Node_printImpl(const Node *node, const size_t indent)
 			printIndent(indent);
 			printf(")");
 			break;
+		case NODE_BLOCK:
+			printf("(do\n");
+			da_foreach(Node*, child, &node->block) {
+				printIndent(indent + 1);
+				Node_printImpl(*child, indent + 1);
+				printf("\n");
+			}
+			printIndent(indent);
+			printf(")");
+			break;
 		default:
 			nob_log(ERROR, "Unexpected Node");
 			exit(EXIT_FAILURE);
@@ -92,6 +102,12 @@ void Node_free(const Node *node)
 		case NODE_INFIX:
 			Node_free(node->infix.left);
 			Node_free(node->infix.right);
+			break;
+		case NODE_BLOCK:
+			da_foreach(Node*, child, &node->block)
+				Node_free(*child);
+			free(node->block.items);
+			break;
 		default: {}
 	}
 	free((void*)node);
@@ -183,15 +199,28 @@ static Node *parseExpr(TokenStream *tokens, float parentBind)
 static Node *parseBlockInside(TokenStream *tokens)
 {
 	Node *block = Node_make();
-	block->block.items = 0;
+	block->type = NODE_BLOCK;
+	block->block.items = NULL;
 	block->block.count = 0;
 	block->block.capacity = 0;
+	while (TokenStream_peek(tokens))
+	{
+		Token *token = TokenStream_peek(tokens);
+		if (token->type == TOKEN_RBRACE) return block;
+		da_append(&block->block, parseExpr(tokens, 0));
+		TokenStream_consumeExpect(tokens, TOKEN_SEMICOLON);
+	}
+	return block;
 }
 static Node *parseBlock(TokenStream *tokens)
 {
+	TokenStream_consumeExpect(tokens, TOKEN_LBRACE);
+	Node *result = parseBlockInside(tokens);
+	TokenStream_consumeExpect(tokens, TOKEN_RBRACE);
+	return result;
 }
 Node *parse(TokenStream tokens) {
-	Node *result = parseExpr(&tokens, 0);
+	Node *result = parseBlockInside(&tokens);
 	TokenStream_free(&tokens);
 	return result;
 }

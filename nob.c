@@ -12,7 +12,7 @@
 #define FILE_BIN DIR_BIN"/"FILENAME_BIN
 #define FILE_OBJ_NOB DIR_BIN"/"FILENAME_OBJ_NOB
 
-#define ARGS "gcc", "-std=c11", "-pedantic-errors", "-Wall", "-Wextra",\
+#define ARGS "gcc", "-ggdb", "-std=c11", "-pedantic-errors", "-Wall", "-Wextra",\
 	"-I"DIR_SRC, "-I.", FILE_OBJ_NOB, "-DCOG_STANDALONE"
 
 struct {
@@ -35,7 +35,7 @@ static bool addSourceFile_callback(Walk_Entry file)
 }
 static void Task_buildNob(void) {
 	nob_log(INFO, "BUILDING NOB");
-	cmd_append(&cmd, "gcc", "-x", "c", "-DNOB_IMPLEMENTATION", "-c", "nob.h", "-o", FILE_OBJ_NOB);
+	cmd_append(&cmd, "gcc", "-ggdb", "-x", "c", "-DNOB_IMPLEMENTATION", "-c", "nob.h", "-o", FILE_OBJ_NOB);
 	if (!cmd_run(&cmd)) exit(1);
 }
 static void Task_build(void)
