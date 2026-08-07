@@ -60,10 +60,21 @@ static void Task_run(void)
 	cmd_append(&cmd, FILE_BIN);
 	if (!cmd_run(&cmd)) exit(1);
 }
+static bool recursiveDelete_callback(Walk_Entry file)
+{
+	if (file.type != FILE_DIRECTORY)
+		nob_delete_file(file.path);
+	return true;
+}
+static void Task_clean(void)
+{
+	walk_dir(DIR_BIN, recursiveDelete_callback);
+}
 static void Task_help(void)
 {
 	printf(
 		"Available commands:\n"
+		"  clean - delete all compiled binaries\n"
 		"  build - compile the binary file\n"
 		"  run   - run standalone\n"
 		"  help  - show this message\n"
@@ -77,6 +88,8 @@ int main(int argc, char **argv)
 	for (; i < argc; i++)
 		if (!strcmp(argv[i], "build"))
 			Task_build();
+		else if (!strcmp(argv[i], "clean"))
+			Task_clean();
 		else if (!strcmp(argv[i], "help"))
 			Task_help();
 		else if (!strcmp(argv[i], "run"))
