@@ -183,10 +183,16 @@ static Token Tokenizer_handleNumber(Tokenizer *this)
 		length++;
 		Tokenizer_advance(this);
 	}
-	if (Tokenizer_getCurrentChar(this) == 'u')
+	char curChar = Tokenizer_getCurrentChar(this);
+	if (curChar == 'u')
 	{
 		Tokenizer_advance(this);
 		type = TOKEN_UNUMBER;
+	}
+	else if (curChar == 'f')
+	{
+		Tokenizer_advance(this);
+		type = TOKEN_FNUMBER;
 	}
 	return (Token){
 		.type = type,

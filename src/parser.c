@@ -66,6 +66,14 @@ static void Node_printImpl(const Node *node, const size_t indent)
 		case NODE_SYMBOL:
 			TokenPosition_print(node->numLit.token.pos);
 			break;
+		case NODE_UNUMBER_LIT:
+			TokenPosition_print(node->numLit.token.pos);
+			printf("u");
+			break;
+		case NODE_FNUMBER_LIT:
+			TokenPosition_print(node->numLit.token.pos);
+			printf("f");
+			break;
 		case NODE_INFIX:
 			printf("(%s\n", InfixType_toString(node->infix.type));
 			printIndent(indent + 1);
@@ -121,6 +129,18 @@ static Node *parseAtom(TokenStream *tokens)
 			Node *node = Node_make();
 			node->type = NODE_NUMBER_LIT;
 			node->numLit.token = consumed;
+			return node;
+		}
+		case TOKEN_UNUMBER: {
+			Node *node = Node_make();
+			node->type = NODE_UNUMBER_LIT;
+			node->unumLit.token = consumed;
+			return node;
+		}
+		case TOKEN_FNUMBER: {
+			Node *node = Node_make();
+			node->type = NODE_FNUMBER_LIT;
+			node->fnumLit.token = consumed;
 			return node;
 		}
 		case TOKEN_SYMBOL: {

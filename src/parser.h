@@ -18,6 +18,8 @@ typedef enum {
 
 #define NODE_TYPE \
 	X(NUMBER_LIT) \
+	X(UNUMBER_LIT) \
+	X(FNUMBER_LIT) \
 	X(SYMBOL)     \
 	X(BLOCK)      \
 	X(INFIX)      \
@@ -34,7 +36,7 @@ typedef struct Node {
 	union {
 		struct {
 			Token token;
-		} numLit, symbol;
+		} numLit, unumLit, fnumLit, symbol;
 		struct {
 			struct Node **items;
 			size_t count, capacity;

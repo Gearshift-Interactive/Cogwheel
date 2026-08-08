@@ -6,6 +6,7 @@
 	/* atoms */ \
 	X(NUMBER) \
 	X(UNUMBER) \
+	X(FNUMBER) \
 	X(STRING) \
 	X(SYMBOL) \
 	/* infix */ \
