@@ -5,6 +5,7 @@
 #define TOKEN_TYPE \
 	/* atoms */ \
 	X(NUMBER) \
+	X(UNUMBER) \
 	X(STRING) \
 	X(SYMBOL) \
 	/* infix */ \
@@ -20,8 +21,12 @@
 	X(LBRACE) \
 	X(RBRACE) \
 	X(SEMICOLON) \
-	/* keywords */ \
-	X(LET) \
+	/* atomic types */ \
+	X(INT_T) \
+	X(UINT_T) \
+	X(FLOAT_T) \
+	X(BOOL_T) \
+	X(STRING_T) \
 
 
 typedef enum {

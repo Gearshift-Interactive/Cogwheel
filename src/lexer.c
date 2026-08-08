@@ -22,7 +22,11 @@ static const SymbolInfo PUNCTUATION[] = {
 	{ ";", TOKEN_SEMICOLON },
 };
 static const SymbolInfo KEYWORDS[] = {
-	{ "let", TOKEN_LET },
+	{ "int", TOKEN_INT_T },
+	{ "uint", TOKEN_UINT_T },
+	{ "float", TOKEN_FLOAT_T },
+	{ "string", TOKEN_STRING_T },
+	{ "bool", TOKEN_BOOL_T },
 };
 static const char LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char LETTERS_AND_NUMBERS[] =
@@ -92,13 +96,13 @@ static void Tokenizer_advance(Tokenizer *this) { assert(this);
 	this->offset += bytes_for_utf8[(uint8_t)*(this->text.data + this->offset)];
 }
 static bool Tokenizer_checkWhitespace(const Tokenizer *this) { assert(this);
-	return strchr(WHITESPACE, *(int *)(this->text.data + this->offset));
+	return strchr(WHITESPACE, *(this->text.data + this->offset));
 }
 static bool Tokenizer_checkSymbolBeginning(const Tokenizer *this) { assert(this);
-	return strchr(LETTERS, *(int *)(this->text.data + this->offset));
+	return strchr(LETTERS, *(this->text.data + this->offset));
 }
 static bool Tokenizer_checkSymbolContinueation(const Tokenizer *this) { assert(this);
-	return strchr(LETTERS_AND_NUMBERS, *(int *)(this->text.data + this->offset));
+	return strchr(LETTERS_AND_NUMBERS, *(this->text.data + this->offset));
 }
 static TokenType Tokenizer_matchSymbol(const Tokenizer *this, const TokenPosition pos) {
 	assert(this);
@@ -164,19 +168,28 @@ static Token Tokenizer_handleOperator(Tokenizer *this)
 	exit(0);
 }
 static bool Tokenizer_checkNumber(const Tokenizer *this) { assert(this);
-	return strchr(NUMBERS, *(int *)(this->text.data + this->offset));
+	return strchr(NUMBERS, *(this->text.data + this->offset));
+}
+static char Tokenizer_getCurrentChar(const Tokenizer *this) { assert(this);
+	return *(this->text.data + this->offset);
 }
 static Token Tokenizer_handleNumber(Tokenizer *this)
 {
 	const size_t start = this->offset;
 	size_t length = 0;
+	TokenType type = TOKEN_NUMBER;
 	while (Tokenizer_checkNumber(this))
 	{
 		length++;
 		Tokenizer_advance(this);
 	}
+	if (Tokenizer_getCurrentChar(this) == 'u')
+	{
+		Tokenizer_advance(this);
+		type = TOKEN_UNUMBER;
+	}
 	return (Token){
-		.type = TOKEN_NUMBER,
+		.type = type,
 		.pos = (TokenPosition){
 			.origin = this->origin,
 			.start = start,
