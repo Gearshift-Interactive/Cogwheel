@@ -194,6 +194,25 @@ static Token Tokenizer_handleNumber(Tokenizer *this)
 		Tokenizer_advance(this);
 		type = TOKEN_FNUMBER;
 	}
+	else if (curChar == '.')
+	{
+		Tokenizer_advance(this);
+		while (Tokenizer_checkNumber(this))
+		{
+			length++;
+			Tokenizer_advance(this);
+		}
+		length++;
+		char curChar = Tokenizer_getCurrentChar(this);
+		if (curChar == 'f')
+			Tokenizer_advance(this);
+		else if (curChar == 'u')
+		{
+			nob_log(ERROR, "Invaild \"u\" postfix");
+			exit(EXIT_FAILURE);
+		}
+		type = TOKEN_FNUMBER;
+	}
 	return (Token){
 		.type = type,
 		.pos = (TokenPosition){
