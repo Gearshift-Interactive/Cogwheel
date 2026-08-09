@@ -2,6 +2,8 @@
 
 #include "nob.h"
 
+#include <inttypes.h>
+
 typedef struct {
 	TokenType op;
 	float left, right;
@@ -63,16 +65,16 @@ static void Node_printImpl(const Node *node, const size_t indent)
 	switch (node->type)
 	{
 		case NODE_NUMBER_LIT:
+			printf("%"PRId64, node->numLit.value);
+			break;
 		case NODE_SYMBOL:
-			TokenPosition_print(node->numLit.token.pos);
+			TokenPosition_print(node->symbol.token.pos);
 			break;
 		case NODE_UNUMBER_LIT:
-			TokenPosition_print(node->numLit.token.pos);
-			printf("u");
+			printf("%"PRIu64"u", node->unumLit.value);
 			break;
 		case NODE_FNUMBER_LIT:
-			TokenPosition_print(node->numLit.token.pos);
-			printf("f");
+			printf("%ff", node->floatLit.value);
 			break;
 		case NODE_INFIX:
 			printf("(%s\n", InfixType_toString(node->infix.type));
@@ -120,6 +122,41 @@ void Node_free(const Node *node)
 	}
 	free((void*)node);
 }
+static int64_t parseNumber(Token token)
+{
+	int64_t result = 0;
+	for (size_t i = 0; i < token.pos.length; i++)
+		result = result * 10 + (*(token.pos.origin + token.pos.start + i) - '0');
+	return result;
+}
+static uint64_t parseUNumber(Token token)
+{
+	uint64_t result = 0;
+	for (size_t i = 0; i < token.pos.length; i++)
+		result = result * 10 + (*(token.pos.origin + token.pos.start + i) - '0');
+	return result;
+}
+static double parseFloat(Token token)
+{
+	const char *data = token.pos.origin + token.pos.start;
+	size_t length = token.pos.length;
+	double result = 0.0f;
+	size_t i = 0;
+	for (;i < length && data[i] >= '0' && data[i] <= '9'; i++)
+		result = result * 10.0f + (data[i] - '0');
+	if (i < length && data[i] == '.')
+	{
+		i++;
+		double factor = 0.1f;
+		while (i < length && data[i] >= '0' && data[i] <= '9')
+		{
+			result += (data[i] - '0') * factor;
+			factor *= 0.1f;
+			i++;
+		}
+	}
+	return result;
+}
 static Node *parseAtom(TokenStream *tokens)
 {
 	Token consumed = TokenStream_consume(tokens);
@@ -128,19 +165,19 @@ static Node *parseAtom(TokenStream *tokens)
 		case TOKEN_NUMBER: {
 			Node *node = Node_make();
 			node->type = NODE_NUMBER_LIT;
-			node->numLit.token = consumed;
+			node->numLit.value = parseNumber(consumed);
 			return node;
 		}
 		case TOKEN_UNUMBER: {
 			Node *node = Node_make();
 			node->type = NODE_UNUMBER_LIT;
-			node->unumLit.token = consumed;
+			node->unumLit.value = parseUNumber(consumed);
 			return node;
 		}
 		case TOKEN_FNUMBER: {
 			Node *node = Node_make();
 			node->type = NODE_FNUMBER_LIT;
-			node->fnumLit.token = consumed;
+			node->floatLit.value = parseFloat(consumed);
 			return node;
 		}
 		case TOKEN_SYMBOL: {

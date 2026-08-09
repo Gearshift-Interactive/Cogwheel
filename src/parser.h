@@ -16,14 +16,14 @@ typedef enum {
 #undef X
 } InfixType;
 
-#define NODE_TYPE \
-	X(NUMBER_LIT) \
+#define NODE_TYPE  \
+	X(NUMBER_LIT)  \
 	X(UNUMBER_LIT) \
 	X(FNUMBER_LIT) \
-	X(SYMBOL)     \
-	X(BLOCK)      \
-	X(INFIX)      \
-	X(LET)        \
+	X(SYMBOL)      \
+	X(BLOCK)       \
+	X(INFIX)       \
+	// X(LET)         \
 
 typedef enum {
 #define X(name) NODE_##name,
@@ -36,7 +36,10 @@ typedef struct Node {
 	union {
 		struct {
 			Token token;
-		} numLit, unumLit, fnumLit, symbol;
+		} symbol;
+		struct { int64_t value; } numLit;
+		struct { uint64_t value; } unumLit;
+		struct { double value; } floatLit;
 		struct {
 			struct Node **items;
 			size_t count, capacity;
