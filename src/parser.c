@@ -43,11 +43,11 @@ static BindingPower getBindingFor(TokenType tt)
 }
 static Node *Node_make()
 {
-	return (Node*)malloc(sizeof(Node));
+	return (Node*)calloc(sizeof(Node), 1);
 }
-static const char *InfixType_toString(InfixType it)
+const char *InfixType_toString(const InfixType *it)
 {
-	switch (it)
+	switch (*it)
 	{
 #define X(name, op) case INFIX_##name: return #op; break;
 	INFIX_TYPE
@@ -59,6 +59,16 @@ static void printIndent(const size_t indent)
 {
 	for (size_t i = 0; i < indent; i++)
 		printf("    ");
+}
+const char *ReturnType_toString(const ReturnType *rt)
+{
+	switch (rt->kind)
+	{
+#define X(NAME) case RET_##NAME: return #NAME;
+	RETURN_KINDS
+#undef X
+		default: return "INVALID";
+	}
 }
 static void Node_printImpl(const Node *node, const size_t indent)
 {
@@ -77,7 +87,7 @@ static void Node_printImpl(const Node *node, const size_t indent)
 			printf("%ff", node->floatLit.value);
 			break;
 		case NODE_INFIX:
-			printf("(%s\n", InfixType_toString(node->infix.type));
+			printf("(%s\n", InfixType_toString(&node->infix.type));
 			printIndent(indent + 1);
 			Node_printImpl(node->infix.left, indent + 1);
 			printf("\n");
@@ -97,18 +107,32 @@ static void Node_printImpl(const Node *node, const size_t indent)
 			printIndent(indent);
 			printf(")");
 			break;
+		case NODE_EXIT:
+			printf("(exit\n");
+			printIndent(indent + 1);
+			Node_printImpl(node->exit.value, indent + 1);
+			printf("\n");
+			printIndent(indent);
+			printf(")");
+			break;
 		default:
 			nob_log(ERROR, "Unexpected Node");
 			exit(EXIT_FAILURE);
 	}
+	if (node->retType.kind != RET_UNSET)
+		printf(" -> %s", ReturnType_toString(&node->retType));
 }
 void Node_print(const Node *node) { assert(node);
 	Node_printImpl(node, 0);
 }
 void Node_free(const Node *node)
 {
+	assert(node);
 	switch (node->type)
 	{
+		case NODE_EXIT:
+			Node_free(node->exit.value);
+			break;
 		case NODE_INFIX:
 			Node_free(node->infix.left);
 			Node_free(node->infix.right);
@@ -277,7 +301,10 @@ static Node *parseBlock(TokenStream *tokens)
 	return result;
 }
 Node *parse(TokenStream tokens) {
-	Node *result = parseBlockInside(&tokens);
+	// Node *result = parseBlockInside(&tokens);
+	Node *result = Node_make();
+	result->type = NODE_EXIT;
+	result->exit.value = parseExpr(&tokens, 0);
 	TokenStream_free(&tokens);
 	return result;
 }

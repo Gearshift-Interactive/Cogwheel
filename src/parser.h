@@ -23,13 +23,31 @@ typedef enum {
 	X(SYMBOL)      \
 	X(BLOCK)       \
 	X(INFIX)       \
+	X(EXIT)        \
 	// X(LET)         \
 
 typedef enum {
-#define X(name) NODE_##name,
+#define X(NAME) NODE_##NAME,
 	NODE_TYPE
 #undef X
 } NodeType;
+
+#define RETURN_KINDS \
+	X(VOID)  \
+	X(INT)   \
+	X(UINT)  \
+	X(FLOAT) \
+
+typedef enum {
+	RET_UNSET = 0,
+#define X(NAME) RET_##NAME,
+	RETURN_KINDS
+#undef X
+} ReturnKind;
+
+typedef struct {
+	ReturnKind kind;
+} ReturnType;
 
 typedef struct Node {
 	NodeType type;
@@ -52,9 +70,15 @@ typedef struct Node {
 			struct Node *assign;
 			bool mut;
 		} let;
+		struct {
+			struct Node *value;
+		} exit;
 	};
+	ReturnType retType;
 } Node;
 
+const char *InfixType_toString(const InfixType *);
+const char *ReturnType_toString(const ReturnType *);
 void Node_print(const Node *);
 void Node_free(const Node *);
 Node *parse(TokenStream tokens);
