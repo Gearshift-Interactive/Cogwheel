@@ -80,6 +80,8 @@ static void Task_build(size_t argc, char **argv)
 static void Task_run(size_t argc, char **argv)
 {
 	cmd_append(&cmd, FILE_BIN);
+	for (size_t i = 0; i < argc; i++)
+		cmd_append(&cmd, argv[i]);
 	if (!cmd_run(&cmd)) exit(1);
 }
 static bool recursiveDelete_callback(Walk_Entry file)
