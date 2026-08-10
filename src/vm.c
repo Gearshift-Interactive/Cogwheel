@@ -122,7 +122,7 @@ static Value Stack_pop(Stack *this)
 		nob_log(ERROR, "Stack is empty");
 		exit(EXIT_FAILURE);
 	}
-	return this->values[this->count--];
+	return this->values[--this->count];
 }
 static void Stack_free(const Stack *this)
 {
@@ -138,14 +138,16 @@ static size_t readSizeT(VM *vm, const Chunk *chunk)
 }
 static void runInstruction(VM *vm, const Chunk *chunk)
 {
-#define INFIX(TYPE, FIELD, OP) do { \
-	Value a = Stack_pop(&vm->stack); \
-	Value b = Stack_pop(&vm->stack); \
-	Stack_push(&vm->stack, (Value){ \
-		.type = TYPE, \
-		.FIELD = a.FIELD OP b.FIELD, \
-	}); \
-} while(0)
+#define INFIX(TYPE, FIELD, OP)               \
+    do {                                     \
+        Value rhs = Stack_pop(&vm->stack);   \
+        Value lhs = Stack_pop(&vm->stack);   \
+        Value result = {                     \
+            .type = (TYPE),                  \
+            .FIELD = lhs.FIELD OP rhs.FIELD, \
+        };                                   \
+        Stack_push(&vm->stack, result);      \
+    } while (0)
 	Opcode current = (Opcode)chunk->instr.code[vm->pc];
 	size_t index;
 	vm->pc++;
@@ -232,7 +234,9 @@ int run(const Chunk *chunk)
 	VM vm = {0};
 	while (!vm.done && vm.pc < chunk->instr.count)
 	{
+#ifdef DEBUG
 		Stack_print(&vm.stack);
+#endif
 		runInstruction(&vm, chunk);
 	}
 	Stack_free(&vm.stack);

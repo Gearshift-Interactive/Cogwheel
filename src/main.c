@@ -8,9 +8,9 @@
 
 #ifdef COG_STANDALONE
 
-int main(void)
+int main(int argc, char **argv)
 {
-	TokenStream tokens = tokenize("(12 - 2) / 2;");
+	TokenStream tokens = tokenize(argv[1]);
 #ifdef DEBUG
 	da_foreach(Token, i, &tokens)
 	{

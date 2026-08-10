@@ -6,7 +6,7 @@
 #define DIR_BIN "bin"
 #define DIR_BUILD "build"
 #define DIR_SRC "src"
-#define FILENAME_BIN "gsc"
+#define FILENAME_BIN "cogwheel"
 #define FILENAME_OBJ_NOB "nob.o"
 
 #define FILE_BIN DIR_BIN"/"FILENAME_BIN
