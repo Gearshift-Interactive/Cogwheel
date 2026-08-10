@@ -2,6 +2,19 @@
 
 #include "lexer.h"
 
+#define ATOM_TYPE     \
+	X(INT, int)       \
+	X(UINT, uint)     \
+	X(FLOAT, float)   \
+	X(STRING, string) \
+	X(BOOL, bool)     \
+
+typedef enum {
+#define X(NAME, SNAME) ATOM_##NAME,
+	ATOM_TYPE
+#undef X
+} AtomicType;
+
 #define INFIX_TYPE \
 	X(ASSIGN, =)   \
 	X(ADD, +)      \
@@ -24,6 +37,7 @@ typedef enum {
 	X(BLOCK)       \
 	X(INFIX)       \
 	X(EXIT)        \
+	X(CAST)        \
 	// X(LET)         \
 
 typedef enum {
@@ -73,10 +87,15 @@ typedef struct Node {
 		struct {
 			struct Node *value;
 		} exit;
+		struct {
+			struct Node *value;
+			AtomicType target;
+		} cast;
 	};
 	ReturnType retType;
 } Node;
 
+const char *AtomicType_toString(const AtomicType *);
 const char *InfixType_toString(const InfixType *);
 const char *ReturnType_toString(const ReturnType *);
 void Node_print(const Node *);

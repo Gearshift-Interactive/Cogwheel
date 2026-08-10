@@ -9,6 +9,16 @@ typedef struct {
 	float left, right;
 } BindingPower;
 
+static const struct {
+	TokenType tt;
+	AtomicType at;
+} TOKEN_TO_TYPE[] = {
+	{ TOKEN_INT_T, ATOM_INT },
+	{ TOKEN_UINT_T, ATOM_UINT },
+	{ TOKEN_FLOAT_T, ATOM_FLOAT },
+	{ TOKEN_BOOL_T, ATOM_BOOL },
+	{ TOKEN_STRING_T, ATOM_STRING },
+};
 static const BindingPower BINDING_POWERS[] = {
 	{ TOKEN_ASSIGN, 0.5f,  0.6f },
 	{ TOKEN_ADD,    6.0f,  6.1f },
@@ -19,10 +29,29 @@ static const BindingPower BINDING_POWERS[] = {
 	{ TOKEN_LPAREN, 11.0f, 11.1f },
 	{ TOKEN_RPAREN, 11.0f, 11.1f },
 };
+static const float CAST_BINDING_POWER = 15.0f;
 static const TokenType TAIL_TOKENS[] = {
 	TOKEN_SEMICOLON, TOKEN_RPAREN,
 };
+static const TokenType ATOMIC_TYPE_TOKENS[] = {
+	TOKEN_INT_T, TOKEN_UINT_T, TOKEN_FLOAT_T, TOKEN_BOOL_T, TOKEN_STRING_T
+};
 
+static AtomicType getCastTarget(TokenType tt)
+{
+	for (size_t i = 0; i < ARRAY_LEN(TOKEN_TO_TYPE); i++)
+		if (TOKEN_TO_TYPE[i].tt == tt)
+			return TOKEN_TO_TYPE[i].at;
+	nob_log(ERROR, "Invalid atomic type %s", TokenType_toString(tt));
+	exit(EXIT_FAILURE);
+}
+static bool TokenType_isAtomicType(TokenType tt)
+{
+	for (size_t i = 0; i < ARRAY_LEN(ATOMIC_TYPE_TOKENS); i++)
+		if (ATOMIC_TYPE_TOKENS[i] == tt)
+			return true;
+	return false;
+}
 static Token TokenStream_consumeExpect(TokenStream *this, TokenType tt)
 {
 	Token token = TokenStream_consume(this);
@@ -44,6 +73,15 @@ static BindingPower getBindingFor(TokenType tt)
 static Node *Node_make()
 {
 	return (Node*)calloc(sizeof(Node), 1);
+}
+const char *AtomicType_toString(const AtomicType *at)
+{
+	switch (*at)
+	{
+#define X(NAME, SNAME) case ATOM_##NAME: return #SNAME;
+	ATOM_TYPE
+#undef X
+	}
 }
 const char *InfixType_toString(const InfixType *it)
 {
@@ -115,6 +153,13 @@ static void Node_printImpl(const Node *node, const size_t indent)
 			printIndent(indent);
 			printf(")");
 			break;
+		case NODE_CAST:
+			printf("(%s\n", AtomicType_toString(&node->cast.target));
+			printIndent(indent + 1);
+			Node_printImpl(node->cast.value, indent + 1);
+			printf("\n");
+			printIndent(indent);
+			printf(")");
 		default:
 			nob_log(ERROR, "Unexpected Node");
 			exit(EXIT_FAILURE);
@@ -243,12 +288,27 @@ static bool isTailToken(TokenType tt)
 static Node *parseExpr(TokenStream *tokens, float parentBind);
 static Node *parseExprHead(TokenStream *tokens)
 {
-	if (TokenStream_peek(tokens)->type == TOKEN_LPAREN)
+	Token *peek = TokenStream_peek(tokens);
+	if (peek->type == TOKEN_LPAREN)
 	{
 		TokenStream_consumeExpect(tokens, TOKEN_LPAREN);
-		Node *right = parseExpr(tokens, 0);
-		TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
-		return right;
+		peek = TokenStream_peek(tokens);
+		Node *result = NULL;
+		if (TokenType_isAtomicType(peek->type))
+		{
+			TokenStream_consumeExpect(tokens, peek->type);
+			TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
+			Node *value = parseExpr(tokens, CAST_BINDING_POWER);
+			result = Node_make();
+			result->type = NODE_CAST;
+			result->cast.value = value;
+			result->cast.target = getCastTarget(peek->type);
+		}
+		else {
+			result = parseExpr(tokens, 0);
+			TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
+		}
+		return result;
 	}
 	return parseAtom(tokens);
 }
