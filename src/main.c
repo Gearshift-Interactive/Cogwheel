@@ -10,7 +10,7 @@
 
 int main(void)
 {
-	TokenStream tokens = tokenize("(12 + 3) / 2;");
+	TokenStream tokens = tokenize("(12 - 2) / 2;");
 #ifdef DEBUG
 	da_foreach(Token, i, &tokens)
 	{
@@ -32,8 +32,7 @@ int main(void)
 #ifdef DEBUG
 	Chunk_print(&code);
 #endif
-	Chunk_free(&code);
-    return 0;
+    return run(&code);
 }
 
 #endif

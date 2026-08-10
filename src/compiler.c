@@ -115,12 +115,14 @@ static void compileNode(Chunk *this, const Node *node)
 			exit(EXIT_FAILURE);
 			break;
 		case NODE_BLOCK:
-			da_foreach(struct Node*, child, &node->block)
-			{
-				compileNode(this, *child);
-				da_append(&this->instr, OP_POP);
-			}
-			da_append(&this->instr, OP_RETURN);
+			nob_log(ERROR, "Dont support blocks yet");
+			exit(EXIT_FAILURE);
+			// da_foreach(struct Node*, child, &node->block)
+			// {
+			// 	compileNode(this, *child);
+			// 	da_append(&this->instr, OP_POP);
+			// }
+			// da_append(&this->instr, OP_RETURN);
 			break;
 		case NODE_INFIX:
 			compileInfix(this, node);
