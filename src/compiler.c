@@ -2,6 +2,55 @@
 
 static void compileNode(Chunk *this, const Node *node);
 
+static void compileCast(Chunk *this, const Node *node)
+{
+	Opcode op = OP_NOOP;
+	switch (node->cast.target)
+	{
+	case ATOM_INT:
+		switch (node->cast.value->retType.kind)
+		{
+		case RET_UINT:
+			op = OP_CAST_UTOI;
+			break;
+		case RET_FLOAT:
+			op = OP_CAST_FTOI;
+			break;
+		default: {}
+		}
+		break;
+	case ATOM_UINT:
+		switch (node->cast.value->retType.kind)
+		{
+		case RET_INT:
+			op = OP_CAST_ITOU;
+			break;
+		case RET_FLOAT:
+			op = OP_CAST_FTOU;
+			break;
+		default: {}
+		}
+		break;
+	case ATOM_FLOAT:
+		switch (node->cast.value->retType.kind)
+		{
+		case RET_INT:
+			op = OP_CAST_ITOF;
+			break;
+		case RET_UINT:
+			op = OP_CAST_UTOF;
+			break;
+		default: {}
+		}
+		break;
+	case ATOM_STRING:
+		break;
+	case ATOM_BOOL:
+		break;
+	}
+	da_append(&this->instr, op);
+}
+
 static void compileInfix(Chunk *this, const Node *node)
 {
 	compileNode(this, node->infix.left);
@@ -131,6 +180,9 @@ static void compileNode(Chunk *this, const Node *node)
 			compileNode(this, node->exit.value);
 			da_append(&this->instr, (uint8_t)OP_EXIT);
 			break;
+		case NODE_CAST:
+			compileNode(this, node->cast.value);
+			compileCast(this, node);
 	}
 }
 

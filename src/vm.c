@@ -226,6 +226,46 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			nob_log(ERROR, "power is unsopported yet");
 			exit(EXIT_FAILURE);
 			break;
+		case OP_CAST_ITOU:
+			Stack_push(&vm->stack, (Value){
+				.type = VALUE_UINT,
+				.v_uint = (uint64_t)Stack_pop(&vm->stack).v_int,
+			});
+			break;
+		case OP_CAST_ITOF:
+			Stack_push(&vm->stack, (Value){
+				.type = VALUE_FLOAT,
+				.v_float = (double)Stack_pop(&vm->stack).v_int,
+			});
+			break;
+		case OP_CAST_UTOI:
+			Stack_push(&vm->stack, (Value){
+				.type = VALUE_INT,
+				.v_int = (int64_t)Stack_pop(&vm->stack).v_uint,
+			});
+			break;
+		case OP_CAST_UTOF:
+			Stack_push(&vm->stack, (Value){
+				.type = VALUE_FLOAT,
+				.v_float = (double)Stack_pop(&vm->stack).v_uint,
+			});
+			break;
+		case OP_CAST_FTOI:
+			Stack_push(&vm->stack, (Value){
+				.type = VALUE_INT,
+				.v_int = (int64_t)Stack_pop(&vm->stack).v_float,
+			});
+			break;
+		case OP_CAST_FTOU:
+			Stack_push(&vm->stack, (Value){
+				.type = VALUE_UINT,
+				.v_uint = (uint64_t)Stack_pop(&vm->stack).v_float,
+			});
+			break;
+		default:
+			nob_log(ERROR, "Unsupported operation at %d", vm->pc - 1);
+			exit(EXIT_FAILURE);
+			break;
 	}
 #undef INFIX
 }

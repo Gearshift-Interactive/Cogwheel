@@ -36,6 +36,7 @@ typedef enum {
 	X(SYMBOL)      \
 	X(BLOCK)       \
 	X(INFIX)       \
+	X(NEGATION)    \
 	X(EXIT)        \
 	X(CAST)        \
 	// X(LET)         \
@@ -86,7 +87,7 @@ typedef struct Node {
 		} let;
 		struct {
 			struct Node *value;
-		} exit;
+		} exit, negation;
 		struct {
 			struct Node *value;
 			AtomicType target;

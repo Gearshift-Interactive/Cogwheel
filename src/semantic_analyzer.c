@@ -1,5 +1,23 @@
 #include "semantic_analyzer.h"
 
+static const struct {
+	AtomicType at;
+	ReturnKind rt;
+} ATOMIC_TO_RETURN[] = {
+	{ ATOM_INT, RET_INT },
+	{ ATOM_UINT, RET_UINT },
+	{ ATOM_FLOAT, RET_FLOAT },
+};
+
+static ReturnKind atomToReturn(AtomicType at)
+{
+	for (size_t i = 0; i < ARRAY_LEN(ATOMIC_TO_RETURN); i++)
+		if (ATOMIC_TO_RETURN[i].at == at)
+			return ATOMIC_TO_RETURN[i].rt;
+	nob_log(ERROR, "Invalid ATOM");
+	exit(EXIT_FAILURE);
+}
+
 static void mark(Node *node)
 {
 	struct Node *left, *right;
@@ -46,6 +64,10 @@ static void mark(Node *node)
 			mark(node->exit.value);
 			node->retType.kind = RET_VOID;
 			break;
+		case NODE_CAST:
+			mark(node->cast.value);
+			node->retType.kind = atomToReturn(node->cast.target);
+			break;
 	}
 }
 static void analyze(Node *node)
@@ -59,6 +81,11 @@ static void analyze(Node *node)
 				exit(EXIT_FAILURE);
 			}
 			break;
+		case NODE_CAST:
+			if (node->retType.kind == node->cast.value->retType.kind)
+				nob_log(WARNING, "Casting %s to %s is not necessary",
+					ReturnType_toString(&node->retType),
+					ReturnType_toString(&node->cast.value->retType));
 		default: {}
 	}
 }

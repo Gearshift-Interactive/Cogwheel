@@ -9,6 +9,11 @@ typedef struct {
 	float left, right;
 } BindingPower;
 
+typedef struct {
+	TokenType op;
+	float power;
+} PrefixBindingPower;
+
 static const struct {
 	TokenType tt;
 	AtomicType at;
@@ -28,6 +33,9 @@ static const BindingPower BINDING_POWERS[] = {
 	{ TOKEN_POW,    10.1f, 10.0f },
 	{ TOKEN_LPAREN, 11.0f, 11.1f },
 	{ TOKEN_RPAREN, 11.0f, 11.1f },
+};
+static const PrefixBindingPower PREFIX_POWERS[] = {
+	{ TOKEN_SUB, 8.0f },
 };
 static const float CAST_BINDING_POWER = 15.0f;
 static const TokenType TAIL_TOKENS[] = {
@@ -67,6 +75,14 @@ static BindingPower getBindingFor(TokenType tt)
 	for (size_t i = 0; i < ARRAY_LEN(BINDING_POWERS); i++)
 		if (BINDING_POWERS[i].op == tt)
 			return BINDING_POWERS[i];
+	nob_log(ERROR, "Unexpected TokenType");
+	exit(EXIT_FAILURE);
+}
+static PrefixBindingPower getPrefixBindingFor(TokenType tt)
+{
+	for (size_t i = 0; i < ARRAY_LEN(PREFIX_POWERS); i++)
+		if (PREFIX_POWERS[i].op == tt)
+			return PREFIX_POWERS[i];
 	nob_log(ERROR, "Unexpected TokenType");
 	exit(EXIT_FAILURE);
 }
@@ -160,6 +176,15 @@ static void Node_printImpl(const Node *node, const size_t indent)
 			printf("\n");
 			printIndent(indent);
 			printf(")");
+			break;
+		case NODE_NEGATION:
+			printf("(-\n");
+			printIndent(indent + 1);
+			Node_printImpl(node->negation.value, indent + 1);
+			printf("\n");
+			printIndent(indent);
+			printf(")");
+			break;
 		default:
 			nob_log(ERROR, "Unexpected Node");
 			exit(EXIT_FAILURE);
@@ -175,6 +200,8 @@ void Node_free(const Node *node)
 	assert(node);
 	switch (node->type)
 	{
+		case NODE_CAST:
+		case NODE_NEGATION:
 		case NODE_EXIT:
 			Node_free(node->exit.value);
 			break;
@@ -294,7 +321,7 @@ static Node *parseExprHead(TokenStream *tokens)
 		TokenStream_consumeExpect(tokens, TOKEN_LPAREN);
 		peek = TokenStream_peek(tokens);
 		Node *result = NULL;
-		if (TokenType_isAtomicType(peek->type))
+		if (TokenType_isAtomicType(peek->type)) // check cast
 		{
 			TokenStream_consumeExpect(tokens, peek->type);
 			TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
@@ -308,6 +335,16 @@ static Node *parseExprHead(TokenStream *tokens)
 			result = parseExpr(tokens, 0);
 			TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
 		}
+		return result;
+	}
+	else if (peek->type == TOKEN_SUB)
+	{
+		TokenStream_consumeExpect(tokens, peek->type);
+		float bind = getPrefixBindingFor(peek->type).power;
+		Node *result = Node_make();
+		result->type = NODE_NEGATION;
+		result->negation.value = parseExpr(tokens, bind);
+		// TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
 		return result;
 	}
 	return parseAtom(tokens);
