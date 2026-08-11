@@ -183,6 +183,19 @@ static void compileNode(Chunk *this, const Node *node)
 		case NODE_CAST:
 			compileNode(this, node->cast.value);
 			compileCast(this, node);
+			break;
+		case NODE_NEGATION:
+			compileNode(this, node->negation.value);
+			switch (node->retType.kind)
+			{
+				case (RET_INT):
+					da_append(&this->instr, (uint8_t)OP_NEG_INT);
+					break;
+				case (RET_FLOAT):
+					da_append(&this->instr, (uint8_t)OP_NEG_FLOAT);
+					break;
+			}
+			break;
 	}
 }
 

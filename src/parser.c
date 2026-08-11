@@ -26,8 +26,8 @@ static const struct {
 };
 static const BindingPower BINDING_POWERS[] = {
 	{ TOKEN_ASSIGN, 0.5f,  0.6f },
+	{ TOKEN_SUB,    5.0f,  5.1f },
 	{ TOKEN_ADD,    6.0f,  6.1f },
-	{ TOKEN_SUB,    6.0f,  6.1f },
 	{ TOKEN_MUL,    7.0f,  7.1f },
 	{ TOKEN_DIV,    7.0f,  7.1f },
 	{ TOKEN_POW,    10.1f, 10.0f },

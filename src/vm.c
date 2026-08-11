@@ -262,6 +262,18 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 				.v_uint = (uint64_t)Stack_pop(&vm->stack).v_float,
 			});
 			break;
+		case OP_NEG_INT:
+			Stack_push(&vm->stack, (Value){
+				.type = VALUE_INT,
+				.v_int = -(int64_t)Stack_pop(&vm->stack).v_int,
+			});
+			break;
+		case OP_NEG_FLOAT:
+			Stack_push(&vm->stack, (Value){
+				.type = VALUE_FLOAT,
+				.v_float = -(double)Stack_pop(&vm->stack).v_float,
+			});
+			break;
 		default:
 			nob_log(ERROR, "Unsupported operation at %d", vm->pc - 1);
 			exit(EXIT_FAILURE);

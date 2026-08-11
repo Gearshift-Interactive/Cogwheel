@@ -68,24 +68,47 @@ static void mark(Node *node)
 			mark(node->cast.value);
 			node->retType.kind = atomToReturn(node->cast.target);
 			break;
+		case NODE_NEGATION:
+			mark(node->negation.value);
+			node->retType.kind = node->negation.value->retType.kind;
+			break;
 	}
 }
 static void analyze(Node *node)
 {
 	switch (node->type)
 	{
+		case NODE_BLOCK:
+			da_foreach(Node*, child, &node->block)
+				analyze(*child);
+			break;
+		case NODE_INFIX:
+			analyze(node->infix.left);
+			analyze(node->infix.right);
 		case NODE_EXIT:
 			if (node->exit.value->retType.kind != RET_INT)
 			{
 				nob_log(ERROR, "Cant exit with non-int value");
 				exit(EXIT_FAILURE);
 			}
+			analyze(node->exit.value);
 			break;
 		case NODE_CAST:
 			if (node->retType.kind == node->cast.value->retType.kind)
 				nob_log(WARNING, "Casting %s to %s is not necessary",
 					ReturnType_toString(&node->retType),
 					ReturnType_toString(&node->cast.value->retType));
+			analyze(node->cast.value);
+			break;
+		case NODE_NEGATION:
+			if (node->negation.value->retType.kind != RET_INT &&
+				node->negation.value->retType.kind != RET_FLOAT)
+			{
+				nob_log(ERROR, "Cannot negate %s", ReturnType_toString(&node->retType));
+				exit(EXIT_FAILURE);
+			}
+			analyze(node->negation.value);
+			break;
 		default: {}
 	}
 }

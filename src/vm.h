@@ -30,6 +30,9 @@
 	X(POW_INT, 0)                   \
 	X(POW_UINT, 0)                  \
 	X(POW_FLOAT, 0)                 \
+	/* negation */                  \
+	X(NEG_INT, 0)                   \
+	X(NEG_FLOAT, 0)                 \
 	/* cast */                      \
 	X(CAST_ITOU, 0)/*int to uint*/  \
 	X(CAST_ITOF, 0)/*int to float*/ \
