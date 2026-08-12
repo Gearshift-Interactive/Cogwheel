@@ -15,6 +15,23 @@ typedef enum {
 #undef X
 } AtomicType;
 
+#define TYPE_KINDS  \
+	X(VOID, void)   \
+	X(INT, int)     \
+	X(UINT, uint)   \
+	X(FLOAT, float) \
+
+typedef enum {
+#define X(NAME, LITERAL) TYPE_##NAME,
+	TYPE_KINDS
+#undef X
+} TypeKind;
+
+typedef struct Type {
+	TypeKind kind;
+	// union {};
+} Type;
+
 #define INFIX_TYPE \
 	X(ASSIGN, =)   \
 	X(ADD, +)      \
@@ -90,15 +107,21 @@ typedef struct Node {
 		} exit, negation;
 		struct {
 			struct Node *value;
-			AtomicType target;
+			Type *target;
 		} cast;
 	};
-	ReturnType retType;
+	Type *retType;
 } Node;
+
+extern Type TYPE_INT_OBJ;
+extern Type TYPE_UINT_OBJ;
+extern Type TYPE_FLOAT_OBJ;
+extern Type TYPE_VOID_OBJ;
 
 const char *AtomicType_toString(const AtomicType *);
 const char *InfixType_toString(const InfixType *);
 const char *ReturnType_toString(const ReturnType *);
+const char *Type_toString(const Type *);
 void Node_print(const Node *);
 void Node_free(const Node *);
 Node *parse(TokenStream tokens);

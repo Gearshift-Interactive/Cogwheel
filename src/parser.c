@@ -16,13 +16,13 @@ typedef struct {
 
 static const struct {
 	TokenType tt;
-	AtomicType at;
+	Type *t;
 } TOKEN_TO_TYPE[] = {
-	{ TOKEN_INT_T, ATOM_INT },
-	{ TOKEN_UINT_T, ATOM_UINT },
-	{ TOKEN_FLOAT_T, ATOM_FLOAT },
-	{ TOKEN_BOOL_T, ATOM_BOOL },
-	{ TOKEN_STRING_T, ATOM_STRING },
+	{ TOKEN_INT_T, &TYPE_INT_OBJ },
+	{ TOKEN_UINT_T, &TYPE_UINT_OBJ },
+	{ TOKEN_FLOAT_T, &TYPE_FLOAT_OBJ },
+	// { TOKEN_BOOL_T, ATOM_BOOL },
+	// { TOKEN_STRING_T, ATOM_STRING },
 };
 static const BindingPower BINDING_POWERS[] = {
 	{ TOKEN_ASSIGN, 0.5f,  0.6f },
@@ -45,11 +45,11 @@ static const TokenType ATOMIC_TYPE_TOKENS[] = {
 	TOKEN_INT_T, TOKEN_UINT_T, TOKEN_FLOAT_T, TOKEN_BOOL_T, TOKEN_STRING_T
 };
 
-static AtomicType getCastTarget(TokenType tt)
+static Type *getCastTarget(TokenType tt)
 {
 	for (size_t i = 0; i < ARRAY_LEN(TOKEN_TO_TYPE); i++)
 		if (TOKEN_TO_TYPE[i].tt == tt)
-			return TOKEN_TO_TYPE[i].at;
+			return TOKEN_TO_TYPE[i].t;
 	nob_log(ERROR, "Invalid atomic type %s", TokenType_toString(tt));
 	exit(EXIT_FAILURE);
 }
@@ -90,6 +90,19 @@ static Node *Node_make()
 {
 	return (Node*)calloc(sizeof(Node), 1);
 }
+Type TYPE_INT_OBJ = {
+	.kind = TYPE_INT,
+};
+Type TYPE_UINT_OBJ = {
+	.kind = TYPE_UINT,
+};
+Type TYPE_FLOAT_OBJ = {
+	.kind = TYPE_FLOAT,
+};
+Type TYPE_VOID_OBJ = {
+	.kind = TYPE_VOID,
+};
+
 const char *AtomicType_toString(const AtomicType *at)
 {
 	switch (*at)
@@ -120,6 +133,16 @@ const char *ReturnType_toString(const ReturnType *rt)
 	{
 #define X(NAME) case RET_##NAME: return #NAME;
 	RETURN_KINDS
+#undef X
+		default: return "INVALID";
+	}
+}
+const char *Type_toString(const Type *t)
+{
+	switch (t->kind)
+	{
+#define X(NAME, LITERAL) case TYPE_##NAME: return #NAME;
+	TYPE_KINDS
 #undef X
 		default: return "INVALID";
 	}
@@ -170,7 +193,7 @@ static void Node_printImpl(const Node *node, const size_t indent)
 			printf(")");
 			break;
 		case NODE_CAST:
-			printf("(%s\n", AtomicType_toString(&node->cast.target));
+			printf("(%s\n", Type_toString(node->cast.target));
 			printIndent(indent + 1);
 			Node_printImpl(node->cast.value, indent + 1);
 			printf("\n");
@@ -189,8 +212,8 @@ static void Node_printImpl(const Node *node, const size_t indent)
 			nob_log(ERROR, "Unexpected Node");
 			exit(EXIT_FAILURE);
 	}
-	if (node->retType.kind != RET_UNSET)
-		printf(" -> %s", ReturnType_toString(&node->retType));
+	if (node->retType)
+		printf(" -> %s", Type_toString(node->retType));
 }
 void Node_print(const Node *node) { assert(node);
 	Node_printImpl(node, 0);
