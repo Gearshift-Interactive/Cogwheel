@@ -4,7 +4,7 @@
 
 #define OPCODE_TYPE                 \
 	/*X(RETURN, 0)*/                \
-	/*X(POP, 0)*/                   \
+	X(POP, 0)                       \
 	X(EXIT, 0)                      \
 	/* load const */                \
 	X(CLOAD_INT, sizeof(size_t))    \

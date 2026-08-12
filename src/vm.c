@@ -329,6 +329,9 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 				.v_float = -(double)Stack_pop(&vm->stack).v_float,
 			});
 			break;
+		case OP_POP:
+			Stack_pop(&vm->stack);
+			break;
 		default:
 			nob_log(ERROR, "Unsupported operation at %ld", vm->pc - 1);
 			exit(EXIT_FAILURE);

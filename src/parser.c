@@ -402,10 +402,10 @@ __attribute__((unused)) static Node *parseBlock(TokenStream *tokens)
 	return result;
 }
 Node *parse(TokenStream tokens) {
-	// Node *result = parseBlockInside(&tokens);
-	Node *result = Node_make();
-	result->type = NODE_EXIT;
-	result->exit.value = parseExpr(&tokens, 0);
+	Node *result = parseBlockInside(&tokens);
+	// Node *result = Node_make();
+	// result->type = NODE_EXIT;
+	// result->exit.value = parseExpr(&tokens, 0);
 	TokenStream_free(&tokens);
 	return result;
 }
