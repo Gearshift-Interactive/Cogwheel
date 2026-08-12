@@ -3,17 +3,23 @@
 #include <inttypes.h>
 #include <math.h>
 
-typedef struct {
+typedef
+#ifdef DEBUG
+  struct {
 	enum {
 		VALUE_INT,
 		VALUE_UINT,
 		VALUE_FLOAT,
-	} type;
+	}
+	type;
+#endif
 	union {
 		int64_t v_int;
 		uint64_t v_uint;
 		double v_float;
+#ifdef DEBUG
 	};
+#endif
 } Value;
 
 typedef struct {
@@ -72,6 +78,7 @@ void Chunk_print(const Chunk *this)
 }
 static void Value_print(const Value *this)
 {
+#ifdef DEBUG
 	switch (this->type)
 	{
 		case VALUE_INT:
@@ -84,6 +91,9 @@ static void Value_print(const Value *this)
 			printf("FLOAT(%f)\n", this->v_float);
 			break;
 	}
+#else
+	printf("There is no reflection at runtime without -DDEBUG");
+#endif
 }
 static void Stack_print(const Stack *this)
 {
@@ -138,16 +148,28 @@ static size_t readSizeT(VM *vm, const Chunk *chunk)
 }
 static void runInstruction(VM *vm, const Chunk *chunk)
 {
-#define INFIX(TYPE, FIELD, OP)               \
-    do {                                     \
-        Value rhs = Stack_pop(&vm->stack);   \
-        Value lhs = Stack_pop(&vm->stack);   \
-        Value result = {                     \
-            .type = (TYPE),                  \
-            .FIELD = lhs.FIELD OP rhs.FIELD, \
-        };                                   \
-        Stack_push(&vm->stack, result);      \
-    } while (0)
+#ifdef DEBUG
+#	define INFIX(TYPE, FIELD, OP)               \
+		do {                                     \
+			Value rhs = Stack_pop(&vm->stack);   \
+			Value lhs = Stack_pop(&vm->stack);   \
+			Value result = {                     \
+				.type = (TYPE),                  \
+				.FIELD = lhs.FIELD OP rhs.FIELD, \
+			};                                   \
+			Stack_push(&vm->stack, result);      \
+		} while (0)
+#else
+#	define INFIX(TYPE, FIELD, OP)               \
+		do {                                     \
+			Value rhs = Stack_pop(&vm->stack);   \
+			Value lhs = Stack_pop(&vm->stack);   \
+			Value result = {                     \
+				.FIELD = lhs.FIELD OP rhs.FIELD, \
+			};                                   \
+			Stack_push(&vm->stack, result);      \
+		} while (0)
+#endif
 	Opcode current = (Opcode)chunk->instr.code[vm->pc];
 	size_t index;
 	vm->pc++;
@@ -160,21 +182,27 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		case OP_CLOAD_INT:
 			index = readSizeT(vm, chunk);
 			Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
 				.type = VALUE_INT,
+#endif
 				.v_int = chunk->intConsts.items[index],
 			});
 			break;
 		case OP_CLOAD_UINT:
 			index = readSizeT(vm, chunk);
 			Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
 				.type = VALUE_UINT,
+#endif
 				.v_uint = chunk->uintConsts.items[index],
 			});
 			break;
 		case OP_CLOAD_FLOAT:
 			index = readSizeT(vm, chunk);
 			Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
 				.type = VALUE_FLOAT,
+#endif
 				.v_float = chunk->floatConsts.items[index],
 			});
 			break;
@@ -228,49 +256,65 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			break;
 		case OP_CAST_ITOU:
 			Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
 				.type = VALUE_UINT,
+#endif
 				.v_uint = (uint64_t)Stack_pop(&vm->stack).v_int,
 			});
 			break;
 		case OP_CAST_ITOF:
 			Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
 				.type = VALUE_FLOAT,
+#endif
 				.v_float = (double)Stack_pop(&vm->stack).v_int,
 			});
 			break;
 		case OP_CAST_UTOI:
 			Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
 				.type = VALUE_INT,
+#endif
 				.v_int = (int64_t)Stack_pop(&vm->stack).v_uint,
 			});
 			break;
 		case OP_CAST_UTOF:
 			Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
 				.type = VALUE_FLOAT,
+#endif
 				.v_float = (double)Stack_pop(&vm->stack).v_uint,
 			});
 			break;
 		case OP_CAST_FTOI:
 			Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
 				.type = VALUE_INT,
+#endif
 				.v_int = (int64_t)Stack_pop(&vm->stack).v_float,
 			});
 			break;
 		case OP_CAST_FTOU:
 			Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
 				.type = VALUE_UINT,
+#endif
 				.v_uint = (uint64_t)Stack_pop(&vm->stack).v_float,
 			});
 			break;
 		case OP_NEG_INT:
 			Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
 				.type = VALUE_INT,
+#endif
 				.v_int = -(int64_t)Stack_pop(&vm->stack).v_int,
 			});
 			break;
 		case OP_NEG_FLOAT:
 			Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
 				.type = VALUE_FLOAT,
+#endif
 				.v_float = -(double)Stack_pop(&vm->stack).v_float,
 			});
 			break;
