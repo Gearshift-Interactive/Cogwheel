@@ -122,7 +122,7 @@ const char *Type_toString(const Type *t)
 {
 	switch (t->kind)
 	{
-#define X(NAME, LITERAL) case TYPE_##NAME: return #NAME;
+#define X(NAME, LITERAL) case TYPE_##NAME: return #LITERAL;
 	TYPE_KINDS
 #undef X
 		default: return "INVALID";

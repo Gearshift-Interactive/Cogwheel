@@ -3,15 +3,14 @@
 #include <inttypes.h>
 #include <math.h>
 
+#ifdef DEBUG
+#	include "parser.h"
+#endif
+
 typedef
 #ifdef DEBUG
   struct {
-	enum {
-		VALUE_INT,
-		VALUE_UINT,
-		VALUE_FLOAT,
-	}
-	type;
+	Type *type;
 #endif
 	union {
 		int64_t v_int;
@@ -80,17 +79,20 @@ void Chunk_print(const Chunk *this)
 static void Value_print(const Value *this)
 {
 #ifdef DEBUG
-	switch (this->type)
+	printf("%s", Type_toString(this->type));
+	switch (this->type->kind)
 	{
-		case VALUE_INT:
-			printf("INT(%"PRId64")\n", this->v_int);
+		case TYPE_INT:
+			printf("(%"PRId64")\n", this->v_int);
 			break;
-		case VALUE_UINT:
-			printf("UINT(%"PRIu64")\n", this->v_uint);
+		case TYPE_UINT:
+			printf("(%"PRIu64")\n", this->v_uint);
 			break;
-		case VALUE_FLOAT:
-			printf("FLOAT(%f)\n", this->v_float);
+		case TYPE_FLOAT:
+			printf("(%f)\n", this->v_float);
 			break;
+		case TYPE_VOID:
+			exit(EXIT_FAILURE);
 	}
 #else
 	printf("There is no reflection at runtime without -DDEBUG");
@@ -194,7 +196,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			index = readSizeT(vm, chunk);
 			Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = VALUE_INT,
+				.type = &TYPE_INT_OBJ,
 #endif
 				.v_int = chunk->intConsts.items[index],
 			});
@@ -203,7 +205,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			index = readSizeT(vm, chunk);
 			Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = VALUE_UINT,
+				.type = &TYPE_UINT_OBJ,
 #endif
 				.v_uint = chunk->uintConsts.items[index],
 			});
@@ -212,46 +214,46 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			index = readSizeT(vm, chunk);
 			Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = VALUE_FLOAT,
+				.type = &TYPE_FLOAT_OBJ,
 #endif
 				.v_float = chunk->floatConsts.items[index],
 			});
 			break;
 		case OP_ADD_INT:
-			INFIX(VALUE_INT, v_int, +);
+			INFIX(&TYPE_INT_OBJ, v_int, +);
 			break;
 		case OP_ADD_UINT:
-			INFIX(VALUE_UINT, v_uint, +);
+			INFIX(&TYPE_UINT_OBJ, v_uint, +);
 			break;
 		case OP_ADD_FLOAT:
-			INFIX(VALUE_FLOAT, v_float, +);
+			INFIX(&TYPE_FLOAT_OBJ, v_float, +);
 			break;
 		case OP_SUB_INT:
-			INFIX(VALUE_INT, v_int, -);
+			INFIX(&TYPE_INT_OBJ, v_int, -);
 			break;
 		case OP_SUB_UINT:
-			INFIX(VALUE_UINT, v_uint, -);
+			INFIX(&TYPE_UINT_OBJ, v_uint, -);
 			break;
 		case OP_SUB_FLOAT:
-			INFIX(VALUE_FLOAT, v_float, -);
+			INFIX(&TYPE_FLOAT_OBJ, v_float, -);
 			break;
 		case OP_DIV_INT:
-			INFIX(VALUE_INT, v_int, /);
+			INFIX(&TYPE_INT_OBJ, v_int, /);
 			break;
 		case OP_DIV_UINT:
-			INFIX(VALUE_UINT, v_uint, /);
+			INFIX(&TYPE_UINT_OBJ, v_uint, /);
 			break;
 		case OP_DIV_FLOAT:
-			INFIX(VALUE_FLOAT, v_float, /);
+			INFIX(&TYPE_FLOAT_OBJ, v_float, /);
 			break;
 		case OP_MUL_INT:
-			INFIX(VALUE_INT, v_int, *);
+			INFIX(&TYPE_INT_OBJ, v_int, *);
 			break;
 		case OP_MUL_UINT:
-			INFIX(VALUE_UINT, v_uint, *);
+			INFIX(&TYPE_UINT_OBJ, v_uint, *);
 			break;
 		case OP_MUL_FLOAT:
-			INFIX(VALUE_FLOAT, v_float, *);
+			INFIX(&TYPE_FLOAT_OBJ, v_float, *);
 			break;
 		case OP_POW_INT:
 			nob_log(ERROR, "power is unsopported yet");
@@ -268,7 +270,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		case OP_CAST_ITOU:
 			Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = VALUE_UINT,
+				.type = &TYPE_UINT_OBJ,
 #endif
 				.v_uint = (uint64_t)Stack_pop(&vm->stack).v_int,
 			});
@@ -276,7 +278,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		case OP_CAST_ITOF:
 			Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = VALUE_FLOAT,
+				.type = &TYPE_FLOAT_OBJ,
 #endif
 				.v_float = (double)Stack_pop(&vm->stack).v_int,
 			});
@@ -284,7 +286,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		case OP_CAST_UTOI:
 			Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = VALUE_INT,
+				.type = &TYPE_INT_OBJ,
 #endif
 				.v_int = (int64_t)Stack_pop(&vm->stack).v_uint,
 			});
@@ -292,7 +294,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		case OP_CAST_UTOF:
 			Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = VALUE_FLOAT,
+				.type = &TYPE_FLOAT_OBJ,
 #endif
 				.v_float = (double)Stack_pop(&vm->stack).v_uint,
 			});
@@ -300,7 +302,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		case OP_CAST_FTOI:
 			Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = VALUE_INT,
+				.type = &TYPE_INT_OBJ,
 #endif
 				.v_int = (int64_t)Stack_pop(&vm->stack).v_float,
 			});
@@ -308,7 +310,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		case OP_CAST_FTOU:
 			Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = VALUE_UINT,
+				.type = &TYPE_UINT_OBJ,
 #endif
 				.v_uint = (uint64_t)Stack_pop(&vm->stack).v_float,
 			});
@@ -316,7 +318,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		case OP_NEG_INT:
 			Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = VALUE_INT,
+				.type = &TYPE_INT_OBJ,
 #endif
 				.v_int = -(int64_t)Stack_pop(&vm->stack).v_int,
 			});
@@ -324,7 +326,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		case OP_NEG_FLOAT:
 			Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = VALUE_FLOAT,
+				.type = &TYPE_FLOAT_OBJ,
 #endif
 				.v_float = -(double)Stack_pop(&vm->stack).v_float,
 			});
