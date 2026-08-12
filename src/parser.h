@@ -2,19 +2,6 @@
 
 #include "lexer.h"
 
-#define ATOM_TYPE     \
-	X(INT, int)       \
-	X(UINT, uint)     \
-	X(FLOAT, float)   \
-	X(STRING, string) \
-	X(BOOL, bool)     \
-
-typedef enum {
-#define X(NAME, SNAME) ATOM_##NAME,
-	ATOM_TYPE
-#undef X
-} AtomicType;
-
 #define TYPE_KINDS  \
 	X(VOID, void)   \
 	X(INT, int)     \
@@ -56,30 +43,12 @@ typedef enum {
 	X(NEGATION)    \
 	X(EXIT)        \
 	X(CAST)        \
-	// X(LET)         \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
 	NODE_TYPE
 #undef X
 } NodeType;
-
-#define RETURN_KINDS \
-	X(VOID)  \
-	X(INT)   \
-	X(UINT)  \
-	X(FLOAT) \
-
-typedef enum {
-	RET_UNSET = 0,
-#define X(NAME) RET_##NAME,
-	RETURN_KINDS
-#undef X
-} ReturnKind;
-
-typedef struct {
-	ReturnKind kind;
-} ReturnType;
 
 typedef struct Node {
 	NodeType type;
@@ -118,9 +87,7 @@ extern Type TYPE_UINT_OBJ;
 extern Type TYPE_FLOAT_OBJ;
 extern Type TYPE_VOID_OBJ;
 
-const char *AtomicType_toString(const AtomicType *);
 const char *InfixType_toString(const InfixType *);
-const char *ReturnType_toString(const ReturnType *);
 const char *Type_toString(const Type *);
 void Node_print(const Node *);
 void Node_free(const Node *);

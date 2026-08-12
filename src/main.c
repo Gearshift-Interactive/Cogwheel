@@ -10,6 +10,7 @@
 
 int main(int argc, char **argv)
 {
+	assert(argc == 2);
 	TokenStream tokens = tokenize(argv[1]);
 #ifdef DEBUG
 	da_foreach(Token, i, &tokens)

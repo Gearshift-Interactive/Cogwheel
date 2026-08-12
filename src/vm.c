@@ -48,26 +48,27 @@ void Chunk_print(const Chunk *this)
 #define da_enumerate(I, ARR) for (size_t I = 0; I < (ARR)->count; I++)
 	printf("INT_CONSTANTS:\n");
 	da_enumerate(ii, &this->intConsts)
-		printf("  %d - %"PRIi64",\n", ii, this->intConsts.items[ii]);
+		printf("  %ld - %"PRIi64",\n", ii, this->intConsts.items[ii]);
 	printf("UINT_CONSTANTS:\n");
 	da_enumerate(ui, &this->uintConsts)
-		printf("  %d - %"PRIu64",\n", ui, this->uintConsts.items[ui]);
+		printf("  %ld - %"PRIu64",\n", ui, this->uintConsts.items[ui]);
 	printf("FLOAT_CONSTANTS:\n");
 	da_enumerate(fi, &this->floatConsts)
-		printf("  %d - %f,\n", fi, this->floatConsts.items[fi]);
+		printf("  %ld - %f,\n", fi, this->floatConsts.items[fi]);
 	printf("CODE:\n");
 	da_enumerate(ini, &this->instr)
 		switch (this->instr.code[ini])
 		{
 #define X(NAME, ARGL) \
 			case OP_##NAME: \
-				printf("  %d - %s", ini, #NAME); \
+				printf("  %ld - %s", ini, #NAME); \
 				if (ARGL) \
 				{ \
+					size_t argl = ARGL; \
 					printf(" - "); \
-					for (size_t iini = 0; iini < ARGL; iini++) \
+					for (size_t iini = 0; iini < argl; iini++) \
 						printf("%X", this->instr.code[ini + 1 + iini]); \
-					ini += ARGL; \
+					ini += argl; \
 				} \
 				printf("\n"); \
 				break;
@@ -329,7 +330,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			});
 			break;
 		default:
-			nob_log(ERROR, "Unsupported operation at %d", vm->pc - 1);
+			nob_log(ERROR, "Unsupported operation at %ld", vm->pc - 1);
 			exit(EXIT_FAILURE);
 			break;
 	}

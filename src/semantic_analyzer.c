@@ -67,6 +67,7 @@ static void analyze(Node *node)
 		case NODE_INFIX:
 			analyze(node->infix.left);
 			analyze(node->infix.right);
+			break;
 		case NODE_EXIT:
 			if (node->exit.value->retType->kind != TYPE_INT)
 			{

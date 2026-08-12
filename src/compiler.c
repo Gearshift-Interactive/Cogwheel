@@ -76,6 +76,10 @@ static void compileInfix(Chunk *this, const Node *node)
 		case TYPE_FLOAT:
 			da_append(&this->instr, OP_ADD_FLOAT);
 			break;
+		default:
+			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
+			exit(EXIT_FAILURE);
+			break;
 		}
 		break;
 	case INFIX_SUB:
@@ -89,6 +93,10 @@ static void compileInfix(Chunk *this, const Node *node)
 			break;
 		case TYPE_FLOAT:
 			da_append(&this->instr, OP_SUB_FLOAT);
+			break;
+		default:
+			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
+			exit(EXIT_FAILURE);
 			break;
 		}
 		break;
@@ -104,6 +112,10 @@ static void compileInfix(Chunk *this, const Node *node)
 		case TYPE_FLOAT:
 			da_append(&this->instr, OP_MUL_FLOAT);
 			break;
+		default:
+			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
+			exit(EXIT_FAILURE);
+			break;
 		}
 		break;
 	case INFIX_DIV:
@@ -118,6 +130,10 @@ static void compileInfix(Chunk *this, const Node *node)
 		case TYPE_FLOAT:
 			da_append(&this->instr, OP_DIV_FLOAT);
 			break;
+		default:
+			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
+			exit(EXIT_FAILURE);
+			break;
 		}
 		break;
 	case INFIX_POW:
@@ -131,6 +147,10 @@ static void compileInfix(Chunk *this, const Node *node)
 			break;
 		case TYPE_FLOAT:
 			da_append(&this->instr, OP_POW_FLOAT);
+			break;
+		default:
+			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
+			exit(EXIT_FAILURE);
 			break;
 		}
 		break;
@@ -196,6 +216,10 @@ static void compileNode(Chunk *this, const Node *node)
 					break;
 				case (TYPE_FLOAT):
 					da_append(&this->instr, (uint8_t)OP_NEG_FLOAT);
+					break;
+				default:
+					nob_log(ERROR, "Unsupported type for negation: %s", Type_toString(node->retType));
+					exit(EXIT_FAILURE);
 					break;
 			}
 			break;

@@ -88,7 +88,7 @@ static PrefixBindingPower getPrefixBindingFor(TokenType tt)
 }
 static Node *Node_make()
 {
-	return (Node*)calloc(sizeof(Node), 1);
+	return (Node*)calloc(1, sizeof(Node));
 }
 Type TYPE_INT_OBJ = {
 	.kind = TYPE_INT,
@@ -103,15 +103,6 @@ Type TYPE_VOID_OBJ = {
 	.kind = TYPE_VOID,
 };
 
-const char *AtomicType_toString(const AtomicType *at)
-{
-	switch (*at)
-	{
-#define X(NAME, SNAME) case ATOM_##NAME: return #SNAME;
-	ATOM_TYPE
-#undef X
-	}
-}
 const char *InfixType_toString(const InfixType *it)
 {
 	switch (*it)
@@ -126,16 +117,6 @@ static void printIndent(const size_t indent)
 {
 	for (size_t i = 0; i < indent; i++)
 		printf("    ");
-}
-const char *ReturnType_toString(const ReturnType *rt)
-{
-	switch (rt->kind)
-	{
-#define X(NAME) case RET_##NAME: return #NAME;
-	RETURN_KINDS
-#undef X
-		default: return "INVALID";
-	}
 }
 const char *Type_toString(const Type *t)
 {
@@ -413,7 +394,7 @@ static Node *parseBlockInside(TokenStream *tokens)
 	}
 	return block;
 }
-static Node *parseBlock(TokenStream *tokens)
+__attribute__((unused)) static Node *parseBlock(TokenStream *tokens)
 {
 	TokenStream_consumeExpect(tokens, TOKEN_LBRACE);
 	Node *result = parseBlockInside(tokens);
