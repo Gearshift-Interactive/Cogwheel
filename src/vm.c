@@ -112,12 +112,22 @@ static void Stack_checkCapacity(Stack *this)
 	if (!this->values)
 	{
 		this->values = malloc(sizeof(Value) * 64);
+		if (!this->values)
+		{
+			nob_log(ERROR, "Out of memory");
+			exit(EXIT_FAILURE);
+		}
 		this->capacity = 64;
 		return;
 	}
 	if (this->count < this->capacity)
 		return;
-	this->values = realloc(this->values, this->capacity * 2);
+	this->values = realloc(this->values, sizeof(Value) * this->capacity * 2);
+	if (!this->values)
+	{
+		nob_log(ERROR, "Out of memory");
+		exit(EXIT_FAILURE);
+	}
 	this->capacity *= 2;
 }
 static void Stack_push(Stack *this, Value value)
