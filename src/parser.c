@@ -45,7 +45,7 @@ static const TokenType ATOMIC_TYPE_TOKENS[] = {
 	TOKEN_INT_T, TOKEN_UINT_T, TOKEN_FLOAT_T, TOKEN_BOOL_T, TOKEN_STRING_T
 };
 
-static Type *getCastTarget(TokenType tt)
+static Type *tokenToType(TokenType tt)
 {
 	for (size_t i = 0; i < ARRAY_LEN(TOKEN_TO_TYPE); i++)
 		if (TOKEN_TO_TYPE[i].tt == tt)
@@ -136,7 +136,9 @@ static void Node_printImpl(const Node *node, const size_t indent)
 			printf("%"PRId64, node->numLit.value);
 			break;
 		case NODE_SYMBOL:
+			printf("(var ");
 			TokenPosition_print(node->symbol.token.pos);
+			printf(" :i %ld :d %ld)", node->symbol.scopeIndex, node->symbol.scopeDepth);
 			break;
 		case NODE_UNUMBER_LIT:
 			printf("%"PRIu64"u", node->unumLit.value);
@@ -189,6 +191,17 @@ static void Node_printImpl(const Node *node, const size_t indent)
 			printIndent(indent);
 			printf(")");
 			break;
+		case NODE_VAR_DECL:
+			printf("(define :type %s\n", Type_toString(node->var_decl.type));
+			printIndent(indent + 1);
+			Node_printImpl(node->var_decl.lvalue, indent + 1);
+			printf("\n");
+			printIndent(indent + 1);
+			Node_printImpl(node->var_decl.rvalue, indent + 1);
+			printf("\n");
+			printIndent(indent);
+			printf(")");
+			break;
 		default:
 			nob_log(ERROR, "Unexpected Node");
 			exit(EXIT_FAILURE);
@@ -209,6 +222,7 @@ void Node_free(const Node *node)
 		case NODE_EXIT:
 			Node_free(node->exit.value);
 			break;
+		case NODE_VAR_DECL:
 		case NODE_INFIX:
 			Node_free(node->infix.left);
 			Node_free(node->infix.right);
@@ -317,23 +331,31 @@ static bool isTailToken(TokenType tt)
 	return false;
 }
 static Node *parseExpr(TokenStream *tokens, float parentBind);
+static Node *parseLvalue(TokenStream *tokens)
+{
+	Token name = TokenStream_consumeExpect(tokens, TOKEN_SYMBOL);
+	Node *result = Node_make();
+	result->type = NODE_SYMBOL;
+	result->symbol.token = name;
+	return result;
+}
 static Node *parseExprHead(TokenStream *tokens)
 {
 	Token *peek = TokenStream_peek(tokens);
 	if (peek->type == TOKEN_LPAREN)
 	{
-		TokenStream_consumeExpect(tokens, TOKEN_LPAREN);
+		TokenStream_consume(tokens);
 		peek = TokenStream_peek(tokens);
 		Node *result = NULL;
 		if (TokenType_isAtomicType(peek->type)) // check cast
 		{
-			TokenStream_consumeExpect(tokens, peek->type);
+			TokenStream_consume(tokens);
 			TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
 			Node *value = parseExpr(tokens, CAST_BINDING_POWER);
 			result = Node_make();
 			result->type = NODE_CAST;
 			result->cast.value = value;
-			result->cast.target = getCastTarget(peek->type);
+			result->cast.target = tokenToType(peek->type);
 		}
 		else {
 			result = parseExpr(tokens, 0);
@@ -343,12 +365,23 @@ static Node *parseExprHead(TokenStream *tokens)
 	}
 	else if (peek->type == TOKEN_SUB)
 	{
-		TokenStream_consumeExpect(tokens, peek->type);
+		TokenStream_consume(tokens);
 		float bind = getPrefixBindingFor(peek->type).power;
 		Node *result = Node_make();
 		result->type = NODE_NEGATION;
 		result->negation.value = parseExpr(tokens, bind);
 		// TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
+		return result;
+	}
+	else if (TokenType_isAtomicType(peek->type)) // variable declaration
+	{
+		Token type = TokenStream_consume(tokens);
+		Node *result = Node_make();
+		result->type = NODE_VAR_DECL;
+		result->var_decl.lvalue = parseLvalue(tokens);
+		TokenStream_consumeExpect(tokens, TOKEN_ASSIGN);
+		result->var_decl.type = tokenToType(type.type);
+		result->var_decl.rvalue = parseExpr(tokens, 0);
 		return result;
 	}
 	return parseAtom(tokens);

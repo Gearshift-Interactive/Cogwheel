@@ -1,5 +1,9 @@
 #include "semantic_analyzer.h"
 
+typedef struct {
+	// TODO
+} Scope;
+
 static void mark(Node *node)
 {
 	struct Node *left, *right;
@@ -53,6 +57,9 @@ static void mark(Node *node)
 		case NODE_NEGATION:
 			mark(node->negation.value);
 			node->retType->kind = node->negation.value->retType->kind;
+			break;
+		case NODE_VAR_DECL:
+			mark(node->var_decl_rvalue);
 			break;
 	}
 }

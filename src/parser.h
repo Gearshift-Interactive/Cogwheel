@@ -43,6 +43,7 @@ typedef enum {
 	X(NEGATION)    \
 	X(EXIT)        \
 	X(CAST)        \
+	X(VAR_DECL)    \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
@@ -55,6 +56,8 @@ typedef struct Node {
 	union {
 		struct {
 			Token token;
+			size_t scopeIndex;
+			size_t scopeDepth;
 		} symbol;
 		struct { int64_t value; } numLit;
 		struct { uint64_t value; } unumLit;
@@ -78,6 +81,10 @@ typedef struct Node {
 			struct Node *value;
 			Type *target;
 		} cast;
+		struct {
+			struct Node *lvalue, *rvalue;
+			Type *type;
+		} var_decl;
 	};
 	Type *retType;
 } Node;

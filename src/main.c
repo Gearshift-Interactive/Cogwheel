@@ -12,31 +12,32 @@ int main(int argc, char **argv)
 {
 	assert(argc == 2);
 	TokenStream tokens = tokenize(argv[1]);
-#ifdef DEBUG
+#	ifdef DEBUG
 	printf("//// TOKENS ////\n");
 	da_foreach(Token, i, &tokens)
 	{
 		Token_print(*i);
 		printf("\n");
 	}
-#endif
+#	endif
 	Node *ast = parse(tokens);
-#ifdef DEBUG
+#	ifdef DEBUG
 	printf("//// AST ////\n");
 	Node_print(ast);
 	printf("\n");
-#endif
+#	endif
 	analyzeAndMark(ast);
-#ifdef DEBUG
+#	ifdef DEBUG
 	printf("//// MARKED AST ////\n");
 	Node_print(ast);
 	printf("\n");
-#endif
+#	endif
 	Chunk code = compile(ast);
-#ifdef DEBUG
+#	ifdef DEBUG
 	printf("//// BYTECODE ////\n");
 	Chunk_print(&code);
-#endif
+	printf("//// EXECUTION ////\n");
+#	endif
     return run(&code);
 }
 
