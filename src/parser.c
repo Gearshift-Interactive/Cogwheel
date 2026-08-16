@@ -194,10 +194,10 @@ static void Node_printImpl(const Node *node, const size_t indent)
 		case NODE_VAR_DECL:
 			printf("(define :type %s\n", Type_toString(node->var_decl.type));
 			printIndent(indent + 1);
-			Node_printImpl(node->var_decl.lvalue, indent + 1);
+			TokenPosition_print(node->var_decl.name.pos);
 			printf("\n");
 			printIndent(indent + 1);
-			Node_printImpl(node->var_decl.rvalue, indent + 1);
+			Node_printImpl(node->var_decl.value, indent + 1);
 			printf("\n");
 			printIndent(indent);
 			printf(")");
@@ -220,9 +220,9 @@ void Node_free(const Node *node)
 		case NODE_CAST:
 		case NODE_NEGATION:
 		case NODE_EXIT:
+		case NODE_VAR_DECL:
 			Node_free(node->exit.value);
 			break;
-		case NODE_VAR_DECL:
 		case NODE_INFIX:
 			Node_free(node->infix.left);
 			Node_free(node->infix.right);
@@ -331,14 +331,14 @@ static bool isTailToken(TokenType tt)
 	return false;
 }
 static Node *parseExpr(TokenStream *tokens, float parentBind);
-static Node *parseLvalue(TokenStream *tokens)
-{
-	Token name = TokenStream_consumeExpect(tokens, TOKEN_SYMBOL);
-	Node *result = Node_make();
-	result->type = NODE_SYMBOL;
-	result->symbol.token = name;
-	return result;
-}
+// static Node *parseLvalue(TokenStream *tokens)
+// {
+// 	Token name = TokenStream_consumeExpect(tokens, TOKEN_SYMBOL);
+// 	Node *result = Node_make();
+// 	result->type = NODE_SYMBOL;
+// 	result->symbol.token = name;
+// 	return result;
+// }
 static Node *parseExprHead(TokenStream *tokens)
 {
 	Token *peek = TokenStream_peek(tokens);
@@ -378,10 +378,10 @@ static Node *parseExprHead(TokenStream *tokens)
 		Token type = TokenStream_consume(tokens);
 		Node *result = Node_make();
 		result->type = NODE_VAR_DECL;
-		result->var_decl.lvalue = parseLvalue(tokens);
+		result->var_decl.name = TokenStream_consumeExpect(tokens, TOKEN_SYMBOL);
 		TokenStream_consumeExpect(tokens, TOKEN_ASSIGN);
 		result->var_decl.type = tokenToType(type.type);
-		result->var_decl.rvalue = parseExpr(tokens, 0);
+		result->var_decl.value = parseExpr(tokens, 0);
 		return result;
 	}
 	return parseAtom(tokens);

@@ -54,6 +54,12 @@ void Token_print(const Token token)
 	TokenPosition_print(token.pos);
 	printf(")");
 }
+bool TokenPosition_eq(const TokenPosition *a, const TokenPosition *b)
+{
+	if (a->length != b->length)
+		return false;
+	return !memcmp(a->origin + a->start, b->origin + b->start, a->length);
+}
 Token TokenStream_consume(TokenStream *this)
 {
 	assert(this);

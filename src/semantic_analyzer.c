@@ -1,12 +1,64 @@
 #include "semantic_analyzer.h"
+#include "lexer.h"
 
 typedef struct {
-	// TODO
-} Scope;
+	const TokenPosition *name;
+	const Type *type;
+	bool mutable;
+} VarInfo;
 
-static void mark(Node *node)
+typedef struct {
+	union { VarInfo *items, *vars; };
+	size_t count, capacity;
+} ScopeInfo;
+
+static ScopeInfo *ScopeInfo_make()
+{
+	ScopeInfo *result = calloc(1, sizeof *result);
+	return result;
+}
+static bool ScopeInfo_isVarPresent(const ScopeInfo *this, const TokenPosition *name)
+{
+	da_foreach(VarInfo, var, this)
+		if (TokenPosition_eq(var->name, name))
+			return true;
+	return false;
+}
+static size_t ScopeInfo_getVarIndex(const ScopeInfo *this, const TokenPosition *name)
+{
+	for (size_t i = 0; i < this->count; i++)
+		if (TokenPosition_eq((this->vars + i)->name, name))
+			return i;
+	nob_log(ERROR, "Undefined variable");
+	exit(EXIT_FAILURE);
+}
+static VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index)
+{
+	return this->vars + index;
+}
+static void ScopeInfo_declare(
+	ScopeInfo *this, const TokenPosition *name, const Type *type, bool mutable
+) {
+	VarInfo info = {
+		.name = name,
+		.type = type,
+		.mutable = mutable,
+	};
+	da_append(this, info);
+}
+static void ScopeInfo_free(const ScopeInfo *this)
+{
+	if (this->vars) free(this->vars);
+}
+static void mark(Node *node, ScopeInfo *scope)
 {
 	struct Node *left, *right;
+	bool weOwnDaScope = false;
+	if (!scope)
+	{
+		scope = ScopeInfo_make();
+		weOwnDaScope = true;
+	}
 	switch (node->type)
 	{
 		case NODE_NUMBER_LIT:
@@ -19,19 +71,26 @@ static void mark(Node *node)
 			node->retType = &TYPE_FLOAT_OBJ;
 			break;
 		case NODE_SYMBOL:
-			nob_log(ERROR, "VERY\nVERY\nINTERESTING");
-			exit(EXIT_FAILURE);
+			if (!ScopeInfo_isVarPresent(scope, &node->symbol.token.pos))
+			{
+				nob_log(ERROR, "Undefined variable");
+				exit(EXIT_FAILURE);
+			}
+			size_t varIndex = ScopeInfo_getVarIndex(scope, &node->symbol.token.pos);
+			VarInfo *varInfo = ScopeInfo_getInfo(scope, varIndex);
+			node->retType = (Type*)varInfo->type;
+			node->symbol.scopeIndex = varIndex;
 			break;
 		case NODE_BLOCK:
 			da_foreach(Node*, child, &node->block)
-				mark(*child);
+				mark(*child, scope);
 			node->retType = &TYPE_VOID_OBJ;
 			break;
 		case NODE_INFIX:
 			left = node->infix.left;
 			right = node->infix.right;
-			mark(left);
-			mark(right);
+			mark(left, scope);
+			mark(right, scope);
 			if (left->retType == &TYPE_INT_OBJ && right->retType == &TYPE_INT_OBJ)
 				node->retType = &TYPE_INT_OBJ;
 			else if (left->retType == &TYPE_UINT_OBJ && right->retType == &TYPE_UINT_OBJ)
@@ -47,20 +106,27 @@ static void mark(Node *node)
 			}
 			break;
 		case NODE_EXIT:
-			mark(node->exit.value);
+			mark(node->exit.value, scope);
 			node->retType = &TYPE_VOID_OBJ;
 			break;
 		case NODE_CAST:
-			mark(node->cast.value);
+			mark(node->cast.value, scope);
 			node->retType = node->cast.target;
 			break;
 		case NODE_NEGATION:
-			mark(node->negation.value);
+			mark(node->negation.value, scope);
 			node->retType->kind = node->negation.value->retType->kind;
 			break;
 		case NODE_VAR_DECL:
-			mark(node->var_decl_rvalue);
+			mark(node->var_decl.value, scope);
+			node->retType = &TYPE_VOID_OBJ;
+			ScopeInfo_declare(scope, &node->var_decl.name.pos, node->var_decl.type, false);
 			break;
+	}
+	if (weOwnDaScope)
+	{
+		ScopeInfo_free(scope);
+		free(scope);
 	}
 }
 static void analyze(Node *node)
@@ -104,6 +170,6 @@ static void analyze(Node *node)
 }
 void analyzeAndMark(Node *node)
 {
-	mark(node);
+	mark(node, NULL);
 	analyze(node);
 }

@@ -82,8 +82,9 @@ typedef struct Node {
 			Type *target;
 		} cast;
 		struct {
-			struct Node *lvalue, *rvalue;
+			struct Node *value;
 			Type *type;
+			Token name;
 		} var_decl;
 	};
 	Type *retType;
