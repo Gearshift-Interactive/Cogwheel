@@ -59,6 +59,7 @@ typedef struct Node {
 			Token token;
 			size_t scopeIndex;
 			size_t scopeDepth;
+			bool isMutable;
 		} symbol;
 		struct { int64_t value; } numLit;
 		struct { uint64_t value; } unumLit;
@@ -87,6 +88,7 @@ typedef struct Node {
 			Type *type;
 			Token name;
 			size_t scopeIndex;
+			bool isMutable;
 		} var_decl;
 		struct {
 			struct Node *child;

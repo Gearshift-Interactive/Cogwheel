@@ -1,3 +1,4 @@
-uint variable = 2u + (uint)((int)2.9 * 4);
-int variable2 = (int)(variable - 1u);
+uint variable = 2u;
+mut int variable2 = (int)(variable - 1u);
+variable2 = variable2 + 8;
 exit variable2;

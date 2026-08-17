@@ -138,6 +138,8 @@ static void Node_printImpl(const Node *node, const size_t indent)
 	case NODE_SYMBOL:
 		printf("(var ");
 		TokenPosition_print(node->symbol.token.pos);
+		if (node->symbol.isMutable)
+			printf(" :mut");
 		printf(" :i %ld :d %ld)", node->symbol.scopeIndex, node->symbol.scopeDepth);
 		break;
 	case NODE_UNUMBER_LIT:
@@ -192,7 +194,10 @@ static void Node_printImpl(const Node *node, const size_t indent)
 		printf(")");
 		break;
 	case NODE_VAR_DECL:
-		printf("(define :type %s :i %ld\n",
+		printf("(define ");
+		if (node->var_decl.isMutable)
+			printf(":mut ");
+		printf(":type %s :i %ld\n",
 			Type_toString(node->var_decl.type),
 			node->var_decl.scopeIndex
 		);
@@ -351,6 +356,24 @@ static Node *parseExpr(TokenStream *tokens, float parentBind);
 // 	result->symbol.token = name;
 // 	return result;
 // }
+static Node *parseVarDecl(TokenStream *tokens)
+{
+	bool mut = false;
+	if (TokenStream_peek(tokens)->type == TOKEN_MUT)
+	{
+		TokenStream_consume(tokens);
+		mut = true;
+	}
+	Token type = TokenStream_consume(tokens);
+	Node *result = Node_make();
+	result->type = NODE_VAR_DECL;
+	result->var_decl.name = TokenStream_consumeExpect(tokens, TOKEN_SYMBOL);
+	TokenStream_consumeExpect(tokens, TOKEN_ASSIGN);
+	result->var_decl.type = tokenToType(type.type);
+	result->var_decl.value = parseExpr(tokens, 0);
+	result->var_decl.isMutable = mut;
+	return result;
+}
 static Node *parseExprHead(TokenStream *tokens)
 {
 	Token *peek = TokenStream_peek(tokens);
@@ -385,16 +408,10 @@ static Node *parseExprHead(TokenStream *tokens)
 		// TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
 		return result;
 	}
-	else if (TokenType_isAtomicType(peek->type)) // variable declaration
+	else if (TokenType_isAtomicType(peek->type) || peek->type == TOKEN_MUT)
+		// variable declaration
 	{
-		Token type = TokenStream_consume(tokens);
-		Node *result = Node_make();
-		result->type = NODE_VAR_DECL;
-		result->var_decl.name = TokenStream_consumeExpect(tokens, TOKEN_SYMBOL);
-		TokenStream_consumeExpect(tokens, TOKEN_ASSIGN);
-		result->var_decl.type = tokenToType(type.type);
-		result->var_decl.value = parseExpr(tokens, 0);
-		return result;
+		return parseVarDecl(tokens);
 	}
 	else if (peek->type == TOKEN_EXIT) // exit keyword
 	{

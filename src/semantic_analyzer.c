@@ -87,6 +87,7 @@ static void mark(Node *node, ScopeInfo *scope)
 		VarInfo *varInfo = ScopeInfo_getInfo(scope, varIndex);
 		node->retType = (Type*)varInfo->type;
 		node->symbol.scopeIndex = varIndex;
+		node->symbol.isMutable = varInfo->mutable;
 		break;
 	case NODE_BLOCK:
 		da_foreach(Node*, child, &node->block)
@@ -141,7 +142,11 @@ static void mark(Node *node, ScopeInfo *scope)
 			nob_log(ERROR, "Variable is already declared");
 			exit(EXIT_FAILURE);
 		}
-		ScopeInfo_declare(scope, &node->var_decl.name.pos, node->var_decl.type, false);
+		ScopeInfo_declare(scope,
+			&node->var_decl.name.pos,
+			node->var_decl.type,
+			node->var_decl.isMutable
+		);
 		node->var_decl.scopeIndex = ScopeInfo_getVarIndex(scope, &node->var_decl.name.pos);
 		break;
 	case NODE_SCOPE:
@@ -153,39 +158,55 @@ static void analyze(Node *node)
 {
 	switch (node->type)
 	{
-		case NODE_BLOCK:
-			da_foreach(Node*, child, &node->block)
-				analyze(*child);
-			break;
-		case NODE_INFIX:
-			analyze(node->infix.left);
-			analyze(node->infix.right);
-			break;
-		case NODE_EXIT:
-			if (node->exit.value->retType->kind != TYPE_INT)
+	case NODE_BLOCK:
+		da_foreach(Node*, child, &node->block)
+			analyze(*child);
+		break;
+	case NODE_INFIX:
+		analyze(node->infix.left);
+		analyze(node->infix.right);
+		if (node->infix.type == INFIX_ASSIGN)
+		{
+			if (node->infix.left->type != NODE_SYMBOL)
 			{
-				nob_log(ERROR, "Cant exit with non-int value");
+				nob_log(ERROR, "Can't assign to not a variable");
 				exit(EXIT_FAILURE);
 			}
-			analyze(node->exit.value);
-			break;
-		case NODE_CAST:
-			if (node->retType->kind == node->cast.value->retType->kind)
-				nob_log(WARNING, "Casting %s to %s is not necessary",
-					Type_toString(node->retType),
-					Type_toString(node->cast.value->retType));
-			analyze(node->cast.value);
-			break;
-		case NODE_NEGATION:
-			if (node->negation.value->retType->kind != TYPE_INT &&
-				node->negation.value->retType->kind != TYPE_FLOAT)
+			if (!node->infix.left->symbol.isMutable)
 			{
-				nob_log(ERROR, "Cannot negate %s", Type_toString(node->retType));
+				nob_log(ERROR, "Can't assign to immutable variable");
 				exit(EXIT_FAILURE);
 			}
-			analyze(node->negation.value);
-			break;
-		default: {}
+		}
+		break;
+	case NODE_EXIT:
+		if (node->exit.value->retType->kind != TYPE_INT)
+		{
+			nob_log(ERROR, "Cant exit with non-int value");
+			exit(EXIT_FAILURE);
+		}
+		analyze(node->exit.value);
+		break;
+	case NODE_CAST:
+		if (node->retType->kind == node->cast.value->retType->kind)
+			nob_log(WARNING, "Casting %s to %s is not necessary",
+				Type_toString(node->retType),
+				Type_toString(node->cast.value->retType));
+		analyze(node->cast.value);
+		break;
+	case NODE_NEGATION:
+		if (node->negation.value->retType->kind != TYPE_INT &&
+			node->negation.value->retType->kind != TYPE_FLOAT)
+		{
+			nob_log(ERROR, "Cannot negate %s", Type_toString(node->retType));
+			exit(EXIT_FAILURE);
+		}
+		analyze(node->negation.value);
+		break;
+	case NODE_SCOPE:
+		analyze(node->scope.child);
+		break;
+	default: {}
 	}
 }
 void analyzeAndMark(Node **node)

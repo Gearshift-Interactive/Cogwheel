@@ -32,6 +32,14 @@ You can declare a variable with it's type, followed by its name, an equal sign a
 int myVar = 12;
 ```
 Variables should always be initialized. The language doesn't allow uninitiallized variables.
+Variables are immutable (constant) by default. You can use `mut` to make them mutable.
+```
+int var1 = 0;
+var1 = var1 + 1; // ERR
+
+mut int var2 = 0;
+var2 = var2 + 1; // OK
+```
 
 ### Keywords
 

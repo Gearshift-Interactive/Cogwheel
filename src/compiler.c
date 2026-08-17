@@ -56,13 +56,18 @@ static void compileCast(Chunk *this, const Node *node)
 
 static void compileInfix(Chunk *this, const Node *node)
 {
-	compileNode(this, node->infix.left);
+	uint8_t buffer[sizeof(size_t)] = {0};
+	if (node->infix.type != INFIX_ASSIGN)
+		compileNode(this, node->infix.left);
 	compileNode(this, node->infix.right);
 	switch (node->infix.type)
 	{
 	case INFIX_ASSIGN:
-		nob_log(ERROR, "Assignment not supported yet");
-		exit(EXIT_FAILURE);
+		compileNode(this, node->infix.right);
+		da_append(&this->instr, (uint8_t)OP_SCOPE_WRITE);
+		*(size_t*)buffer = node->infix.left->symbol.scopeIndex;
+		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
+			da_append(&this->instr, buffer[i]);
 		break;
 	case INFIX_ADD:
 		switch (node->retType->kind)
@@ -77,7 +82,10 @@ static void compileInfix(Chunk *this, const Node *node)
 			da_append(&this->instr, OP_ADD_FLOAT);
 			break;
 		default:
-			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
+			nob_log(ERROR,
+				"Unsupported type for infix: %s",
+				Type_toString(node->retType)
+			);
 			exit(EXIT_FAILURE);
 			break;
 		}
