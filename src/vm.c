@@ -82,9 +82,8 @@ void Chunk_print(const Chunk *this)
 		}
 #undef da_enumerate
 }
-static void Value_print(const Value *this)
-{
 #ifdef DEBUG
+static void Value_print(const Value *this) {
 	printf("%s", Type_toString(this->type));
 	switch (this->type->kind)
 	{
@@ -100,9 +99,6 @@ static void Value_print(const Value *this)
 		case TYPE_VOID:
 			exit(EXIT_FAILURE);
 	}
-#else
-	printf("There is no reflection at runtime without -DDEBUG");
-#endif
 }
 static void Stack_print(const Stack *this)
 {
@@ -116,6 +112,7 @@ static void Stack_print(const Stack *this)
 	else
 		printf("  *empty*\n");
 }
+#endif
 static void Stack_checkCapacity(Stack *this)
 {
 	if (!this->values)
