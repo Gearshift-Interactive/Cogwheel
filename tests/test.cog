@@ -1,0 +1,3 @@
+uint variable = 2u + (uint)((int)2.9 * 4);
+int variable2 = (int)(variable - 1u);
+exit variable2;

@@ -127,6 +127,20 @@ static void mark(Node *node, ScopeInfo *scope)
 	case NODE_VAR_DECL:
 		mark(node->var_decl.value, scope);
 		node->retType = &TYPE_VOID_OBJ;
+		if (node->var_decl.type != node->var_decl.value->retType)
+		{
+			nob_log(ERROR,
+				"Cant assign a value of type \"%s\" to a variable of type \"%s\"",
+				Type_toString(node->var_decl.value->retType),
+				Type_toString(node->var_decl.type)
+			);
+			exit(EXIT_FAILURE);
+		}
+		if (ScopeInfo_isVarPresent(scope, &node->var_decl.name.pos))
+		{
+			nob_log(ERROR, "Variable is already declared");
+			exit(EXIT_FAILURE);
+		}
 		ScopeInfo_declare(scope, &node->var_decl.name.pos, node->var_decl.type, false);
 		node->var_decl.scopeIndex = ScopeInfo_getVarIndex(scope, &node->var_decl.name.pos);
 		break;

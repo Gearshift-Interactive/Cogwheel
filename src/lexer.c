@@ -28,6 +28,7 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "string", TOKEN_STRING_T },
 	{ "bool", TOKEN_BOOL_T },
 	{ "exit", TOKEN_EXIT },
+	{ "mut", TOKEN_MUT },
 };
 static const char LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char LETTERS_AND_NUMBERS[] =
@@ -94,7 +95,7 @@ void TokenStream_free(const TokenStream *this) { assert(this);
 	free(this->items);
 }
 typedef struct {
-	char *origin;
+	const char *origin;
 	String_View text;
 	size_t offset;
 	size_t lastAdvancement;
@@ -229,13 +230,13 @@ static Token Tokenizer_handleNumber(Tokenizer *this)
 		},
 	};
 }
-TokenStream tokenize(const char *text)
+TokenStream tokenize(String_View text)
 {
-	assert(text);
+	assert(text.data);
 	TokenStream tokens = {0};
 	Tokenizer tokenizer = {
-		.origin = (char*)text,
-		.text = sv_from_cstr(text),
+		.origin = text.data,
+		.text = text,
 		.offset = 0,
 	};
 	while (tokenizer.offset < tokenizer.text.count)

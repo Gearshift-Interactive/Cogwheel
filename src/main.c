@@ -11,7 +11,9 @@
 int main(int argc, char **argv)
 {
 	assert(argc == 2);
-	TokenStream tokens = tokenize(argv[1]);
+	String_Builder sb = {0};
+	read_entire_file(argv[1], &sb);
+	TokenStream tokens = tokenize(nob_sv_from_parts(sb.items, sb.count));
 #	ifdef DEBUG
 	printf("//// TOKENS ////\n");
 	da_foreach(Token, i, &tokens)
@@ -38,7 +40,8 @@ int main(int argc, char **argv)
 	Chunk_print(&code);
 	printf("//// EXECUTION ////\n");
 #	endif
-    return run(&code);
+	free(sb.items);
+	return run(&code);
 }
 
 #endif

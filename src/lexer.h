@@ -30,6 +30,7 @@
 	X(STRING_T) \
 	/* keywords */ \
 	X(EXIT) \
+	X(MUT) \
 
 
 typedef enum {
@@ -38,7 +39,7 @@ typedef enum {
 #undef X
 } TokenType;
 typedef struct {
-	char *origin;
+	const char *origin;
 	size_t start;
 	size_t length;
 } TokenPosition;
@@ -64,4 +65,4 @@ Token *TokenStream_current(const TokenStream *);
 Token *TokenStream_peek(const TokenStream *);
 Token *TokenStream_peekForward(const TokenStream *, size_t countForward);
 void TokenStream_free(const TokenStream *);
-TokenStream tokenize(const char *);
+TokenStream tokenize(String_View text);
