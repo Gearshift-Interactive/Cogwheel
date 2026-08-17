@@ -22,12 +22,18 @@ typedef
 } Value;
 
 typedef struct {
+	size_t size;
+	Value values[];
+} Scope;
+
+typedef struct {
 	Value *values;
 	size_t count, capacity;
 } Stack;
 
 typedef struct {
 	Stack stack;
+	Scope *scope;
 	size_t pc;
 	int retCode;
 	bool done;
@@ -184,160 +190,176 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		} while (0)
 #endif
 	Opcode current = (Opcode)chunk->instr.code[vm->pc];
-	size_t index;
+	size_t arg1;
 	vm->pc++;
 	switch (current)
 	{
-		case OP_EXIT:
-			vm->retCode = Stack_pop(&vm->stack).v_int;
-			vm->done = true;
-			break;
-		case OP_CLOAD_INT:
-			index = readSizeT(vm, chunk);
-			Stack_push(&vm->stack, (Value){
+	case OP_EXIT:
+		vm->retCode = Stack_pop(&vm->stack).v_int;
+		vm->done = true;
+		break;
+	case OP_CLOAD_INT:
+		arg1 = readSizeT(vm, chunk);
+		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = &TYPE_INT_OBJ,
+			.type = &TYPE_INT_OBJ,
 #endif
-				.v_int = chunk->intConsts.items[index],
-			});
-			break;
-		case OP_CLOAD_UINT:
-			index = readSizeT(vm, chunk);
-			Stack_push(&vm->stack, (Value){
+			.v_int = chunk->intConsts.items[arg1],
+		});
+		break;
+	case OP_CLOAD_UINT:
+		arg1 = readSizeT(vm, chunk);
+		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = &TYPE_UINT_OBJ,
+			.type = &TYPE_UINT_OBJ,
 #endif
-				.v_uint = chunk->uintConsts.items[index],
-			});
-			break;
-		case OP_CLOAD_FLOAT:
-			index = readSizeT(vm, chunk);
-			Stack_push(&vm->stack, (Value){
+			.v_uint = chunk->uintConsts.items[arg1],
+		});
+		break;
+	case OP_CLOAD_FLOAT:
+		arg1 = readSizeT(vm, chunk);
+		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = &TYPE_FLOAT_OBJ,
+			.type = &TYPE_FLOAT_OBJ,
 #endif
-				.v_float = chunk->floatConsts.items[index],
-			});
-			break;
-		case OP_ADD_INT:
-			INFIX(&TYPE_INT_OBJ, v_int, +);
-			break;
-		case OP_ADD_UINT:
-			INFIX(&TYPE_UINT_OBJ, v_uint, +);
-			break;
-		case OP_ADD_FLOAT:
-			INFIX(&TYPE_FLOAT_OBJ, v_float, +);
-			break;
-		case OP_SUB_INT:
-			INFIX(&TYPE_INT_OBJ, v_int, -);
-			break;
-		case OP_SUB_UINT:
-			INFIX(&TYPE_UINT_OBJ, v_uint, -);
-			break;
-		case OP_SUB_FLOAT:
-			INFIX(&TYPE_FLOAT_OBJ, v_float, -);
-			break;
-		case OP_DIV_INT:
-			INFIX(&TYPE_INT_OBJ, v_int, /);
-			break;
-		case OP_DIV_UINT:
-			INFIX(&TYPE_UINT_OBJ, v_uint, /);
-			break;
-		case OP_DIV_FLOAT:
-			INFIX(&TYPE_FLOAT_OBJ, v_float, /);
-			break;
-		case OP_MUL_INT:
-			INFIX(&TYPE_INT_OBJ, v_int, *);
-			break;
-		case OP_MUL_UINT:
-			INFIX(&TYPE_UINT_OBJ, v_uint, *);
-			break;
-		case OP_MUL_FLOAT:
-			INFIX(&TYPE_FLOAT_OBJ, v_float, *);
-			break;
-		case OP_POW_INT:
-			nob_log(ERROR, "power is unsopported yet");
-			exit(EXIT_FAILURE);
-			break;
-		case OP_POW_UINT:
-			nob_log(ERROR, "power is unsopported yet");
-			exit(EXIT_FAILURE);
-			break;
-		case OP_POW_FLOAT:
-			nob_log(ERROR, "power is unsopported yet");
-			exit(EXIT_FAILURE);
-			break;
-		case OP_CAST_ITOU:
-			Stack_push(&vm->stack, (Value){
+			.v_float = chunk->floatConsts.items[arg1],
+		});
+		break;
+	case OP_ADD_INT:
+		INFIX(&TYPE_INT_OBJ, v_int, +);
+		break;
+	case OP_ADD_UINT:
+		INFIX(&TYPE_UINT_OBJ, v_uint, +);
+		break;
+	case OP_ADD_FLOAT:
+		INFIX(&TYPE_FLOAT_OBJ, v_float, +);
+		break;
+	case OP_SUB_INT:
+		INFIX(&TYPE_INT_OBJ, v_int, -);
+		break;
+	case OP_SUB_UINT:
+		INFIX(&TYPE_UINT_OBJ, v_uint, -);
+		break;
+	case OP_SUB_FLOAT:
+		INFIX(&TYPE_FLOAT_OBJ, v_float, -);
+		break;
+	case OP_DIV_INT:
+		INFIX(&TYPE_INT_OBJ, v_int, /);
+		break;
+	case OP_DIV_UINT:
+		INFIX(&TYPE_UINT_OBJ, v_uint, /);
+		break;
+	case OP_DIV_FLOAT:
+		INFIX(&TYPE_FLOAT_OBJ, v_float, /);
+		break;
+	case OP_MUL_INT:
+		INFIX(&TYPE_INT_OBJ, v_int, *);
+		break;
+	case OP_MUL_UINT:
+		INFIX(&TYPE_UINT_OBJ, v_uint, *);
+		break;
+	case OP_MUL_FLOAT:
+		INFIX(&TYPE_FLOAT_OBJ, v_float, *);
+		break;
+	case OP_POW_INT:
+		nob_log(ERROR, "power is unsopported yet");
+		exit(EXIT_FAILURE);
+		break;
+	case OP_POW_UINT:
+		nob_log(ERROR, "power is unsopported yet");
+		exit(EXIT_FAILURE);
+		break;
+	case OP_POW_FLOAT:
+		nob_log(ERROR, "power is unsopported yet");
+		exit(EXIT_FAILURE);
+		break;
+	case OP_CAST_ITOU:
+		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = &TYPE_UINT_OBJ,
+			.type = &TYPE_UINT_OBJ,
 #endif
-				.v_uint = (uint64_t)Stack_pop(&vm->stack).v_int,
-			});
-			break;
-		case OP_CAST_ITOF:
-			Stack_push(&vm->stack, (Value){
+			.v_uint = (uint64_t)Stack_pop(&vm->stack).v_int,
+		});
+		break;
+	case OP_CAST_ITOF:
+		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = &TYPE_FLOAT_OBJ,
+			.type = &TYPE_FLOAT_OBJ,
 #endif
-				.v_float = (double)Stack_pop(&vm->stack).v_int,
-			});
-			break;
-		case OP_CAST_UTOI:
-			Stack_push(&vm->stack, (Value){
+			.v_float = (double)Stack_pop(&vm->stack).v_int,
+		});
+		break;
+	case OP_CAST_UTOI:
+		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = &TYPE_INT_OBJ,
+			.type = &TYPE_INT_OBJ,
 #endif
-				.v_int = (int64_t)Stack_pop(&vm->stack).v_uint,
-			});
-			break;
-		case OP_CAST_UTOF:
-			Stack_push(&vm->stack, (Value){
+			.v_int = (int64_t)Stack_pop(&vm->stack).v_uint,
+		});
+		break;
+	case OP_CAST_UTOF:
+		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = &TYPE_FLOAT_OBJ,
+			.type = &TYPE_FLOAT_OBJ,
 #endif
-				.v_float = (double)Stack_pop(&vm->stack).v_uint,
-			});
-			break;
-		case OP_CAST_FTOI:
-			Stack_push(&vm->stack, (Value){
+			.v_float = (double)Stack_pop(&vm->stack).v_uint,
+		});
+		break;
+	case OP_CAST_FTOI:
+		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = &TYPE_INT_OBJ,
+			.type = &TYPE_INT_OBJ,
 #endif
-				.v_int = (int64_t)Stack_pop(&vm->stack).v_float,
-			});
-			break;
-		case OP_CAST_FTOU:
-			Stack_push(&vm->stack, (Value){
+			.v_int = (int64_t)Stack_pop(&vm->stack).v_float,
+		});
+		break;
+	case OP_CAST_FTOU:
+		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = &TYPE_UINT_OBJ,
+			.type = &TYPE_UINT_OBJ,
 #endif
-				.v_uint = (uint64_t)Stack_pop(&vm->stack).v_float,
-			});
-			break;
-		case OP_NEG_INT:
-			Stack_push(&vm->stack, (Value){
+			.v_uint = (uint64_t)Stack_pop(&vm->stack).v_float,
+		});
+		break;
+	case OP_NEG_INT:
+		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = &TYPE_INT_OBJ,
+			.type = &TYPE_INT_OBJ,
 #endif
-				.v_int = -(int64_t)Stack_pop(&vm->stack).v_int,
-			});
-			break;
-		case OP_NEG_FLOAT:
-			Stack_push(&vm->stack, (Value){
+			.v_int = -(int64_t)Stack_pop(&vm->stack).v_int,
+		});
+		break;
+	case OP_NEG_FLOAT:
+		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-				.type = &TYPE_FLOAT_OBJ,
+			.type = &TYPE_FLOAT_OBJ,
 #endif
-				.v_float = -(double)Stack_pop(&vm->stack).v_float,
-			});
-			break;
-		case OP_POP:
-			Stack_pop(&vm->stack);
-			break;
-		default:
-			nob_log(ERROR, "Unsupported operation at %ld", vm->pc - 1);
-			exit(EXIT_FAILURE);
-			break;
+			.v_float = -(double)Stack_pop(&vm->stack).v_float,
+		});
+		break;
+	case OP_POP:
+		Stack_pop(&vm->stack);
+		break;
+	case OP_SCOPE_ENTER:
+		arg1 = readSizeT(vm, chunk);
+		vm->scope = calloc(1, sizeof(*(vm->scope)) + sizeof(Value[arg1]));
+		break;
+	case OP_SCOPE_EXIT:
+		free(vm->scope);
+		vm->scope = NULL;
+		break;
+	case OP_SCOPE_READ:
+		arg1 = readSizeT(vm, chunk);
+		Stack_push(&vm->stack, vm->scope->values[arg1]);
+		break;
+	case OP_SCOPE_WRITE:
+		arg1 = readSizeT(vm, chunk);
+		vm->scope->values[arg1] = Stack_pop(&vm->stack);
+		break;
+	default:
+		nob_log(ERROR, "Unsupported operation at %ld", vm->pc - 1);
+		exit(EXIT_FAILURE);
+		break;
 	}
 #undef INFIX
 }
