@@ -59,18 +59,18 @@ void Chunk_print(const Chunk *this)
 		switch (this->instr.code[ini])
 		{
 #define X(NAME, ARGL) \
-			case OP_##NAME: \
-				printf("  %ld - %s", ini, #NAME); \
-				if (ARGL) \
-				{ \
-					size_t argl = ARGL; \
-					printf(" - "); \
-					for (size_t iini = 0; iini < argl; iini++) \
-						printf("%X", this->instr.code[ini + 1 + iini]); \
-					ini += argl; \
-				} \
-				printf("\n"); \
-				break;
+	case OP_##NAME: \
+		printf("  %ld - %s", ini, #NAME); \
+		if (ARGL) \
+		{ \
+			size_t argl = ARGL; \
+			printf(" - "); \
+			for (size_t iini = 0; iini < argl; iini++) \
+				printf("%X", this->instr.code[ini + 1 + iini]); \
+			ini += argl; \
+		} \
+		printf("\n"); \
+		break;
 	OPCODE_TYPE
 #undef X
 		}

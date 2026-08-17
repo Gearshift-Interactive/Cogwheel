@@ -161,67 +161,84 @@ static void compileNode(Chunk *this, const Node *node)
 	uint8_t buffer[sizeof(size_t)] = {0};
 	switch (node->type)
 	{
-		case NODE_NUMBER_LIT:
-			da_append(&this->intConsts, node->numLit.value);
-			da_append(&this->instr, (uint8_t)OP_CLOAD_INT);
-			*(size_t*)buffer = this->intConsts.count - 1;
-			for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
-				da_append(&this->instr, buffer[i]);
+	case NODE_NUMBER_LIT:
+		da_append(&this->intConsts, node->numLit.value);
+		da_append(&this->instr, (uint8_t)OP_CLOAD_INT);
+		*(size_t*)buffer = this->intConsts.count - 1;
+		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
+			da_append(&this->instr, buffer[i]);
+		break;
+	case NODE_UNUMBER_LIT:
+		da_append(&this->uintConsts, node->unumLit.value);
+		da_append(&this->instr, (uint8_t)OP_CLOAD_UINT);
+		*(size_t*)buffer = this->uintConsts.count - 1;
+		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
+			da_append(&this->instr, buffer[i]);
+		break;
+	case NODE_FNUMBER_LIT:
+		da_append(&this->floatConsts, node->floatLit.value);
+		da_append(&this->instr, (uint8_t)OP_CLOAD_FLOAT);
+		*(size_t*)buffer = this->floatConsts.count - 1;
+		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
+			da_append(&this->instr, buffer[i]);
+		break;
+	case NODE_SYMBOL:
+		da_append(&this->instr, (uint8_t)OP_SCOPE_READ);
+		*(size_t*)buffer = node->symbol.scopeIndex;
+		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
+			da_append(&this->instr, buffer[i]);
+		break;
+	case NODE_BLOCK:
+		da_foreach(struct Node*, child, &node->block)
+		{
+			compileNode(this, *child);
+			if ((*child)->retType != &TYPE_VOID_OBJ)
+				da_append(&this->instr, OP_POP);
+		}
+		// da_append(&this->instr, OP_TYPEURN);
+		break;
+	case NODE_INFIX:
+		compileInfix(this, node);
+		break;
+	case NODE_EXIT:
+		compileNode(this, node->exit.value);
+		da_append(&this->instr, (uint8_t)OP_EXIT);
+		break;
+	case NODE_CAST:
+		compileNode(this, node->cast.value);
+		compileCast(this, node);
+		break;
+	case NODE_NEGATION:
+		compileNode(this, node->negation.value);
+		switch (node->retType->kind)
+		{
+		case (TYPE_INT):
+			da_append(&this->instr, (uint8_t)OP_NEG_INT);
 			break;
-		case NODE_UNUMBER_LIT:
-			da_append(&this->uintConsts, node->unumLit.value);
-			da_append(&this->instr, (uint8_t)OP_CLOAD_UINT);
-			*(size_t*)buffer = this->uintConsts.count - 1;
-			for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
-				da_append(&this->instr, buffer[i]);
+		case (TYPE_FLOAT):
+			da_append(&this->instr, (uint8_t)OP_NEG_FLOAT);
 			break;
-		case NODE_FNUMBER_LIT:
-			da_append(&this->floatConsts, node->floatLit.value);
-			da_append(&this->instr, (uint8_t)OP_CLOAD_FLOAT);
-			*(size_t*)buffer = this->floatConsts.count - 1;
-			for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
-				da_append(&this->instr, buffer[i]);
-			break;
-		case NODE_SYMBOL:
-			nob_log(ERROR, "Dont support variables yet");
+		default:
+			nob_log(ERROR, "Unsupported type for negation: %s", Type_toString(node->retType));
 			exit(EXIT_FAILURE);
 			break;
-		case NODE_BLOCK:
-			da_foreach(struct Node*, child, &node->block)
-			{
-				compileNode(this, *child);
-				if ((*child)->retType != &TYPE_VOID_OBJ)
-					da_append(&this->instr, OP_POP);
-			}
-			// da_append(&this->instr, OP_TYPEURN);
-			break;
-		case NODE_INFIX:
-			compileInfix(this, node);
-			break;
-		case NODE_EXIT:
-			compileNode(this, node->exit.value);
-			da_append(&this->instr, (uint8_t)OP_EXIT);
-			break;
-		case NODE_CAST:
-			compileNode(this, node->cast.value);
-			compileCast(this, node);
-			break;
-		case NODE_NEGATION:
-			compileNode(this, node->negation.value);
-			switch (node->retType->kind)
-			{
-				case (TYPE_INT):
-					da_append(&this->instr, (uint8_t)OP_NEG_INT);
-					break;
-				case (TYPE_FLOAT):
-					da_append(&this->instr, (uint8_t)OP_NEG_FLOAT);
-					break;
-				default:
-					nob_log(ERROR, "Unsupported type for negation: %s", Type_toString(node->retType));
-					exit(EXIT_FAILURE);
-					break;
-			}
-			break;
+		}
+		break;
+	case NODE_SCOPE:
+		da_append(&this->instr, (uint8_t)OP_SCOPE_ENTER);
+		*(size_t*)buffer = node->scope.size;
+		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
+			da_append(&this->instr, buffer[i]);
+		compileNode(this, node->scope.child);
+		da_append(&this->instr, (uint8_t)OP_SCOPE_EXIT);
+		break;
+	case NODE_VAR_DECL:
+		compileNode(this, node->var_decl.value);
+		da_append(&this->instr, (uint8_t)OP_SCOPE_WRITE);
+		*(size_t*)buffer = node->var_decl.scopeIndex;
+		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
+			da_append(&this->instr, buffer[i]);
+		break;
 	}
 }
 

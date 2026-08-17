@@ -40,6 +40,11 @@
 	X(CAST_UTOF, 0)/*uint to float*/\
 	X(CAST_FTOI, 0)/*float to int*/ \
 	X(CAST_FTOU, 0)/*float to uint*/\
+	/* scope */                     \
+	X(SCOPE_ENTER, sizeof(size_t))  \
+	X(SCOPE_READ, sizeof(size_t))   \
+	X(SCOPE_WRITE, sizeof(size_t))  \
+	X(SCOPE_EXIT, 0)                \
 
 typedef enum {
 	OP_NOOP = 0,

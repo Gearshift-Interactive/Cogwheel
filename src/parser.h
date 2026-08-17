@@ -44,6 +44,7 @@ typedef enum {
 	X(EXIT)        \
 	X(CAST)        \
 	X(VAR_DECL)    \
+	X(SCOPE)       \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
@@ -85,7 +86,12 @@ typedef struct Node {
 			struct Node *value;
 			Type *type;
 			Token name;
+			size_t scopeIndex;
 		} var_decl;
+		struct {
+			struct Node *child;
+			size_t size;
+		} scope;
 	};
 	Type *retType;
 } Node;
@@ -97,6 +103,7 @@ extern Type TYPE_VOID_OBJ;
 
 const char *InfixType_toString(const InfixType *);
 const char *Type_toString(const Type *);
+Node *Node_make(void);
 void Node_print(const Node *);
 void Node_free(const Node *);
 Node *parse(TokenStream tokens);

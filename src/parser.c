@@ -86,7 +86,7 @@ static PrefixBindingPower getPrefixBindingFor(TokenType tt)
 	nob_log(ERROR, "Unexpected TokenType");
 	exit(EXIT_FAILURE);
 }
-static Node *Node_make()
+Node *Node_make(void)
 {
 	return (Node*)calloc(1, sizeof(Node));
 }
@@ -132,79 +132,90 @@ static void Node_printImpl(const Node *node, const size_t indent)
 {
 	switch (node->type)
 	{
-		case NODE_NUMBER_LIT:
-			printf("%"PRId64, node->numLit.value);
-			break;
-		case NODE_SYMBOL:
-			printf("(var ");
-			TokenPosition_print(node->symbol.token.pos);
-			printf(" :i %ld :d %ld)", node->symbol.scopeIndex, node->symbol.scopeDepth);
-			break;
-		case NODE_UNUMBER_LIT:
-			printf("%"PRIu64"u", node->unumLit.value);
-			break;
-		case NODE_FNUMBER_LIT:
-			printf("%ff", node->floatLit.value);
-			break;
-		case NODE_INFIX:
-			printf("(%s\n", InfixType_toString(&node->infix.type));
+	case NODE_NUMBER_LIT:
+		printf("%"PRId64, node->numLit.value);
+		break;
+	case NODE_SYMBOL:
+		printf("(var ");
+		TokenPosition_print(node->symbol.token.pos);
+		printf(" :i %ld :d %ld)", node->symbol.scopeIndex, node->symbol.scopeDepth);
+		break;
+	case NODE_UNUMBER_LIT:
+		printf("%"PRIu64"u", node->unumLit.value);
+		break;
+	case NODE_FNUMBER_LIT:
+		printf("%ff", node->floatLit.value);
+		break;
+	case NODE_INFIX:
+		printf("(%s\n", InfixType_toString(&node->infix.type));
+		printIndent(indent + 1);
+		Node_printImpl(node->infix.left, indent + 1);
+		printf("\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->infix.right, indent + 1);
+		printf("\n");
+		printIndent(indent);
+		printf(")");
+		break;
+	case NODE_BLOCK:
+		printf("(do\n");
+		da_foreach(Node*, child, &node->block) {
 			printIndent(indent + 1);
-			Node_printImpl(node->infix.left, indent + 1);
+			Node_printImpl(*child, indent + 1);
 			printf("\n");
-			printIndent(indent + 1);
-			Node_printImpl(node->infix.right, indent + 1);
-			printf("\n");
-			printIndent(indent);
-			printf(")");
-			break;
-		case NODE_BLOCK:
-			printf("(do\n");
-			da_foreach(Node*, child, &node->block) {
-				printIndent(indent + 1);
-				Node_printImpl(*child, indent + 1);
-				printf("\n");
-			}
-			printIndent(indent);
-			printf(")");
-			break;
-		case NODE_EXIT:
-			printf("(exit\n");
-			printIndent(indent + 1);
-			Node_printImpl(node->exit.value, indent + 1);
-			printf("\n");
-			printIndent(indent);
-			printf(")");
-			break;
-		case NODE_CAST:
-			printf("(%s\n", Type_toString(node->cast.target));
-			printIndent(indent + 1);
-			Node_printImpl(node->cast.value, indent + 1);
-			printf("\n");
-			printIndent(indent);
-			printf(")");
-			break;
-		case NODE_NEGATION:
-			printf("(-\n");
-			printIndent(indent + 1);
-			Node_printImpl(node->negation.value, indent + 1);
-			printf("\n");
-			printIndent(indent);
-			printf(")");
-			break;
-		case NODE_VAR_DECL:
-			printf("(define :type %s\n", Type_toString(node->var_decl.type));
-			printIndent(indent + 1);
-			TokenPosition_print(node->var_decl.name.pos);
-			printf("\n");
-			printIndent(indent + 1);
-			Node_printImpl(node->var_decl.value, indent + 1);
-			printf("\n");
-			printIndent(indent);
-			printf(")");
-			break;
-		default:
-			nob_log(ERROR, "Unexpected Node");
-			exit(EXIT_FAILURE);
+		}
+		printIndent(indent);
+		printf(")");
+		break;
+	case NODE_EXIT:
+		printf("(exit\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->exit.value, indent + 1);
+		printf("\n");
+		printIndent(indent);
+		printf(")");
+		break;
+	case NODE_CAST:
+		printf("(%s\n", Type_toString(node->cast.target));
+		printIndent(indent + 1);
+		Node_printImpl(node->cast.value, indent + 1);
+		printf("\n");
+		printIndent(indent);
+		printf(")");
+		break;
+	case NODE_NEGATION:
+		printf("(-\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->negation.value, indent + 1);
+		printf("\n");
+		printIndent(indent);
+		printf(")");
+		break;
+	case NODE_VAR_DECL:
+		printf("(define :type %s :i %ld\n",
+			Type_toString(node->var_decl.type),
+			node->var_decl.scopeIndex
+		);
+		printIndent(indent + 1);
+		TokenPosition_print(node->var_decl.name.pos);
+		printf("\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->var_decl.value, indent + 1);
+		printf("\n");
+		printIndent(indent);
+		printf(")");
+		break;
+	case NODE_SCOPE:
+		printf("(scope :ofsize %ld\n", node->scope.size);
+		printIndent(indent + 1);
+		Node_printImpl(node->scope.child, indent + 1);
+		printf("\n");
+		printIndent(indent);
+		printf(")");
+		break;
+	default:
+		nob_log(ERROR, "Unexpected Node");
+		exit(EXIT_FAILURE);
 	}
 	if (node->retType)
 		printf(" -> %s", Type_toString(node->retType));
@@ -217,22 +228,23 @@ void Node_free(const Node *node)
 	assert(node);
 	switch (node->type)
 	{
-		case NODE_CAST:
-		case NODE_NEGATION:
-		case NODE_EXIT:
-		case NODE_VAR_DECL:
-			Node_free(node->exit.value);
-			break;
-		case NODE_INFIX:
-			Node_free(node->infix.left);
-			Node_free(node->infix.right);
-			break;
-		case NODE_BLOCK:
-			da_foreach(Node*, child, &node->block)
-				Node_free(*child);
-			free(node->block.items);
-			break;
-		default: {}
+	case NODE_CAST:
+	case NODE_NEGATION:
+	case NODE_EXIT:
+	case NODE_SCOPE:
+	case NODE_VAR_DECL:
+		Node_free(node->exit.value);
+		break;
+	case NODE_INFIX:
+		Node_free(node->infix.left);
+		Node_free(node->infix.right);
+		break;
+	case NODE_BLOCK:
+		da_foreach(Node*, child, &node->block)
+			Node_free(*child);
+		free(node->block.items);
+		break;
+	default: {}
 	}
 	free((void*)node);
 }

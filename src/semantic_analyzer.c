@@ -50,83 +50,89 @@ static void ScopeInfo_free(const ScopeInfo *this)
 {
 	if (this->vars) free(this->vars);
 }
+static void mark(Node *node, ScopeInfo *scope);
+static Node *markScope(Node *node)
+{
+	ScopeInfo *scope = ScopeInfo_make();
+	Node *result = Node_make();
+	result->type = NODE_SCOPE;
+	result->scope.child = node;
+	mark(result->scope.child, scope);
+	result->scope.size = scope->count;
+	ScopeInfo_free(scope);
+	free(scope);
+	return result;
+}
 static void mark(Node *node, ScopeInfo *scope)
 {
 	struct Node *left, *right;
-	bool weOwnDaScope = false;
-	if (!scope)
-	{
-		scope = ScopeInfo_make();
-		weOwnDaScope = true;
-	}
 	switch (node->type)
 	{
-		case NODE_NUMBER_LIT:
+	case NODE_NUMBER_LIT:
+		node->retType = &TYPE_INT_OBJ;
+		break;
+	case NODE_UNUMBER_LIT:
+		node->retType = &TYPE_UINT_OBJ;
+		break;
+	case NODE_FNUMBER_LIT:
+		node->retType = &TYPE_FLOAT_OBJ;
+		break;
+	case NODE_SYMBOL:
+		if (!ScopeInfo_isVarPresent(scope, &node->symbol.token.pos))
+		{
+			nob_log(ERROR, "Undefined variable");
+			exit(EXIT_FAILURE);
+		}
+		size_t varIndex = ScopeInfo_getVarIndex(scope, &node->symbol.token.pos);
+		VarInfo *varInfo = ScopeInfo_getInfo(scope, varIndex);
+		node->retType = (Type*)varInfo->type;
+		node->symbol.scopeIndex = varIndex;
+		break;
+	case NODE_BLOCK:
+		da_foreach(Node*, child, &node->block)
+			mark(*child, scope);
+		node->retType = &TYPE_VOID_OBJ;
+		break;
+	case NODE_INFIX:
+		left = node->infix.left;
+		right = node->infix.right;
+		mark(left, scope);
+		mark(right, scope);
+		if (left->retType == &TYPE_INT_OBJ && right->retType == &TYPE_INT_OBJ)
 			node->retType = &TYPE_INT_OBJ;
-			break;
-		case NODE_UNUMBER_LIT:
+		else if (left->retType == &TYPE_UINT_OBJ && right->retType == &TYPE_UINT_OBJ)
 			node->retType = &TYPE_UINT_OBJ;
-			break;
-		case NODE_FNUMBER_LIT:
+		else if (left->retType == &TYPE_FLOAT_OBJ && right->retType == &TYPE_FLOAT_OBJ)
 			node->retType = &TYPE_FLOAT_OBJ;
-			break;
-		case NODE_SYMBOL:
-			if (!ScopeInfo_isVarPresent(scope, &node->symbol.token.pos))
-			{
-				nob_log(ERROR, "Undefined variable");
-				exit(EXIT_FAILURE);
-			}
-			size_t varIndex = ScopeInfo_getVarIndex(scope, &node->symbol.token.pos);
-			VarInfo *varInfo = ScopeInfo_getInfo(scope, varIndex);
-			node->retType = (Type*)varInfo->type;
-			node->symbol.scopeIndex = varIndex;
-			break;
-		case NODE_BLOCK:
-			da_foreach(Node*, child, &node->block)
-				mark(*child, scope);
-			node->retType = &TYPE_VOID_OBJ;
-			break;
-		case NODE_INFIX:
-			left = node->infix.left;
-			right = node->infix.right;
-			mark(left, scope);
-			mark(right, scope);
-			if (left->retType == &TYPE_INT_OBJ && right->retType == &TYPE_INT_OBJ)
-				node->retType = &TYPE_INT_OBJ;
-			else if (left->retType == &TYPE_UINT_OBJ && right->retType == &TYPE_UINT_OBJ)
-				node->retType = &TYPE_UINT_OBJ;
-			else if (left->retType == &TYPE_FLOAT_OBJ && right->retType == &TYPE_FLOAT_OBJ)
-				node->retType = &TYPE_FLOAT_OBJ;
-			else {
-				nob_log(ERROR, "Cant perform %s on %s and %s",
-					InfixType_toString(&node->infix.type),
-					Type_toString(left->retType),
-					Type_toString(right->retType));
-				exit(EXIT_FAILURE);
-			}
-			break;
-		case NODE_EXIT:
-			mark(node->exit.value, scope);
-			node->retType = &TYPE_VOID_OBJ;
-			break;
-		case NODE_CAST:
-			mark(node->cast.value, scope);
-			node->retType = node->cast.target;
-			break;
-		case NODE_NEGATION:
-			mark(node->negation.value, scope);
-			node->retType->kind = node->negation.value->retType->kind;
-			break;
-		case NODE_VAR_DECL:
-			mark(node->var_decl.value, scope);
-			node->retType = &TYPE_VOID_OBJ;
-			ScopeInfo_declare(scope, &node->var_decl.name.pos, node->var_decl.type, false);
-			break;
-	}
-	if (weOwnDaScope)
-	{
-		ScopeInfo_free(scope);
-		free(scope);
+		else {
+			nob_log(ERROR, "Cant perform %s on %s and %s",
+				InfixType_toString(&node->infix.type),
+				Type_toString(left->retType),
+				Type_toString(right->retType));
+			exit(EXIT_FAILURE);
+		}
+		break;
+	case NODE_EXIT:
+		mark(node->exit.value, scope);
+		node->retType = &TYPE_VOID_OBJ;
+		break;
+	case NODE_CAST:
+		mark(node->cast.value, scope);
+		node->retType = node->cast.target;
+		break;
+	case NODE_NEGATION:
+		mark(node->negation.value, scope);
+		node->retType->kind = node->negation.value->retType->kind;
+		break;
+	case NODE_VAR_DECL:
+		mark(node->var_decl.value, scope);
+		node->retType = &TYPE_VOID_OBJ;
+		ScopeInfo_declare(scope, &node->var_decl.name.pos, node->var_decl.type, false);
+		node->var_decl.scopeIndex = ScopeInfo_getVarIndex(scope, &node->var_decl.name.pos);
+		break;
+	case NODE_SCOPE:
+		nob_log(ERROR, "Node of type SCOPE should not be present in not analyzed ast");
+		exit(EXIT_FAILURE);
 	}
 }
 static void analyze(Node *node)
@@ -168,8 +174,8 @@ static void analyze(Node *node)
 		default: {}
 	}
 }
-void analyzeAndMark(Node *node)
+void analyzeAndMark(Node **node)
 {
-	mark(node, NULL);
-	analyze(node);
+	*node = markScope(*node);
+	analyze(*node);
 }

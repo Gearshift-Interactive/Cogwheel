@@ -2,4 +2,4 @@
 
 #include "parser.h"
 
-void analyzeAndMark(Node *);
+void analyzeAndMark(Node **);

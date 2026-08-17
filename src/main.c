@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 	Node_print(ast);
 	printf("\n");
 #	endif
-	analyzeAndMark(ast);
+	analyzeAndMark(&ast);
 #	ifdef DEBUG
 	printf("//// MARKED AST ////\n");
 	Node_print(ast);
