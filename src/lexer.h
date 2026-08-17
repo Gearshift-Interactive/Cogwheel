@@ -28,6 +28,8 @@
 	X(FLOAT_T) \
 	X(BOOL_T) \
 	X(STRING_T) \
+	/* keywords */ \
+	X(EXIT) \
 
 
 typedef enum {

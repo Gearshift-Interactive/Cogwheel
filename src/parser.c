@@ -396,6 +396,14 @@ static Node *parseExprHead(TokenStream *tokens)
 		result->var_decl.value = parseExpr(tokens, 0);
 		return result;
 	}
+	else if (peek->type == TOKEN_EXIT) // exit keyword
+	{
+		TokenStream_consume(tokens);
+		Node *result = Node_make();
+		result->type = NODE_EXIT;
+		result->exit.value = parseExpr(tokens, 0);
+		return result;
+	}
 	return parseAtom(tokens);
 }
 static Node *parseExprTail(TokenStream *tokens, float parentBind, Node *left)

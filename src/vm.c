@@ -375,5 +375,6 @@ int run(const Chunk *chunk)
 	}
 	Stack_free(&vm.stack);
 	Chunk_free(chunk);
+	if (vm.scope) free(vm.scope);
 	return vm.retCode;
 }

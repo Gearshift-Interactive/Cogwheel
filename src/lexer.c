@@ -27,6 +27,7 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "float", TOKEN_FLOAT_T },
 	{ "string", TOKEN_STRING_T },
 	{ "bool", TOKEN_BOOL_T },
+	{ "exit", TOKEN_EXIT },
 };
 static const char LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char LETTERS_AND_NUMBERS[] =
