@@ -99,7 +99,9 @@ static void mark(Node *node, ScopeInfo *scope)
 		right = node->infix.right;
 		mark(left, scope);
 		mark(right, scope);
-		if (left->retType == &TYPE_INT_OBJ && right->retType == &TYPE_INT_OBJ)
+		if (node->infix.type == INFIX_ASSIGN)
+			node->retType = node->infix.right->retType;
+		else if (left->retType == &TYPE_INT_OBJ && right->retType == &TYPE_INT_OBJ)
 			node->retType = &TYPE_INT_OBJ;
 		else if (left->retType == &TYPE_UINT_OBJ && right->retType == &TYPE_UINT_OBJ)
 			node->retType = &TYPE_UINT_OBJ;
@@ -127,7 +129,7 @@ static void mark(Node *node, ScopeInfo *scope)
 		break;
 	case NODE_VAR_DECL:
 		mark(node->var_decl.value, scope);
-		node->retType = &TYPE_VOID_OBJ;
+		node->retType = node->var_decl.value->retType;
 		if (node->var_decl.type != node->var_decl.value->retType)
 		{
 			nob_log(ERROR,

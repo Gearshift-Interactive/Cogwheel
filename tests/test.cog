@@ -1,4 +1,4 @@
-uint variable = 2u;
+uint variable = mut uint variable3 = 2u;
 mut int variable2 = (int)(variable - 1u);
-variable2 = variable2 + 8;
-exit variable2;
+variable2 = variable3 = variable2 + 8;
+exit (int)variable3;

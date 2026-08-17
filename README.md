@@ -40,6 +40,11 @@ var1 = var1 + 1; // ERR
 mut int var2 = 0;
 var2 = var2 + 1; // OK
 ```
+Assignment as well as declaration return the set variable value, so you can do stuff like this:
+```
+uint variable = mut uint variable3 = 2u;
+variable2 = variable3 = variable2 + 8;
+```
 
 ### Keywords
 

@@ -116,7 +116,7 @@ const char *InfixType_toString(const InfixType *it)
 static void printIndent(const size_t indent)
 {
 	for (size_t i = 0; i < indent; i++)
-		printf("    ");
+		printf("  ");
 }
 const char *Type_toString(const Type *t)
 {

@@ -63,7 +63,6 @@ static void compileInfix(Chunk *this, const Node *node)
 	switch (node->infix.type)
 	{
 	case INFIX_ASSIGN:
-		compileNode(this, node->infix.right);
 		da_append(&this->instr, (uint8_t)OP_SCOPE_WRITE);
 		*(size_t*)buffer = node->infix.left->symbol.scopeIndex;
 		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)

@@ -150,6 +150,15 @@ static Value Stack_pop(Stack *this)
 	}
 	return this->values[--this->count];
 }
+static Value Stack_current(Stack *this)
+{
+	if (this->count < 1)
+	{
+		nob_log(ERROR, "Stack is empty");
+		exit(EXIT_FAILURE);
+	}
+	return this->values[this->count - 1];
+}
 static void Stack_free(const Stack *this)
 {
 	if (this->values)
@@ -351,7 +360,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		break;
 	case OP_SCOPE_WRITE:
 		arg1 = readSizeT(vm, chunk);
-		vm->scope->values[arg1] = Stack_pop(&vm->stack);
+		vm->scope->values[arg1] = Stack_current(&vm->stack);
 		break;
 	default:
 		nob_log(ERROR, "Unsupported operation at %ld", vm->pc - 1);
