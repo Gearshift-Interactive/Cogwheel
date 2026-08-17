@@ -29,6 +29,10 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "bool", TOKEN_BOOL_T },
 	{ "exit", TOKEN_EXIT },
 	{ "mut", TOKEN_MUT },
+	{ "true", TOKEN_TRUE_ },
+	{ "false", TOKEN_FALSE_ },
+	{ "or", TOKEN_OR },
+	{ "and", TOKEN_AND },
 };
 static const char LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char LETTERS_AND_NUMBERS[] =

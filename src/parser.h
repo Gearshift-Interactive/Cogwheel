@@ -7,6 +7,7 @@
 	X(INT, int)     \
 	X(UINT, uint)   \
 	X(FLOAT, float) \
+	X(BOOL, bool) \
 
 typedef enum {
 #define X(NAME, LITERAL) TYPE_##NAME,
@@ -26,6 +27,8 @@ typedef struct Type {
 	X(DIV, /)      \
 	X(MUL, *)      \
 	X(POW, ^)      \
+	X(AND, and)    \
+	X(OR, or)      \
 
 typedef enum {
 #define X(name, op) INFIX_##name,
@@ -45,6 +48,8 @@ typedef enum {
 	X(CAST)        \
 	X(VAR_DECL)    \
 	X(SCOPE)       \
+	X(TRUE_)       \
+	X(FALSE_)      \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
@@ -101,6 +106,7 @@ typedef struct Node {
 extern Type TYPE_INT_OBJ;
 extern Type TYPE_UINT_OBJ;
 extern Type TYPE_FLOAT_OBJ;
+extern Type TYPE_BOOL_OBJ;
 extern Type TYPE_VOID_OBJ;
 
 const char *InfixType_toString(const InfixType *);

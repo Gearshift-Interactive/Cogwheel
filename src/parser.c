@@ -21,11 +21,13 @@ static const struct {
 	{ TOKEN_INT_T, &TYPE_INT_OBJ },
 	{ TOKEN_UINT_T, &TYPE_UINT_OBJ },
 	{ TOKEN_FLOAT_T, &TYPE_FLOAT_OBJ },
-	// { TOKEN_BOOL_T, ATOM_BOOL },
+	{ TOKEN_BOOL_T, &TYPE_BOOL_OBJ },
 	// { TOKEN_STRING_T, ATOM_STRING },
 };
 static const BindingPower BINDING_POWERS[] = {
 	{ TOKEN_ASSIGN, 0.5f,  0.6f },
+	{ TOKEN_OR,     2.0f,  2.1f },
+	{ TOKEN_AND,    3.0f,  3.1f },
 	{ TOKEN_SUB,    5.0f,  5.1f },
 	{ TOKEN_ADD,    6.0f,  6.1f },
 	{ TOKEN_MUL,    7.0f,  7.1f },
@@ -98,6 +100,9 @@ Type TYPE_UINT_OBJ = {
 };
 Type TYPE_FLOAT_OBJ = {
 	.kind = TYPE_FLOAT,
+};
+Type TYPE_BOOL_OBJ = {
+	.kind = TYPE_BOOL,
 };
 Type TYPE_VOID_OBJ = {
 	.kind = TYPE_VOID,
@@ -218,6 +223,12 @@ static void Node_printImpl(const Node *node, const size_t indent)
 		printIndent(indent);
 		printf(")");
 		break;
+	case NODE_TRUE_:
+		printf("true");
+		break;
+	case NODE_FALSE_:
+		printf("false");
+		break;
 	default:
 		nob_log(ERROR, "Unexpected Node");
 		exit(EXIT_FAILURE);
@@ -317,6 +328,16 @@ static Node *parseAtom(TokenStream *tokens)
 			node->symbol.token = consumed;
 			return node;
 		}
+		case TOKEN_TRUE_: {
+			Node *node = Node_make();
+			node->type = NODE_TRUE_;
+			return node;
+		}
+		case TOKEN_FALSE_: {
+			Node *node = Node_make();
+			node->type = NODE_FALSE_;
+			return node;
+		}
 		default: {
 			TokenPosition tp = consumed.pos;
 			nob_log(ERROR, "Unexpected \"%.*s\"", (int)tp.length, tp.origin + tp.start);
@@ -334,6 +355,8 @@ static InfixType getInfixType(TokenType tt)
 		case TOKEN_MUL: return INFIX_MUL;
 		case TOKEN_POW: return INFIX_POW;
 		case TOKEN_ASSIGN: return INFIX_ASSIGN;
+		case TOKEN_OR: return INFIX_OR;
+		case TOKEN_AND: return INFIX_AND;
 		default: {
 			nob_log(ERROR, "Unexpected infix operator");
 			exit(EXIT_FAILURE);
@@ -471,7 +494,8 @@ __attribute__((unused)) static Node *parseBlock(TokenStream *tokens)
 	TokenStream_consumeExpect(tokens, TOKEN_RBRACE);
 	return result;
 }
-Node *parse(TokenStream tokens) {
+Node *parse(TokenStream tokens)
+{
 	Node *result = parseBlockInside(&tokens);
 	// Node *result = Node_make();
 	// result->type = NODE_EXIT;

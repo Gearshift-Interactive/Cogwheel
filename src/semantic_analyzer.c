@@ -101,6 +101,11 @@ static void mark(Node *node, ScopeInfo *scope)
 		mark(right, scope);
 		if (node->infix.type == INFIX_ASSIGN)
 			node->retType = node->infix.right->retType;
+		else if (node->infix.type == INFIX_OR || node->infix.type == INFIX_AND)
+		{
+			if (left->retType == &TYPE_BOOL_OBJ && right->retType == &TYPE_BOOL_OBJ)
+				node->retType = &TYPE_BOOL_OBJ;
+		}
 		else if (left->retType == &TYPE_INT_OBJ && right->retType == &TYPE_INT_OBJ)
 			node->retType = &TYPE_INT_OBJ;
 		else if (left->retType == &TYPE_UINT_OBJ && right->retType == &TYPE_UINT_OBJ)
@@ -153,6 +158,13 @@ static void mark(Node *node, ScopeInfo *scope)
 		break;
 	case NODE_SCOPE:
 		nob_log(ERROR, "Node of type SCOPE should not be present in not analyzed ast");
+		exit(EXIT_FAILURE);
+	case NODE_FALSE_:
+	case NODE_TRUE_:
+		node->retType = &TYPE_BOOL_OBJ;
+		break;
+	default:
+		nob_log(ERROR, "Unexpected Node for marking");
 		exit(EXIT_FAILURE);
 	}
 }

@@ -16,6 +16,7 @@ typedef
 		int64_t v_int;
 		uint64_t v_uint;
 		double v_float;
+		bool v_bool;
 #ifdef DEBUG
 	};
 #endif
@@ -95,6 +96,9 @@ static void Value_print(const Value *this) {
 			break;
 		case TYPE_FLOAT:
 			printf("(%f)\n", this->v_float);
+			break;
+		case TYPE_BOOL:
+			printf("(%s)\n", this->v_bool ? "true" : "false");
 			break;
 		case TYPE_VOID:
 			exit(EXIT_FAILURE);
@@ -361,6 +365,28 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_SCOPE_WRITE:
 		arg1 = readSizeT(vm, chunk);
 		vm->scope->values[arg1] = Stack_current(&vm->stack);
+		break;
+	case OP_CLOAD_TRUE:
+		Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
+			.type = &TYPE_BOOL_OBJ,
+#endif
+			.v_bool = true,
+		});
+		break;
+	case OP_CLOAD_FALSE:
+		Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
+			.type = &TYPE_BOOL_OBJ,
+#endif
+			.v_bool = false,
+		});
+		break;
+	case OP_OR:
+		INFIX(&TYPE_BOOL_OBJ, v_bool, ||);
+		break;
+	case OP_AND:
+		INFIX(&TYPE_BOOL_OBJ, v_bool, &&);
 		break;
 	default:
 		nob_log(ERROR, "Unsupported operation at %ld", vm->pc - 1);

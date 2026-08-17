@@ -1,4 +1,3 @@
-uint variable = mut uint variable3 = 2u;
-mut int variable2 = (int)(variable - 1u);
-variable2 = variable3 = variable2 + 8;
-exit (int)variable3;
+mut bool var1 = false;
+var1 = true;
+var1 = var1 and false;

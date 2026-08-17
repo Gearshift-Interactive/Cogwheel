@@ -161,6 +161,12 @@ static void compileInfix(Chunk *this, const Node *node)
 			break;
 		}
 		break;
+	case INFIX_OR:
+		da_append(&this->instr, OP_OR);
+		break;
+	case INFIX_AND:
+		da_append(&this->instr, OP_AND);
+		break;
 	}
 }
 static void compileNode(Chunk *this, const Node *node)
@@ -245,6 +251,12 @@ static void compileNode(Chunk *this, const Node *node)
 		*(size_t*)buffer = node->var_decl.scopeIndex;
 		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
 			da_append(&this->instr, buffer[i]);
+		break;
+	case NODE_TRUE_:
+		da_append(&this->instr, (uint8_t)OP_CLOAD_TRUE);
+		break;
+	case NODE_FALSE_:
+		da_append(&this->instr, (uint8_t)OP_CLOAD_FALSE);
 		break;
 	}
 }

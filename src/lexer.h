@@ -9,6 +9,8 @@
 	X(FNUMBER) \
 	X(STRING) \
 	X(SYMBOL) \
+	X(TRUE_) \
+	X(FALSE_) \
 	/* infix */ \
 	X(ADD) \
 	X(SUB) \
@@ -16,6 +18,8 @@
 	X(DIV) \
 	X(POW) \
 	X(ASSIGN) \
+	X(AND) \
+	X(OR) \
 	/* punctuation */ \
 	X(LPAREN) \
 	X(RPAREN) \

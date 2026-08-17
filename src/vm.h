@@ -10,6 +10,8 @@
 	X(CLOAD_INT, sizeof(size_t))    \
 	X(CLOAD_UINT, sizeof(size_t))   \
 	X(CLOAD_FLOAT, sizeof(size_t))  \
+	X(CLOAD_TRUE, 0)                \
+	X(CLOAD_FALSE, 0)               \
 	/* add */                       \
 	X(ADD_INT, 0)                   \
 	X(ADD_UINT, 0)                  \
@@ -30,6 +32,9 @@
 	X(POW_INT, 0)                   \
 	X(POW_UINT, 0)                  \
 	X(POW_FLOAT, 0)                 \
+	/* logic */                     \
+	X(AND, 0)                       \
+	X(OR, 0)                        \
 	/* negation */                  \
 	X(NEG_INT, 0)                   \
 	X(NEG_FLOAT, 0)                 \
