@@ -26,7 +26,7 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "uint", TOKEN_UINT_T },
 	{ "float", TOKEN_FLOAT_T },
 	{ "string", TOKEN_STRING_T },
-	{ "bool", TOKEN_BOOL_T },
+	{ "boolean", TOKEN_BOOL_T },
 	{ "exit", TOKEN_EXIT },
 	{ "mut", TOKEN_MUT },
 	{ "true", TOKEN_TRUE_ },
