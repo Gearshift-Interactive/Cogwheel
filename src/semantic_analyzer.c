@@ -163,6 +163,9 @@ static void mark(Node *node, ScopeInfo *scope)
 	case NODE_TRUE_:
 		node->retType = &TYPE_BOOL_OBJ;
 		break;
+	case NODE_BLOCK:
+		// TODO
+		break;
 	default:
 		nob_log(ERROR, "Unexpected Node for marking");
 		exit(EXIT_FAILURE);

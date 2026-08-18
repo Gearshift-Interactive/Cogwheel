@@ -35,6 +35,7 @@
 	/* keywords */ \
 	X(EXIT) \
 	X(MUT) \
+	X(YIELD) \
 
 
 typedef enum {

@@ -176,6 +176,10 @@ static void Node_printImpl(const Node *node, const size_t indent)
 		break;
 	case NODE_EXIT:
 		printf("(exit\n");
+		goto single;
+	case NODE_YIELD:
+		printf("(yield\n");
+single:
 		printIndent(indent + 1);
 		Node_printImpl(node->exit.value, indent + 1);
 		printf("\n");
@@ -248,6 +252,7 @@ void Node_free(const Node *node)
 	case NODE_NEGATION:
 	case NODE_EXIT:
 	case NODE_SCOPE:
+	case NODE_YIELD:
 	case NODE_VAR_DECL:
 		Node_free(node->exit.value);
 		break;
@@ -397,6 +402,29 @@ static Node *parseVarDecl(TokenStream *tokens)
 	result->var_decl.isMutable = mut;
 	return result;
 }
+static Node *parseBlockInside(TokenStream *tokens)
+{
+	Node *block = Node_make();
+	block->type = NODE_BLOCK;
+	block->block.items = NULL;
+	block->block.count = 0;
+	block->block.capacity = 0;
+	while (TokenStream_peek(tokens))
+	{
+		Token *token = TokenStream_peek(tokens);
+		if (token->type == TOKEN_RBRACE) return block;
+		da_append(&block->block, parseExpr(tokens, 0));
+		TokenStream_consumeExpect(tokens, TOKEN_SEMICOLON);
+	}
+	return block;
+}
+static Node *parseBlock(TokenStream *tokens)
+{
+	TokenStream_consumeExpect(tokens, TOKEN_LBRACE);
+	Node *result = parseBlockInside(tokens);
+	TokenStream_consumeExpect(tokens, TOKEN_RBRACE);
+	return result;
+}
 static Node *parseExprHead(TokenStream *tokens)
 {
 	Token *peek = TokenStream_peek(tokens);
@@ -444,6 +472,16 @@ static Node *parseExprHead(TokenStream *tokens)
 		result->exit.value = parseExpr(tokens, 0);
 		return result;
 	}
+	else if (peek->type == TOKEN_YIELD) // exit keyword
+	{
+		TokenStream_consume(tokens);
+		Node *result = Node_make();
+		result->type = NODE_YIELD;
+		result->exit.value = parseExpr(tokens, 0);
+		return result;
+	}
+	else if (peek->type == TOKEN_LBRACE) // block
+		return parseBlock(tokens);
 	return parseAtom(tokens);
 }
 static Node *parseExprTail(TokenStream *tokens, float parentBind, Node *left)
@@ -470,29 +508,6 @@ static Node *parseExpr(TokenStream *tokens, float parentBind)
 {
 	Node *left = parseExprHead(tokens);
 	return parseExprTail(tokens, parentBind, left);
-}
-static Node *parseBlockInside(TokenStream *tokens)
-{
-	Node *block = Node_make();
-	block->type = NODE_BLOCK;
-	block->block.items = NULL;
-	block->block.count = 0;
-	block->block.capacity = 0;
-	while (TokenStream_peek(tokens))
-	{
-		Token *token = TokenStream_peek(tokens);
-		if (token->type == TOKEN_RBRACE) return block;
-		da_append(&block->block, parseExpr(tokens, 0));
-		TokenStream_consumeExpect(tokens, TOKEN_SEMICOLON);
-	}
-	return block;
-}
-__attribute__((unused)) static Node *parseBlock(TokenStream *tokens)
-{
-	TokenStream_consumeExpect(tokens, TOKEN_LBRACE);
-	Node *result = parseBlockInside(tokens);
-	TokenStream_consumeExpect(tokens, TOKEN_RBRACE);
-	return result;
 }
 Node *parse(TokenStream tokens)
 {
