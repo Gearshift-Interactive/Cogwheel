@@ -10,6 +10,7 @@
 	X(BOOL, bool) \
 
 typedef enum {
+	TYPE_UNKNOWN = 0,
 #define X(NAME, LITERAL) TYPE_##NAME,
 	TYPE_KINDS
 #undef X

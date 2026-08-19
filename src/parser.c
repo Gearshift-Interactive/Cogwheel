@@ -112,7 +112,7 @@ const char *InfixType_toString(const InfixType *it)
 {
 	switch (*it)
 	{
-#define X(name, op) case INFIX_##name: return #op; break;
+#define X(name, op) case INFIX_##name: return #op;
 	INFIX_TYPE
 #undef X
 	}
@@ -121,10 +121,12 @@ const char *InfixType_toString(const InfixType *it)
 static void printIndent(const size_t indent)
 {
 	for (size_t i = 0; i < indent; i++)
-		printf("  ");
+		printf("    ");
 }
 const char *Type_toString(const Type *t)
 {
+	if (!t)
+		return "UNKNOWN";
 	switch (t->kind)
 	{
 #define X(NAME, LITERAL) case TYPE_##NAME: return #LITERAL;

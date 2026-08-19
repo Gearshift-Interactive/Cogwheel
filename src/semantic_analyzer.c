@@ -2,6 +2,18 @@
 #include "lexer.h"
 
 typedef struct {
+	enum {
+		CONT_NULL = 0,
+		CONT_BLOCK,
+	} type;
+	union {
+		struct {
+			Type *retType;
+		} block;
+	};
+} Context;
+
+typedef struct {
 	const TokenPosition *name;
 	const Type *type;
 	bool mutable;
@@ -50,23 +62,25 @@ static void ScopeInfo_free(const ScopeInfo *this)
 {
 	if (this->vars) free(this->vars);
 }
-static void mark(Node **node, ScopeInfo *scope);
-static void markImpl(Node *node, ScopeInfo *scope);
-static Node *markScope(Node *node)
+static void mark(Node **node, ScopeInfo *scope, Context *context);
+static void markImpl(Node *node, ScopeInfo *scope, Context *context);
+static Node *markScope(Node *node, Context *context)
 {
 	ScopeInfo *scope = ScopeInfo_make();
 	Node *result = Node_make();
 	result->type = NODE_SCOPE;
 	result->scope.child = node;
-	markImpl(result->scope.child, scope);
+	markImpl(result->scope.child, scope, context);
 	result->scope.size = scope->count;
+	result->retType = result->scope.child->retType;
 	ScopeInfo_free(scope);
 	free(scope);
 	return result;
 }
-static void markImpl(Node *node, ScopeInfo *scope)
+static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 {
 	struct Node *left, *right;
+	Context childContext;
 	switch (node->type)
 	{
 	case NODE_NUMBER_LIT:
@@ -91,15 +105,21 @@ static void markImpl(Node *node, ScopeInfo *scope)
 		node->symbol.isMutable = varInfo->mutable;
 		break;
 	case NODE_BLOCK:
+		childContext = (Context){
+			.type = CONT_BLOCK,
+		};
 		da_foreach(Node*, child, &node->block)
-			mark(child, scope);
-		node->retType = &TYPE_VOID_OBJ;
+			mark(child, scope, &childContext);
+		if (childContext.block.retType)
+			node->retType = childContext.block.retType;
+		else
+			node->retType = &TYPE_VOID_OBJ;
 		break;
 	case NODE_INFIX:
 		left = node->infix.left;
 		right = node->infix.right;
-		mark(&left, scope);
-		mark(&right, scope);
+		mark(&left, scope, context);
+		mark(&right, scope, context);
 		if (node->infix.type == INFIX_ASSIGN)
 			node->retType = node->infix.right->retType;
 		else if (node->infix.type == INFIX_OR || node->infix.type == INFIX_AND)
@@ -122,19 +142,19 @@ static void markImpl(Node *node, ScopeInfo *scope)
 		}
 		break;
 	case NODE_EXIT:
-		mark(&node->exit.value, scope);
+		mark(&node->exit.value, scope, context);
 		node->retType = &TYPE_VOID_OBJ;
 		break;
 	case NODE_CAST:
-		mark(&node->cast.value, scope);
+		mark(&node->cast.value, scope, context);
 		node->retType = node->cast.target;
 		break;
 	case NODE_NEGATION:
-		mark(&node->negation.value, scope);
+		mark(&node->negation.value, scope, context);
 		node->retType->kind = node->negation.value->retType->kind;
 		break;
 	case NODE_VAR_DECL:
-		mark(&node->var_decl.value, scope);
+		mark(&node->var_decl.value, scope, context);
 		node->retType = node->var_decl.value->retType;
 		if (node->var_decl.type != node->var_decl.value->retType)
 		{
@@ -165,19 +185,33 @@ static void markImpl(Node *node, ScopeInfo *scope)
 		node->retType = &TYPE_BOOL_OBJ;
 		break;
 	case NODE_YIELD:
-		node->retType = &TYPE_VOID_OBJ;
+		if (context->type != CONT_BLOCK)
+		{
+			nob_log(ERROR, "You can't use \"yield\" in non-block context");
+			exit(EXIT_FAILURE);
+		}
+		mark(&node->yield.value, scope, context);
+		node->retType = node->yield.value->retType;
+		if (!context->block.retType)
+			context->block.retType = node->retType;
+		else
+			if (context->block.retType != node->retType)
+			{
+				nob_log(ERROR, "Block can't yield multiple data types at once");
+				exit(EXIT_FAILURE);
+			}
 		break;
 	default:
 		nob_log(ERROR, "Unexpected Node for marking");
 		exit(EXIT_FAILURE);
 	}
 }
-static void mark(Node **node, ScopeInfo *scope)
+static void mark(Node **node, ScopeInfo *scope, Context *context)
 {
 	if ((*node)->type == NODE_BLOCK)
-		*node = markScope(*node);
+		*node = markScope(*node, context);
 	else
-		markImpl(*node, scope);
+		markImpl(*node, scope, context);
 }
 static void analyze(Node *node)
 {
@@ -236,6 +270,7 @@ static void analyze(Node *node)
 }
 void analyzeAndMark(Node **node)
 {
-	*node = markScope(*node);
+	Context context = {0};
+	*node = markScope(*node, &context);
 	analyze(*node);
 }
