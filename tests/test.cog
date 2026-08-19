@@ -1,10 +1,8 @@
-int SOME = 10;
-boolean mabe = false;
-int var = {
-	mut int varvar = 10;
-	int mabe = 3;
-	varvar = varvar + mabe;
-	yield SOME + varvar;
-	yield -1;
-} + 2;
-exit var;
+int x = 10;
+
+int y = {
+    x = x + 5;
+    yield x;
+};
+
+exit y;

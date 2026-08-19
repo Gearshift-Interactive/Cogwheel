@@ -261,6 +261,7 @@ static void analyze(Node *node)
 				nob_log(ERROR, "Can't assign to not a variable");
 				exit(EXIT_FAILURE);
 			}
+			printf("%d\n", node->infix.left->symbol.isMutable);
 			if (!node->infix.left->symbol.isMutable)
 			{
 				nob_log(ERROR, "Can't assign to immutable variable");
@@ -293,9 +294,17 @@ static void analyze(Node *node)
 		analyze(node->negation.value);
 		break;
 	case NODE_SCOPE:
+	case NODE_VAR_DECL:
+	case NODE_YIELD:
 		analyze(node->scope.child);
 		break;
-	default: {}
+	case NODE_NUMBER_LIT:
+	case NODE_UNUMBER_LIT:
+	case NODE_FNUMBER_LIT:
+	case NODE_SYMBOL:
+	case NODE_TRUE_:
+	case NODE_FALSE_:
+	{}
 	}
 }
 void analyzeAndMark(Node **node)
