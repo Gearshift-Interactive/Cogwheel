@@ -1,9 +1,18 @@
 #include "compiler.h"
 
-static void compileNode(Chunk *this, const Node *node);
+#define PUSH_OP(OP) do { da_append(&this->instr, (uint8_t)OP); resultSize++; } while(0)
+#define PUSH_DATA(T, VALUE) do { \
+	uint8_t buffer[sizeof(T)] = {0}; \
+	*(T*)buffer = (VALUE); \
+	for (size_t i = 0; i < ARRAY_LEN(buffer); i++) \
+		da_append(&this->instr, buffer[i]); \
+} while(0)
 
-static void compileCast(Chunk *this, const Node *node)
+static size_t compileNode(Chunk *this, const Node *node);
+
+static size_t compileCast(Chunk *this, const Node *node)
 {
+	size_t resultSize = 0;
 	Opcode op = OP_NOOP;
 	switch (node->cast.target->kind)
 	{
@@ -52,33 +61,32 @@ static void compileCast(Chunk *this, const Node *node)
 		break;
 	}
 	da_append(&this->instr, op);
+	return resultSize;
 }
 
-static void compileInfix(Chunk *this, const Node *node)
+static size_t compileInfix(Chunk *this, const Node *node)
 {
-	uint8_t buffer[sizeof(size_t)] = {0};
+	size_t resultSize = 0;
 	if (node->infix.type != INFIX_ASSIGN)
 		compileNode(this, node->infix.left);
 	compileNode(this, node->infix.right);
 	switch (node->infix.type)
 	{
 	case INFIX_ASSIGN:
-		da_append(&this->instr, (uint8_t)OP_SCOPE_WRITE);
-		*(size_t*)buffer = node->infix.left->symbol.scopeIndex;
-		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
-			da_append(&this->instr, buffer[i]);
+		PUSH_OP(OP_SCOPE_WRITE);
+		PUSH_DATA(size_t, node->infix.left->symbol.scopeIndex);
 		break;
 	case INFIX_ADD:
 		switch (node->retType->kind)
 		{
 		case TYPE_INT:
-			da_append(&this->instr, OP_ADD_INT);
+			PUSH_OP(OP_ADD_INT);
 			break;
 		case TYPE_UINT:
-			da_append(&this->instr, OP_ADD_UINT);
+			PUSH_OP(OP_ADD_UINT);
 			break;
 		case TYPE_FLOAT:
-			da_append(&this->instr, OP_ADD_FLOAT);
+			PUSH_OP(OP_ADD_FLOAT);
 			break;
 		default:
 			nob_log(ERROR,
@@ -93,13 +101,13 @@ static void compileInfix(Chunk *this, const Node *node)
 		switch (node->retType->kind)
 		{
 		case TYPE_INT:
-			da_append(&this->instr, OP_SUB_INT);
+			PUSH_OP(OP_SUB_INT);
 			break;
 		case TYPE_UINT:
-			da_append(&this->instr, OP_SUB_UINT);
+			PUSH_OP(OP_SUB_UINT);
 			break;
 		case TYPE_FLOAT:
-			da_append(&this->instr, OP_SUB_FLOAT);
+			PUSH_OP(OP_SUB_FLOAT);
 			break;
 		default:
 			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
@@ -111,13 +119,13 @@ static void compileInfix(Chunk *this, const Node *node)
 		switch (node->retType->kind)
 		{
 		case TYPE_INT:
-			da_append(&this->instr, OP_MUL_INT);
+			PUSH_OP(OP_MUL_INT);
 			break;
 		case TYPE_UINT:
-			da_append(&this->instr, OP_MUL_UINT);
+			PUSH_OP(OP_MUL_UINT);
 			break;
 		case TYPE_FLOAT:
-			da_append(&this->instr, OP_MUL_FLOAT);
+			PUSH_OP(OP_MUL_FLOAT);
 			break;
 		default:
 			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
@@ -129,13 +137,13 @@ static void compileInfix(Chunk *this, const Node *node)
 		switch (node->retType->kind)
 		{
 		case TYPE_INT:
-			da_append(&this->instr, OP_DIV_INT);
+			PUSH_OP(OP_DIV_INT);
 			break;
 		case TYPE_UINT:
-			da_append(&this->instr, OP_DIV_UINT);
+			PUSH_OP(OP_DIV_UINT);
 			break;
 		case TYPE_FLOAT:
-			da_append(&this->instr, OP_DIV_FLOAT);
+			PUSH_OP(OP_DIV_FLOAT);
 			break;
 		default:
 			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
@@ -147,13 +155,13 @@ static void compileInfix(Chunk *this, const Node *node)
 		switch (node->retType->kind)
 		{
 		case TYPE_INT:
-			da_append(&this->instr, OP_POW_INT);
+			PUSH_OP(OP_POW_INT);
 			break;
 		case TYPE_UINT:
-			da_append(&this->instr, OP_POW_UINT);
+			PUSH_OP(OP_POW_UINT);
 			break;
 		case TYPE_FLOAT:
-			da_append(&this->instr, OP_POW_FLOAT);
+			PUSH_OP(OP_POW_FLOAT);
 			break;
 		default:
 			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
@@ -162,51 +170,44 @@ static void compileInfix(Chunk *this, const Node *node)
 		}
 		break;
 	case INFIX_OR:
-		da_append(&this->instr, OP_OR);
+		PUSH_OP(OP_OR);
 		break;
 	case INFIX_AND:
-		da_append(&this->instr, OP_AND);
+		PUSH_OP(OP_AND);
 		break;
 	}
+	return resultSize;
 }
-static void compileNode(Chunk *this, const Node *node)
+static size_t compileNode(Chunk *this, const Node *node)
 {
-	uint8_t buffer[sizeof(size_t)] = {0};
+	size_t resultSize = 0;
 	switch (node->type)
 	{
 	case NODE_NUMBER_LIT:
 		da_append(&this->intConsts, node->numLit.value);
-		da_append(&this->instr, (uint8_t)OP_CLOAD_INT);
-		*(size_t*)buffer = this->intConsts.count - 1;
-		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
-			da_append(&this->instr, buffer[i]);
+		PUSH_OP(OP_CLOAD_INT);
+		PUSH_DATA(size_t, this->intConsts.count - 1);
 		break;
 	case NODE_UNUMBER_LIT:
 		da_append(&this->uintConsts, node->unumLit.value);
-		da_append(&this->instr, (uint8_t)OP_CLOAD_UINT);
-		*(size_t*)buffer = this->uintConsts.count - 1;
-		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
-			da_append(&this->instr, buffer[i]);
+		PUSH_OP(OP_CLOAD_UINT);
+		PUSH_DATA(size_t, this->uintConsts.count - 1);
 		break;
 	case NODE_FNUMBER_LIT:
 		da_append(&this->floatConsts, node->floatLit.value);
-		da_append(&this->instr, (uint8_t)OP_CLOAD_FLOAT);
-		*(size_t*)buffer = this->floatConsts.count - 1;
-		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
-			da_append(&this->instr, buffer[i]);
+		PUSH_OP(OP_CLOAD_FLOAT);
+		PUSH_DATA(size_t, this->floatConsts.count - 1);
 		break;
 	case NODE_SYMBOL:
-		da_append(&this->instr, (uint8_t)OP_SCOPE_READ);
-		*(size_t*)buffer = node->symbol.scopeIndex;
-		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
-			da_append(&this->instr, buffer[i]);
+		PUSH_OP(OP_SCOPE_READ);
+		PUSH_DATA(size_t, node->symbol.scopeIndex);
 		break;
 	case NODE_BLOCK:
 		da_foreach(struct Node*, child, &node->block)
 		{
 			compileNode(this, *child);
 			if ((*child)->retType != &TYPE_VOID_OBJ)
-				da_append(&this->instr, OP_POP);
+				PUSH_OP(OP_POP);
 		}
 		// da_append(&this->instr, OP_TYPEURN);
 		break;
@@ -215,7 +216,7 @@ static void compileNode(Chunk *this, const Node *node)
 		break;
 	case NODE_EXIT:
 		compileNode(this, node->exit.value);
-		da_append(&this->instr, (uint8_t)OP_EXIT);
+		PUSH_OP(OP_EXIT);
 		break;
 	case NODE_CAST:
 		compileNode(this, node->cast.value);
@@ -226,10 +227,10 @@ static void compileNode(Chunk *this, const Node *node)
 		switch (node->retType->kind)
 		{
 		case (TYPE_INT):
-			da_append(&this->instr, (uint8_t)OP_NEG_INT);
+			PUSH_OP(OP_NEG_INT);
 			break;
 		case (TYPE_FLOAT):
-			da_append(&this->instr, (uint8_t)OP_NEG_FLOAT);
+			PUSH_OP(OP_NEG_FLOAT);
 			break;
 		default:
 			nob_log(ERROR, "Unsupported type for negation: %s", Type_toString(node->retType));
@@ -238,34 +239,30 @@ static void compileNode(Chunk *this, const Node *node)
 		}
 		break;
 	case NODE_SCOPE:
-		da_append(&this->instr, (uint8_t)OP_SCOPE_ENTER);
-		*(size_t*)buffer = node->scope.size;
-		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
-			da_append(&this->instr, buffer[i]);
+		PUSH_OP(OP_SCOPE_ENTER);
+		PUSH_DATA(size_t, node->scope.size);
 		compileNode(this, node->scope.child);
-		da_append(&this->instr, (uint8_t)OP_SCOPE_EXIT);
+		PUSH_OP(OP_SCOPE_EXIT);
 		break;
 	case NODE_VAR_DECL:
 		compileNode(this, node->var_decl.value);
-		da_append(&this->instr, (uint8_t)OP_SCOPE_WRITE);
-		*(size_t*)buffer = node->var_decl.scopeIndex;
-		for (size_t i = 0; i < ARRAY_LEN(buffer); i++)
-			da_append(&this->instr, buffer[i]);
+		PUSH_OP(OP_SCOPE_WRITE);
+		PUSH_DATA(size_t, node->var_decl.scopeIndex);
 		break;
 	case NODE_TRUE_:
-		da_append(&this->instr, (uint8_t)OP_CLOAD_TRUE);
+		PUSH_OP(OP_CLOAD_TRUE);
 		break;
 	case NODE_FALSE_:
-		da_append(&this->instr, (uint8_t)OP_CLOAD_FALSE);
+		PUSH_OP(OP_CLOAD_FALSE);
 		break;
 	}
+	return resultSize;
 }
 
 Chunk compile(const Node *tree)
 {
 	Chunk result = {0};
 	compileNode(&result, tree);
-	// da_append(&result.instr, OP_TYPEURN);
 	Node_free(tree);
 	return result;
 }
