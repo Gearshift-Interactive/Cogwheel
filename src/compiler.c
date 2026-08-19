@@ -1,16 +1,51 @@
 #include "compiler.h"
 
-#define PUSH_OP(OP) do { da_append(&this->instr, (uint8_t)OP); resultSize++; } while(0)
+typedef struct {
+	enum {
+		CONT_NULL = 0,
+		CONT_BLOCK,
+	} type;
+	union {
+		struct {
+			union { size_t *items, *yields; };
+			size_t count, capacity,
+				length;
+		} block;
+	};
+} Context;
+
+#define PUSH_OP(OP) do { \
+	da_append(&this->instr, (uint8_t)OP); \
+	resultSize++; \
+} while(0)
 #define PUSH_DATA(T, VALUE) do { \
 	uint8_t buffer[sizeof(T)] = {0}; \
 	*(T*)buffer = (VALUE); \
 	for (size_t i = 0; i < ARRAY_LEN(buffer); i++) \
 		da_append(&this->instr, buffer[i]); \
+	resultSize += sizeof(T); \
 } while(0)
+#define ACQUIRE_DATA(T) do { \
+	Chunk_acquireData(this, sizeof(T)); \
+	resultSize += sizeof(T); \
+} while(0);
+#define CHUNK_PTR(I) Chunk_idxToPtr(this, I)
 
-static size_t compileNode(Chunk *this, const Node *node);
+static void *Chunk_idxToPtr(Chunk *this, size_t index)
+{
+	return this->instr.items + index;
+}
+static void *Chunk_acquireData(Chunk *this, size_t size)
+{
+	void *result = this->instr.items + this->instr.count;
+	for (size_t i = 0; i < size; i++) \
+		da_append(&this->instr, 0); \
+	return result;
+}
 
-static size_t compileCast(Chunk *this, const Node *node)
+static size_t compileNode(Chunk *this, const Node *node, Context *context);
+
+static size_t compileCast(Chunk *this, const Node *node, Context *context)
 {
 	size_t resultSize = 0;
 	Opcode op = OP_NOOP;
@@ -64,12 +99,12 @@ static size_t compileCast(Chunk *this, const Node *node)
 	return resultSize;
 }
 
-static size_t compileInfix(Chunk *this, const Node *node)
+static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 {
 	size_t resultSize = 0;
 	if (node->infix.type != INFIX_ASSIGN)
-		compileNode(this, node->infix.left);
-	compileNode(this, node->infix.right);
+		compileNode(this, node->infix.left, context);
+	compileNode(this, node->infix.right, context);
 	switch (node->infix.type)
 	{
 	case INFIX_ASSIGN:
@@ -178,9 +213,10 @@ static size_t compileInfix(Chunk *this, const Node *node)
 	}
 	return resultSize;
 }
-static size_t compileNode(Chunk *this, const Node *node)
+static size_t compileNode(Chunk *this, const Node *node, Context *context)
 {
 	size_t resultSize = 0;
+	Context childContext = {0};
 	switch (node->type)
 	{
 	case NODE_NUMBER_LIT:
@@ -203,27 +239,36 @@ static size_t compileNode(Chunk *this, const Node *node)
 		PUSH_DATA(size_t, node->symbol.scopeIndex);
 		break;
 	case NODE_BLOCK:
+		childContext = (Context) {
+			.type = CONT_BLOCK,
+		};
 		da_foreach(struct Node*, child, &node->block)
 		{
-			compileNode(this, *child);
-			if ((*child)->retType != &TYPE_VOID_OBJ)
+			childContext.block.length += compileNode(this, *child, &childContext);
+			if ((*child)->retType != &TYPE_VOID_OBJ && (*child)->type != NODE_YIELD)
+			{
 				PUSH_OP(OP_POP);
+				childContext.block.length++;
+			}
 		}
-		// da_append(&this->instr, OP_TYPEURN);
+		da_foreach(size_t, yield, &childContext.block)
+			*(size_t*)CHUNK_PTR(*yield) = this->instr.count - *yield;
+		if(childContext.block.items)
+			free(childContext.block.items);
 		break;
 	case NODE_INFIX:
-		compileInfix(this, node);
+		compileInfix(this, node, context);
 		break;
 	case NODE_EXIT:
-		compileNode(this, node->exit.value);
+		compileNode(this, node->exit.value, context);
 		PUSH_OP(OP_EXIT);
 		break;
 	case NODE_CAST:
-		compileNode(this, node->cast.value);
-		compileCast(this, node);
+		compileNode(this, node->cast.value, context);
+		compileCast(this, node, context);
 		break;
 	case NODE_NEGATION:
-		compileNode(this, node->negation.value);
+		compileNode(this, node->negation.value, context);
 		switch (node->retType->kind)
 		{
 		case (TYPE_INT):
@@ -241,11 +286,11 @@ static size_t compileNode(Chunk *this, const Node *node)
 	case NODE_SCOPE:
 		PUSH_OP(OP_SCOPE_ENTER);
 		PUSH_DATA(size_t, node->scope.size);
-		compileNode(this, node->scope.child);
+		compileNode(this, node->scope.child, context);
 		PUSH_OP(OP_SCOPE_EXIT);
 		break;
 	case NODE_VAR_DECL:
-		compileNode(this, node->var_decl.value);
+		compileNode(this, node->var_decl.value, context);
 		PUSH_OP(OP_SCOPE_WRITE);
 		PUSH_DATA(size_t, node->var_decl.scopeIndex);
 		break;
@@ -255,6 +300,12 @@ static size_t compileNode(Chunk *this, const Node *node)
 	case NODE_FALSE_:
 		PUSH_OP(OP_CLOAD_FALSE);
 		break;
+	case NODE_YIELD:
+		compileNode(this, node->yield.value, context);
+		PUSH_OP(OP_JUMPF);
+		da_append(&context->block, this->instr.count);
+		PUSH_DATA(size_t, 0);
+		break;
 	}
 	return resultSize;
 }
@@ -262,7 +313,8 @@ static size_t compileNode(Chunk *this, const Node *node)
 Chunk compile(const Node *tree)
 {
 	Chunk result = {0};
-	compileNode(&result, tree);
+	Context context = {0};
+	compileNode(&result, tree, &context);
 	Node_free(tree);
 	return result;
 }

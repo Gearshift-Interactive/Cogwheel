@@ -22,10 +22,18 @@ typedef
 #endif
 } Value;
 
-typedef struct {
+typedef struct Scope {
+	struct Scope *parent;
 	size_t size;
 	Value values[];
 } Scope;
+
+static void Scope_free(Scope *this)
+{
+	if (this->parent)
+		Scope_free(this->parent);
+	free(this);
+}
 
 typedef struct {
 	Value *values;
@@ -72,6 +80,7 @@ void Chunk_print(const Chunk *this)
 		{ \
 			size_t argl = ARGL; \
 			printf(" - "); \
+			/* displaying args in little endidan */ \
 			for (size_t iini = 0; iini < argl; iini++) \
 				printf("%X", this->instr.code[ini + 1 + iini]); \
 			ini += argl; \
@@ -100,6 +109,9 @@ static void Value_print(const Value *this) {
 		case TYPE_BOOL:
 			printf("(%s)\n", this->v_bool ? "true" : "false");
 			break;
+		case TYPE_UNKNOWN:
+			printf("(WTF)\n");
+			__attribute__((fallthrough));
 		case TYPE_VOID:
 			exit(EXIT_FAILURE);
 	}
@@ -201,6 +213,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 #endif
 	Opcode current = (Opcode)chunk->instr.code[vm->pc];
 	size_t arg1;
+	Scope *oldScope;
 	vm->pc++;
 	switch (current)
 	{
@@ -352,11 +365,14 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		break;
 	case OP_SCOPE_ENTER:
 		arg1 = readSizeT(vm, chunk);
+		oldScope = vm->scope;
 		vm->scope = calloc(1, sizeof(*(vm->scope)) + sizeof(Value[arg1]));
+		vm->scope->parent = oldScope;
 		break;
 	case OP_SCOPE_EXIT:
-		free(vm->scope);
-		vm->scope = NULL;
+		oldScope = vm->scope;
+		vm->scope = oldScope->parent;
+		free(oldScope);
 		break;
 	case OP_SCOPE_READ:
 		arg1 = readSizeT(vm, chunk);
@@ -388,6 +404,10 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_AND:
 		INFIX(&TYPE_BOOL_OBJ, v_bool, &&);
 		break;
+	case OP_JUMPF:
+		arg1 = readSizeT(vm, chunk);
+		vm->pc += arg1 - sizeof(size_t);
+		break;
 	default:
 		nob_log(ERROR, "Unsupported operation at %ld", vm->pc - 1);
 		exit(EXIT_FAILURE);
@@ -407,6 +427,6 @@ int run(const Chunk *chunk)
 	}
 	Stack_free(&vm.stack);
 	Chunk_free(chunk);
-	if (vm.scope) free(vm.scope);
+	if (vm.scope) Scope_free(vm.scope);
 	return vm.retCode;
 }

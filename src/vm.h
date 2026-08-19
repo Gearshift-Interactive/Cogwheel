@@ -50,6 +50,8 @@
 	X(SCOPE_READ, sizeof(size_t))   \
 	X(SCOPE_WRITE, sizeof(size_t))  \
 	X(SCOPE_EXIT, 0)                \
+	/* jumps */                     \
+	X(JUMPF, sizeof(size_t))        \
 
 typedef enum {
 	OP_NOOP = 0,
