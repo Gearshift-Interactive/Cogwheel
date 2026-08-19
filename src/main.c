@@ -35,12 +35,15 @@ int main(int argc, char **argv)
 	printf("\n");
 #	endif
 	Chunk code = compile(ast);
+	// Node_free(ast);
 #	ifdef DEBUG
 	printf("//// BYTECODE ////\n");
 	Chunk_print(&code);
 	printf("//// EXECUTION ////\n");
 #	endif
 	free(sb.items);
+	// Chunk_free(&code);
+	// return 0;
 	return run(&code);
 }
 

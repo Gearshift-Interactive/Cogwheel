@@ -180,7 +180,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		break;
 	case NODE_NEGATION:
 		mark(&node->negation.value, scope, context);
-		node->retType->kind = node->negation.value->retType->kind;
+		node->retType = node->negation.value->retType;
 		break;
 	case NODE_VAR_DECL:
 		mark(&node->var_decl.value, scope, context);

@@ -1,7 +1,10 @@
 int SOME = 10;
+boolean mabe = false;
 int var = {
 	mut int varvar = 10;
-	varvar = varvar + 3;
+	int mabe = 3;
+	varvar = varvar + mabe;
 	yield SOME + varvar;
-};
+	yield -1;
+} + 2;
 exit var;
