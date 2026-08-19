@@ -46,6 +46,18 @@ uint variable = mut uint variable3 = 2u;
 variable2 = variable3 = variable2 + 8;
 ```
 
+### Free Blocks
+
+Free blocks can be used as an expression:
+```
+int variable = {
+	mut int inner = 10;
+	inner = inner + 1;
+	yield inner;
+} + 1;
+```
+Block itself creates a new scope, and returns the yielded value.
+
 ### Keywords
 
 #### `exit`
