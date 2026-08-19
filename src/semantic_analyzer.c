@@ -19,7 +19,8 @@ typedef struct {
 	bool mutable;
 } VarInfo;
 
-typedef struct {
+typedef struct ScopeInfo {
+	struct ScopeInfo *parent;
 	union { VarInfo *items, *vars; };
 	size_t count, capacity;
 } ScopeInfo;
@@ -31,6 +32,14 @@ static ScopeInfo *ScopeInfo_make()
 }
 static bool ScopeInfo_isVarPresent(const ScopeInfo *this, const TokenPosition *name)
 {
+	for (const ScopeInfo *current = this; current; current = current->parent)
+		da_foreach(VarInfo, var, current)
+			if (TokenPosition_eq(var->name, name))
+				return true;
+	return false;
+}
+static bool ScopeInfo_isVarPresentShallow(const ScopeInfo *this, const TokenPosition *name)
+{
 	da_foreach(VarInfo, var, this)
 		if (TokenPosition_eq(var->name, name))
 			return true;
@@ -38,15 +47,32 @@ static bool ScopeInfo_isVarPresent(const ScopeInfo *this, const TokenPosition *n
 }
 static size_t ScopeInfo_getVarIndex(const ScopeInfo *this, const TokenPosition *name)
 {
-	for (size_t i = 0; i < this->count; i++)
-		if (TokenPosition_eq((this->vars + i)->name, name))
-			return i;
+	for (const ScopeInfo *current = this; current; current = current->parent)
+		for (size_t i = 0; i < current->count; i++)
+			if (TokenPosition_eq((current->vars + i)->name, name))
+				return i;
 	nob_log(ERROR, "Undefined variable");
 	exit(EXIT_FAILURE);
 }
-static VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index)
+static size_t ScopeInfo_getVarDepth(const ScopeInfo *this, const TokenPosition *name)
 {
-	return this->vars + index;
+	size_t depth = 0;
+	for (const ScopeInfo *current = this; current; current = current->parent)
+	{
+		da_foreach(VarInfo, var, current)
+			if (TokenPosition_eq(var->name, name))
+				return depth;
+		depth++;
+	}
+	nob_log(ERROR, "Undefined variable");
+	exit(EXIT_FAILURE);
+}
+static VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index, size_t depth)
+{
+	const ScopeInfo *current = this;
+	for (size_t i = 0; i < depth; i++)
+		current = current->parent;
+	return current->vars + index;
 }
 static void ScopeInfo_declare(
 	ScopeInfo *this, const TokenPosition *name, const Type *type, bool mutable
@@ -64,9 +90,10 @@ static void ScopeInfo_free(const ScopeInfo *this)
 }
 static void mark(Node **node, ScopeInfo *scope, Context *context);
 static void markImpl(Node *node, ScopeInfo *scope, Context *context);
-static Node *markScope(Node *node, Context *context)
+static Node *markScope(Node *node, ScopeInfo *parent, Context *context)
 {
 	ScopeInfo *scope = ScopeInfo_make();
+	scope->parent = parent;
 	Node *result = Node_make();
 	result->type = NODE_SCOPE;
 	result->scope.child = node;
@@ -99,9 +126,11 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			exit(EXIT_FAILURE);
 		}
 		size_t varIndex = ScopeInfo_getVarIndex(scope, &node->symbol.token.pos);
-		VarInfo *varInfo = ScopeInfo_getInfo(scope, varIndex);
+		size_t varDepth = ScopeInfo_getVarDepth(scope, &node->symbol.token.pos);
+		VarInfo *varInfo = ScopeInfo_getInfo(scope, varIndex, varDepth);
 		node->retType = (Type*)varInfo->type;
 		node->symbol.scopeIndex = varIndex;
+		node->symbol.scopeDepth = varDepth;
 		node->symbol.isMutable = varInfo->mutable;
 		break;
 	case NODE_BLOCK:
@@ -165,7 +194,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			);
 			exit(EXIT_FAILURE);
 		}
-		if (ScopeInfo_isVarPresent(scope, &node->var_decl.name.pos))
+		if (ScopeInfo_isVarPresentShallow(scope, &node->var_decl.name.pos))
 		{
 			nob_log(ERROR, "Variable is already declared");
 			exit(EXIT_FAILURE);
@@ -176,6 +205,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			node->var_decl.isMutable
 		);
 		node->var_decl.scopeIndex = ScopeInfo_getVarIndex(scope, &node->var_decl.name.pos);
+		node->var_decl.scopeDepth = ScopeInfo_getVarDepth(scope, &node->var_decl.name.pos);
 		break;
 	case NODE_SCOPE:
 		nob_log(ERROR, "Node of type SCOPE should not be present in not analyzed ast");
@@ -209,7 +239,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 static void mark(Node **node, ScopeInfo *scope, Context *context)
 {
 	if ((*node)->type == NODE_BLOCK)
-		*node = markScope(*node, context);
+		*node = markScope(*node, scope, context);
 	else
 		markImpl(*node, scope, context);
 }
@@ -271,6 +301,6 @@ static void analyze(Node *node)
 void analyzeAndMark(Node **node)
 {
 	Context context = {0};
-	*node = markScope(*node, &context);
+	*node = markScope(*node, NULL, &context);
 	analyze(*node);
 }

@@ -1,5 +1,7 @@
+int SOME = 10;
 int var = {
-	int var2 = 4;
-	yield var2 + 2;
+	mut int varvar = 10;
+	varvar = varvar + 3;
+	yield SOME + varvar;
 };
 exit var;

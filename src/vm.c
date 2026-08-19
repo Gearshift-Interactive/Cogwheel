@@ -95,6 +95,11 @@ void Chunk_print(const Chunk *this)
 #ifdef DEBUG
 static void Value_print(const Value *this) {
 	printf("%s", Type_toString(this->type));
+	if (!this->type || !this->type->kind)
+	{
+		printf("(UNKNOWN_TYPE)\n");
+		return;
+	}
 	switch (this->type->kind)
 	{
 		case TYPE_INT:
@@ -212,8 +217,8 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		} while (0)
 #endif
 	Opcode current = (Opcode)chunk->instr.code[vm->pc];
-	size_t arg1;
-	Scope *oldScope;
+	size_t arg1, arg2;
+	Scope *scope;
 	vm->pc++;
 	switch (current)
 	{
@@ -365,22 +370,30 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		break;
 	case OP_SCOPE_ENTER:
 		arg1 = readSizeT(vm, chunk);
-		oldScope = vm->scope;
+		scope = vm->scope;
 		vm->scope = calloc(1, sizeof(*(vm->scope)) + sizeof(Value[arg1]));
-		vm->scope->parent = oldScope;
+		vm->scope->parent = scope;
 		break;
 	case OP_SCOPE_EXIT:
-		oldScope = vm->scope;
-		vm->scope = oldScope->parent;
-		free(oldScope);
+		scope = vm->scope;
+		vm->scope = scope->parent;
+		free(scope);
 		break;
 	case OP_SCOPE_READ:
-		arg1 = readSizeT(vm, chunk);
-		Stack_push(&vm->stack, vm->scope->values[arg1]);
+		arg1 = readSizeT(vm, chunk);  // depth
+		arg2 = readSizeT(vm, chunk);  // id
+		scope = vm->scope;
+		for (size_t i = 0; i < arg1; i++)
+			scope = scope->parent;
+		Stack_push(&vm->stack, scope->values[arg2]);
 		break;
 	case OP_SCOPE_WRITE:
-		arg1 = readSizeT(vm, chunk);
-		vm->scope->values[arg1] = Stack_current(&vm->stack);
+		arg1 = readSizeT(vm, chunk);  // depth
+		arg2 = readSizeT(vm, chunk);  // id
+		scope = vm->scope;
+		for (size_t i = 0; i < arg1; i++)
+			scope = scope->parent;
+		scope->values[arg2] = Stack_current(&vm->stack);
 		break;
 	case OP_CLOAD_TRUE:
 		Stack_push(&vm->stack, (Value){

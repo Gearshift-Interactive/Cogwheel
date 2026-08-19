@@ -94,7 +94,7 @@ typedef struct Node {
 			struct Node *value;
 			Type *type;
 			Token name;
-			size_t scopeIndex;
+			size_t scopeIndex, scopeDepth;
 			bool isMutable;
 		} var_decl;
 		struct {

@@ -109,6 +109,7 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 	{
 	case INFIX_ASSIGN:
 		PUSH_OP(OP_SCOPE_WRITE);
+		PUSH_DATA(size_t, node->infix.left->symbol.scopeDepth);
 		PUSH_DATA(size_t, node->infix.left->symbol.scopeIndex);
 		break;
 	case INFIX_ADD:
@@ -236,6 +237,7 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		break;
 	case NODE_SYMBOL:
 		PUSH_OP(OP_SCOPE_READ);
+		PUSH_DATA(size_t, node->symbol.scopeDepth);
 		PUSH_DATA(size_t, node->symbol.scopeIndex);
 		break;
 	case NODE_BLOCK:
@@ -292,6 +294,7 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 	case NODE_VAR_DECL:
 		compileNode(this, node->var_decl.value, context);
 		PUSH_OP(OP_SCOPE_WRITE);
+		PUSH_DATA(size_t, node->var_decl.scopeDepth);
 		PUSH_DATA(size_t, node->var_decl.scopeIndex);
 		break;
 	case NODE_TRUE_:
