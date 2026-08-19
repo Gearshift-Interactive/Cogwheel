@@ -50,20 +50,21 @@ static void ScopeInfo_free(const ScopeInfo *this)
 {
 	if (this->vars) free(this->vars);
 }
-static void mark(Node *node, ScopeInfo *scope);
+static void mark(Node **node, ScopeInfo *scope);
+static void markImpl(Node *node, ScopeInfo *scope);
 static Node *markScope(Node *node)
 {
 	ScopeInfo *scope = ScopeInfo_make();
 	Node *result = Node_make();
 	result->type = NODE_SCOPE;
 	result->scope.child = node;
-	mark(result->scope.child, scope);
+	markImpl(result->scope.child, scope);
 	result->scope.size = scope->count;
 	ScopeInfo_free(scope);
 	free(scope);
 	return result;
 }
-static void mark(Node *node, ScopeInfo *scope)
+static void markImpl(Node *node, ScopeInfo *scope)
 {
 	struct Node *left, *right;
 	switch (node->type)
@@ -91,14 +92,14 @@ static void mark(Node *node, ScopeInfo *scope)
 		break;
 	case NODE_BLOCK:
 		da_foreach(Node*, child, &node->block)
-			mark(*child, scope);
+			mark(child, scope);
 		node->retType = &TYPE_VOID_OBJ;
 		break;
 	case NODE_INFIX:
 		left = node->infix.left;
 		right = node->infix.right;
-		mark(left, scope);
-		mark(right, scope);
+		mark(&left, scope);
+		mark(&right, scope);
 		if (node->infix.type == INFIX_ASSIGN)
 			node->retType = node->infix.right->retType;
 		else if (node->infix.type == INFIX_OR || node->infix.type == INFIX_AND)
@@ -121,19 +122,19 @@ static void mark(Node *node, ScopeInfo *scope)
 		}
 		break;
 	case NODE_EXIT:
-		mark(node->exit.value, scope);
+		mark(&node->exit.value, scope);
 		node->retType = &TYPE_VOID_OBJ;
 		break;
 	case NODE_CAST:
-		mark(node->cast.value, scope);
+		mark(&node->cast.value, scope);
 		node->retType = node->cast.target;
 		break;
 	case NODE_NEGATION:
-		mark(node->negation.value, scope);
+		mark(&node->negation.value, scope);
 		node->retType->kind = node->negation.value->retType->kind;
 		break;
 	case NODE_VAR_DECL:
-		mark(node->var_decl.value, scope);
+		mark(&node->var_decl.value, scope);
 		node->retType = node->var_decl.value->retType;
 		if (node->var_decl.type != node->var_decl.value->retType)
 		{
@@ -163,13 +164,20 @@ static void mark(Node *node, ScopeInfo *scope)
 	case NODE_TRUE_:
 		node->retType = &TYPE_BOOL_OBJ;
 		break;
-	case NODE_BLOCK:
-		// TODO
+	case NODE_YIELD:
+		node->retType = &TYPE_VOID_OBJ;
 		break;
 	default:
 		nob_log(ERROR, "Unexpected Node for marking");
 		exit(EXIT_FAILURE);
 	}
+}
+static void mark(Node **node, ScopeInfo *scope)
+{
+	if ((*node)->type == NODE_BLOCK)
+		*node = markScope(*node);
+	else
+		markImpl(*node, scope);
 }
 static void analyze(Node *node)
 {
