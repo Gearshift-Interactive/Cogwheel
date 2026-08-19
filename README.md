@@ -5,7 +5,9 @@ Cogwheel is a programming language.
 
 ### Data Types
 
-There are 3 core data types:
+#### Numeric
+
+There are 3 numeric data types:
 - `int`: signed integer
 - `uint`: unsigned integer
 - `float`: floating point number
@@ -24,6 +26,11 @@ All infix operations can only be performed on two numbers of the same type:
 - `53u - 12u`: OK
 - `24.23 * 32.9f`: OK
 - `56u / 5.23f`: ERR
+
+#### Boolean
+
+There is `boolean` data type, that can only store two states: `true` or `false`.
+There are also `and` and `or` infix operators.
 
 ### Variables
 
