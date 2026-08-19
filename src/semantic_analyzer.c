@@ -145,10 +145,10 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			node->retType = &TYPE_VOID_OBJ;
 		break;
 	case NODE_INFIX:
+		mark(&node->infix.left, scope, context);
+		mark(&node->infix.right, scope, context);
 		left = node->infix.left;
 		right = node->infix.right;
-		mark(&left, scope, context);
-		mark(&right, scope, context);
 		if (node->infix.type == INFIX_ASSIGN)
 			node->retType = node->infix.right->retType;
 		else if (node->infix.type == INFIX_OR || node->infix.type == INFIX_AND)
