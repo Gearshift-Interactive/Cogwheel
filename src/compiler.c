@@ -211,6 +211,114 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 	case INFIX_AND:
 		PUSH_OP(OP_AND);
 		break;
+	case INFIX_EQ:
+		switch (node->infix.left->retType->kind)
+		{
+		case TYPE_INT:
+			PUSH_OP(OP_EQ_INT);
+			break;
+		case TYPE_UINT:
+			PUSH_OP(OP_EQ_UINT);
+			break;
+		case TYPE_FLOAT:
+			PUSH_OP(OP_EQ_FLOAT);
+			break;
+		default:
+			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
+			exit(EXIT_FAILURE);
+			break;
+		}
+		break;
+	case INFIX_NEQ:
+		switch (node->infix.left->retType->kind)
+		{
+		case TYPE_INT:
+			PUSH_OP(OP_NEQ_INT);
+			break;
+		case TYPE_UINT:
+			PUSH_OP(OP_NEQ_UINT);
+			break;
+		case TYPE_FLOAT:
+			PUSH_OP(OP_NEQ_FLOAT);
+			break;
+		default:
+			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
+			exit(EXIT_FAILURE);
+			break;
+		}
+		break;
+	case INFIX_LT:
+		switch (node->infix.left->retType->kind)
+		{
+		case TYPE_INT:
+			PUSH_OP(OP_LT_INT);
+			break;
+		case TYPE_UINT:
+			PUSH_OP(OP_LT_UINT);
+			break;
+		case TYPE_FLOAT:
+			PUSH_OP(OP_LT_FLOAT);
+			break;
+		default:
+			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
+			exit(EXIT_FAILURE);
+			break;
+		}
+		break;
+	case INFIX_GT:
+		switch (node->infix.left->retType->kind)
+		{
+		case TYPE_INT:
+			PUSH_OP(OP_GT_INT);
+			break;
+		case TYPE_UINT:
+			PUSH_OP(OP_GT_UINT);
+			break;
+		case TYPE_FLOAT:
+			PUSH_OP(OP_GT_FLOAT);
+			break;
+		default:
+			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
+			exit(EXIT_FAILURE);
+			break;
+		}
+		break;
+	case INFIX_ELT:
+		switch (node->infix.left->retType->kind)
+		{
+		case TYPE_INT:
+			PUSH_OP(OP_ELT_INT);
+			break;
+		case TYPE_UINT:
+			PUSH_OP(OP_ELT_UINT);
+			break;
+		case TYPE_FLOAT:
+			PUSH_OP(OP_ELT_FLOAT);
+			break;
+		default:
+			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
+			exit(EXIT_FAILURE);
+			break;
+		}
+		break;
+	case INFIX_EGT:
+		switch (node->infix.left->retType->kind)
+		{
+		case TYPE_INT:
+			PUSH_OP(OP_EGT_INT);
+			break;
+		case TYPE_UINT:
+			PUSH_OP(OP_EGT_UINT);
+			break;
+		case TYPE_FLOAT:
+			PUSH_OP(OP_EGT_FLOAT);
+			break;
+		default:
+			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
+			exit(EXIT_FAILURE);
+			break;
+		}
+		break;
 	}
 	return resultSize;
 }

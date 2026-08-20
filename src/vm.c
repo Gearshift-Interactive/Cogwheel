@@ -426,12 +426,89 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		if (!Stack_pop(&vm->stack).v_bool)
 			vm->pc += arg1 - sizeof(size_t);
 		break;
+#ifdef DEBUG
+#	define INFIX_LOG(FIELD, OP)               \
+		do {                                     \
+			Value rhs = Stack_pop(&vm->stack);   \
+			Value lhs = Stack_pop(&vm->stack);   \
+			Value result = {                     \
+				.type = &TYPE_BOOL_OBJ,        \
+				.v_bool = lhs.FIELD OP rhs.FIELD, \
+			};                                   \
+			Stack_push(&vm->stack, result);      \
+		} while (0)
+#else
+#	define INFIX_LOG(FIELD, OP)               \
+		do {                                     \
+			Value rhs = Stack_pop(&vm->stack);   \
+			Value lhs = Stack_pop(&vm->stack);   \
+			Value result = {                     \
+				.v_bool = lhs.FIELD OP rhs.FIELD, \
+			};                                   \
+			Stack_push(&vm->stack, result);      \
+		} while (0)
+#endif
+	case OP_EQ_INT:
+		INFIX_LOG(v_int, ==);
+		break;
+	case OP_EQ_UINT:
+		INFIX_LOG(v_uint, ==);
+		break;
+	case OP_EQ_FLOAT:
+		INFIX_LOG(v_float, ==);
+		break;
+	case OP_NEQ_INT:
+		INFIX_LOG(v_int, !=);
+		break;
+	case OP_NEQ_UINT:
+		INFIX_LOG(v_uint, !=);
+		break;
+	case OP_NEQ_FLOAT:
+		INFIX_LOG(v_float, !=);
+		break;
+	case OP_GT_INT:
+		INFIX_LOG(v_int, >);
+		break;
+	case OP_GT_UINT:
+		INFIX_LOG(v_uint, >);
+		break;
+	case OP_GT_FLOAT:
+		INFIX_LOG(v_float, >);
+		break;
+	case OP_LT_INT:
+		INFIX_LOG(v_int, <);
+		break;
+	case OP_LT_UINT:
+		INFIX_LOG(v_uint, <);
+		break;
+	case OP_LT_FLOAT:
+		INFIX_LOG(v_float, <);
+		break;
+	case OP_EGT_INT:
+		INFIX_LOG(v_int, >=);
+		break;
+	case OP_EGT_UINT:
+		INFIX_LOG(v_uint, >=);
+		break;
+	case OP_EGT_FLOAT:
+		INFIX_LOG(v_float, >=);
+		break;
+	case OP_ELT_INT:
+		INFIX_LOG(v_int, <=);
+		break;
+	case OP_ELT_UINT:
+		INFIX_LOG(v_uint, <=);
+		break;
+	case OP_ELT_FLOAT:
+		INFIX_LOG(v_float, <=);
+		break;
 	default:
 		nob_log(ERROR, "Unsupported operation at %ld", vm->pc - 1);
 		exit(EXIT_FAILURE);
 		break;
 	}
 #undef INFIX
+#undef INFIX_LOG
 }
 int run(const Chunk *chunk)
 {

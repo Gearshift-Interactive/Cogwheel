@@ -32,6 +32,30 @@
 	X(POW_INT, 0) \
 	X(POW_UINT, 0) \
 	X(POW_FLOAT, 0) \
+	/* equal */ \
+	X(EQ_INT, 0) \
+	X(EQ_UINT, 0) \
+	X(EQ_FLOAT, 0) \
+	/* not equal */ \
+	X(NEQ_INT, 0) \
+	X(NEQ_UINT, 0) \
+	X(NEQ_FLOAT, 0) \
+	/* greater than */ \
+	X(GT_INT, 0) \
+	X(GT_UINT, 0) \
+	X(GT_FLOAT, 0) \
+	/* less than */ \
+	X(LT_INT, 0) \
+	X(LT_UINT, 0) \
+	X(LT_FLOAT, 0) \
+	/* equal or greater than */ \
+	X(EGT_INT, 0) \
+	X(EGT_UINT, 0) \
+	X(EGT_FLOAT, 0) \
+	/* equal or less than */ \
+	X(ELT_INT, 0) \
+	X(ELT_UINT, 0) \
+	X(ELT_FLOAT, 0) \
 	/* logic */ \
 	X(AND, 0) \
 	X(OR, 0) \

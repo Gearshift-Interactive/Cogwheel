@@ -22,14 +22,20 @@ typedef struct Type {
 } Type;
 
 #define INFIX_TYPE \
-	X(ASSIGN, =)   \
-	X(ADD, +)      \
-	X(SUB, -)      \
-	X(DIV, /)      \
-	X(MUL, *)      \
-	X(POW, ^)      \
-	X(AND, and)    \
-	X(OR, or)      \
+	X(ASSIGN, =) \
+	X(ADD, +) \
+	X(SUB, -) \
+	X(DIV, /) \
+	X(MUL, *) \
+	X(POW, ^) \
+	X(AND, and) \
+	X(OR, or) \
+	X(EQ, ==) \
+	X(GT, >) \
+	X(LT, <) \
+	X(EGT, >=) \
+	X(ELT, <=) \
+	X(NEQ, !=) \
 
 typedef enum {
 #define X(name, op) INFIX_##name,

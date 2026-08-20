@@ -1,3 +1,2 @@
-boolean var = false;
-int var2 = if (var) 10 else 20;
-exit var2;
+int value = 6;
+exit if (value != 5) 1 else 0;

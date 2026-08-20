@@ -9,6 +9,12 @@ typedef struct {
 
 // longer first
 static const SymbolInfo PUNCTUATION[] = {
+	{ "==", TOKEN_EQ },
+	{ "!=", TOKEN_NEQ },
+	{ ">=", TOKEN_EGT },
+	{ "<=", TOKEN_ELT },
+	{ ">", TOKEN_GT },
+	{ "<", TOKEN_LT },
 	{ "+", TOKEN_ADD },
 	{ "-", TOKEN_SUB },
 	{ "*", TOKEN_MUL },

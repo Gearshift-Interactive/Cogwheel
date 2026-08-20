@@ -20,6 +20,12 @@
 	X(ASSIGN) \
 	X(AND) \
 	X(OR) \
+	X(EQ) \
+	X(GT) \
+	X(LT) \
+	X(EGT) \
+	X(ELT) \
+	X(NEQ) \
 	/* punctuation */ \
 	X(LPAREN) \
 	X(RPAREN) \

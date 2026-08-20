@@ -156,6 +156,29 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			if (left->retType == &TYPE_BOOL_OBJ && right->retType == &TYPE_BOOL_OBJ)
 				node->retType = &TYPE_BOOL_OBJ;
 		}
+		else if (
+			node->infix.type == INFIX_EQ ||
+			node->infix.type == INFIX_GT ||
+			node->infix.type == INFIX_LT ||
+			node->infix.type == INFIX_EGT ||
+			node->infix.type == INFIX_ELT ||
+			node->infix.type == INFIX_NEQ
+		) {
+			if (
+				left->retType != right->retType ||
+				!(
+					left->retType == &TYPE_INT_OBJ ||
+					left->retType == &TYPE_UINT_OBJ ||
+					left->retType == &TYPE_FLOAT_OBJ
+				)
+			) {
+				nob_log(ERROR, "Cant perform %s on %s and %s",
+					InfixType_toString(&node->infix.type),
+					Type_toString(left->retType),
+					Type_toString(right->retType));
+				exit(EXIT_FAILURE);
+			}
+		}
 		else if (left->retType == &TYPE_INT_OBJ && right->retType == &TYPE_INT_OBJ)
 			node->retType = &TYPE_INT_OBJ;
 		else if (left->retType == &TYPE_UINT_OBJ && right->retType == &TYPE_UINT_OBJ)

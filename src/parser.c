@@ -26,13 +26,25 @@ static const struct {
 };
 static const BindingPower BINDING_POWERS[] = {
 	{ TOKEN_ASSIGN, 0.5f,  0.6f },
+
 	{ TOKEN_OR,     2.0f,  2.1f },
+
 	{ TOKEN_AND,    3.0f,  3.1f },
-	{ TOKEN_SUB,    5.0f,  5.1f },
+
+	{ TOKEN_EQ,     4.0f,  4.0f },
+	{ TOKEN_NEQ,    4.0f,  4.0f },
+
+	{ TOKEN_GT,     5.0f,  5.0f },
+	{ TOKEN_LT,     5.0f,  5.0f },
+	{ TOKEN_EGT,    5.0f,  5.0f },
+	{ TOKEN_ELT,    5.0f,  5.0f },
+
 	{ TOKEN_ADD,    6.0f,  6.1f },
+	{ TOKEN_SUB,    6.0f,  6.1f },
 	{ TOKEN_MUL,    7.0f,  7.1f },
 	{ TOKEN_DIV,    7.0f,  7.1f },
 	{ TOKEN_POW,    10.1f, 10.0f },
+
 	{ TOKEN_LPAREN, 11.0f, 11.1f },
 	{ TOKEN_RPAREN, 11.0f, 11.1f },
 };
@@ -386,6 +398,12 @@ static InfixType getInfixType(TokenType tt)
 		case TOKEN_ASSIGN: return INFIX_ASSIGN;
 		case TOKEN_OR: return INFIX_OR;
 		case TOKEN_AND: return INFIX_AND;
+		case TOKEN_EQ: return INFIX_EQ;
+		case TOKEN_GT: return INFIX_GT;
+		case TOKEN_LT: return INFIX_LT;
+		case TOKEN_EGT: return INFIX_EGT;
+		case TOKEN_ELT: return INFIX_ELT;
+		case TOKEN_NEQ: return INFIX_NEQ;
 		default: {
 			nob_log(ERROR, "Unexpected infix operator");
 			exit(EXIT_FAILURE);
