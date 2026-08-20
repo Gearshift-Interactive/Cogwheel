@@ -178,6 +178,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					Type_toString(right->retType));
 				exit(EXIT_FAILURE);
 			}
+			node->retType = &TYPE_BOOL_OBJ;
 		}
 		else if (left->retType == &TYPE_INT_OBJ && right->retType == &TYPE_INT_OBJ)
 			node->retType = &TYPE_INT_OBJ;
@@ -270,6 +271,15 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		else
 			node->retType = &TYPE_VOID_OBJ;
 		break;
+	case NODE_NOT:
+		mark(&node->not.value, scope, context);
+		if (node->not.value->retType != &TYPE_BOOL_OBJ)
+		{
+			nob_log(ERROR, "\"not\" can only accept boolean values");
+			exit(EXIT_FAILURE);
+		}
+		node->retType = &TYPE_BOOL_OBJ;
+		break;
 	default:
 		nob_log(ERROR, "Unexpected Node for marking");
 		exit(EXIT_FAILURE);
@@ -335,8 +345,14 @@ static void analyze(Node *node)
 	case NODE_SCOPE:
 	case NODE_VAR_DECL:
 	case NODE_YIELD:
+	case NODE_NOT:
 		analyze(node->scope.child);
 		break;
+	case NODE_IF:
+		analyze(node->ifelse.cond);
+		analyze(node->ifelse.truthy);
+		if (node->ifelse.falsy)
+			analyze(node->ifelse.falsy);
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:
 	case NODE_FNUMBER_LIT:

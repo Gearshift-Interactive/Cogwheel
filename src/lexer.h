@@ -26,6 +26,7 @@
 	X(EGT) \
 	X(ELT) \
 	X(NEQ) \
+	X(NOT) \
 	/* punctuation */ \
 	X(LPAREN) \
 	X(RPAREN) \

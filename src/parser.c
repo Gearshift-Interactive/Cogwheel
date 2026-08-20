@@ -49,6 +49,7 @@ static const BindingPower BINDING_POWERS[] = {
 	{ TOKEN_RPAREN, 11.0f, 11.1f },
 };
 static const PrefixBindingPower PREFIX_POWERS[] = {
+	{ TOKEN_NOT, 3.5f },
 	{ TOKEN_SUB, 8.0f },
 };
 static const float CAST_BINDING_POWER = 15.0f;
@@ -191,6 +192,9 @@ static void Node_printImpl(const Node *node, const size_t indent)
 	case NODE_EXIT:
 		printf("(exit\n");
 		goto single;
+	case NODE_NOT:
+		printf("(not\n");
+		goto single;
 	case NODE_YIELD:
 		printf("(yield\n");
 single:
@@ -285,6 +289,7 @@ void Node_free(const Node *node)
 	case NODE_SCOPE:
 	case NODE_YIELD:
 	case NODE_VAR_DECL:
+	case NODE_NOT:
 		Node_free(node->exit.value);
 		break;
 	case NODE_INFIX:
@@ -542,6 +547,16 @@ static Node *parseExprHead(TokenStream *tokens)
 		return parseBlock(tokens);
 	else if (peek->type == TOKEN_IF) // if statement
 		return parseIf(tokens);
+	else if (peek->type == TOKEN_NOT) // logic negation
+	{
+		TokenStream_consume(tokens);
+		float bind = getPrefixBindingFor(peek->type).power;
+		Node *result = Node_make();
+		result->type = NODE_NOT;
+		result->not.value = parseExpr(tokens, bind);
+		// TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
+		return result;
+	}
 	return parseAtom(tokens);
 }
 static Node *parseExprTail(TokenStream *tokens, float parentBind, Node *left)

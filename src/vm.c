@@ -118,6 +118,7 @@ static void Value_print(const Value *this) {
 			printf("(WTF)\n");
 			__attribute__((fallthrough));
 		case TYPE_VOID:
+			nob_log(ERROR, "TS is void");
 			exit(EXIT_FAILURE);
 	}
 }
@@ -180,6 +181,15 @@ static Value Stack_current(Stack *this)
 	}
 	return this->values[this->count - 1];
 }
+static Value *Stack_currentPtr(Stack *this)
+{
+	if (this->count < 1)
+	{
+		nob_log(ERROR, "Stack is empty");
+		exit(EXIT_FAILURE);
+	}
+	return this->values + (this->count - 1);
+}
 static void Stack_free(const Stack *this)
 {
 	if (this->values)
@@ -220,6 +230,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	size_t arg1, arg2;
 	Scope *scope;
 	vm->pc++;
+	Value *curValue;
 	switch (current)
 	{
 	case OP_EXIT:
@@ -501,6 +512,10 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		break;
 	case OP_ELT_FLOAT:
 		INFIX_LOG(v_float, <=);
+		break;
+	case OP_NOT:
+		curValue = Stack_currentPtr(&vm->stack);
+		curValue->v_bool = !curValue->v_bool;
 		break;
 	default:
 		nob_log(ERROR, "Unsupported operation at %ld", vm->pc - 1);

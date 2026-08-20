@@ -59,6 +59,7 @@
 	/* logic */ \
 	X(AND, 0) \
 	X(OR, 0) \
+	X(NOT, 0) \
 	/* negation */ \
 	X(NEG_INT, 0) \
 	X(NEG_FLOAT, 0) \

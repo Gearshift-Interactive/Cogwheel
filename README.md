@@ -30,7 +30,7 @@ All infix operations can only be performed on two numbers of the same type:
 #### Boolean
 
 There is `boolean` data type, that can only store two states: `true` or `false`.
-There are also `and` and `or` infix operators.
+There are also `and` and `or` infix and `not` prefix operators.
 
 There are also these operators for numeric comparison that all always return boolean:
 - `==`: Equal

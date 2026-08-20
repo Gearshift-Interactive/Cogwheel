@@ -437,6 +437,10 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 			*(size_t*)CHUNK_PTR(pos2) = this->instr.count - pos2;
 		}
 		break;
+	case NODE_NOT:
+		compileNode(this, node->not.value, context);
+		PUSH_OP(OP_NOT);
+		break;
 	}
 	return resultSize;
 }

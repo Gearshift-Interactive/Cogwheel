@@ -59,6 +59,7 @@ typedef enum {
 	X(FALSE_)      \
 	X(YIELD)       \
 	X(IF)          \
+	X(NOT)         \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
@@ -92,7 +93,7 @@ typedef struct Node {
 		} let;
 		struct {
 			struct Node *value;
-		} exit, negation, yield;
+		} exit, negation, yield, not;
 		struct {
 			struct Node *value;
 			Type *target;
