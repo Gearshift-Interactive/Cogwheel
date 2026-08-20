@@ -32,6 +32,14 @@ All infix operations can only be performed on two numbers of the same type:
 There is `boolean` data type, that can only store two states: `true` or `false`.
 There are also `and` and `or` infix operators.
 
+There are also these operators for numeric comparison that all always return boolean:
+- `==`: Equal
+- `!=`: Not equal
+- `>`: Greater than
+- `<`: Less than
+- `>=`: Greater than or equal to
+- `<=`: Less than or equal to
+
 ### Variables
 
 You can declare a variable with it's type, followed by its name, an equal sign and a value:
@@ -64,6 +72,20 @@ int variable = {
 } + 1;
 ```
 Block itself creates a new scope, and returns the yielded value.
+
+### If statement
+
+If statement is an expression that evaluets to different branches depending on the tesult of the given condition.
+```
+boolean cond = true;
+int value = if(cond) 1 else 2;
+// if statement used in an expression is required to have "else" branch
+
+if (cond) {
+	exit 12;
+}
+// free if statement can have only "then" branch
+```
 
 ### Keywords
 
