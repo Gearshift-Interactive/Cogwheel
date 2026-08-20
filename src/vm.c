@@ -421,6 +421,11 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		arg1 = readSizeT(vm, chunk);
 		vm->pc += arg1 - sizeof(size_t);
 		break;
+	case OP_JUMPF_IFN:
+		arg1 = readSizeT(vm, chunk);
+		if (!Stack_pop(&vm->stack).v_bool)
+			vm->pc += arg1 - sizeof(size_t);
+		break;
 	default:
 		nob_log(ERROR, "Unsupported operation at %ld", vm->pc - 1);
 		exit(EXIT_FAILURE);

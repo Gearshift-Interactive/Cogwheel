@@ -231,6 +231,22 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 				exit(EXIT_FAILURE);
 			}
 		break;
+	case NODE_IF:
+		mark(&node->ifelse.cond, scope, context);
+		mark(&node->ifelse.truthy, scope, context);
+		if (node->ifelse.falsy)
+		{
+			mark(&node->ifelse.falsy, scope, context);
+			if (node->ifelse.truthy->retType != node->ifelse.falsy->retType)
+			{
+				nob_log(ERROR, "If statement can't return multiple data types at once");
+				exit(EXIT_FAILURE);
+			}
+			node->retType = node->ifelse.truthy->retType;
+		}
+		else
+			node->retType = &TYPE_VOID_OBJ;
+		break;
 	default:
 		nob_log(ERROR, "Unexpected Node for marking");
 		exit(EXIT_FAILURE);

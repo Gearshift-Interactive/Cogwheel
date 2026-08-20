@@ -34,6 +34,8 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "or", TOKEN_OR },
 	{ "and", TOKEN_AND },
 	{ "yield", TOKEN_YIELD },
+	{ "if", TOKEN_IF },
+	{ "else", TOKEN_ELSE },
 };
 static const char LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char LETTERS_AND_NUMBERS[] =

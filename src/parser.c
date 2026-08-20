@@ -41,7 +41,7 @@ static const PrefixBindingPower PREFIX_POWERS[] = {
 };
 static const float CAST_BINDING_POWER = 15.0f;
 static const TokenType TAIL_TOKENS[] = {
-	TOKEN_SEMICOLON, TOKEN_RPAREN,
+	TOKEN_SEMICOLON, TOKEN_RPAREN, TOKEN_ELSE,
 };
 static const TokenType ATOMIC_TYPE_TOKENS[] = {
 	TOKEN_INT_T, TOKEN_UINT_T, TOKEN_FLOAT_T, TOKEN_BOOL_T, TOKEN_STRING_T
@@ -235,6 +235,23 @@ single:
 	case NODE_FALSE_:
 		printf("false");
 		break;
+	case NODE_IF:
+		printf("(if\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->ifelse.cond, indent + 1);
+		printf("\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->ifelse.truthy, indent + 1);
+		printf("\n");
+		if (node->ifelse.falsy)
+		{
+			printIndent(indent + 1);
+			Node_printImpl(node->ifelse.falsy, indent + 1);
+			printf("\n");
+		}
+		printIndent(indent);
+		printf(")");
+		break;
 	default:
 		nob_log(ERROR, "Unexpected Node");
 		exit(EXIT_FAILURE);
@@ -267,6 +284,11 @@ void Node_free(const Node *node)
 			Node_free(*child);
 		free(node->block.items);
 		break;
+	case NODE_IF:
+		Node_free(node->ifelse.cond);
+		Node_free(node->ifelse.truthy);
+		if (node->ifelse.falsy)
+			Node_free(node->ifelse.falsy);
 	default: {}
 	}
 	free((void*)node);
@@ -427,6 +449,22 @@ static Node *parseBlock(TokenStream *tokens)
 	TokenStream_consumeExpect(tokens, TOKEN_RBRACE);
 	return result;
 }
+static Node *parseIf(TokenStream *tokens)
+{
+	Node *result = Node_make();
+	result->type = NODE_IF;
+	TokenStream_consumeExpect(tokens, TOKEN_IF);
+	TokenStream_consumeExpect(tokens, TOKEN_LPAREN);
+	result->ifelse.cond = parseExpr(tokens, 0);
+	TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
+	result->ifelse.truthy = parseExpr(tokens, 0);
+	if (TokenStream_peek(tokens)->type == TOKEN_ELSE)
+	{
+		TokenStream_consume(tokens);
+		result->ifelse.falsy = parseExpr(tokens, 0);
+	}
+	return result;
+}
 static Node *parseExprHead(TokenStream *tokens)
 {
 	Token *peek = TokenStream_peek(tokens);
@@ -484,6 +522,8 @@ static Node *parseExprHead(TokenStream *tokens)
 	}
 	else if (peek->type == TOKEN_LBRACE) // block
 		return parseBlock(tokens);
+	else if (peek->type == TOKEN_IF) // if statement
+		return parseIf(tokens);
 	return parseAtom(tokens);
 }
 static Node *parseExprTail(TokenStream *tokens, float parentBind, Node *left)

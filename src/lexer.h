@@ -36,6 +36,8 @@
 	X(EXIT) \
 	X(MUT) \
 	X(YIELD) \
+	X(IF) \
+	X(ELSE) \
 
 
 typedef enum {

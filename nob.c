@@ -22,6 +22,7 @@ struct {
 	size_t count;
 	size_t capacity;
 } filesToBuild;
+
 Cmd cmd = {0};
 
 static bool addSourceFile_callback(Walk_Entry file)

@@ -1,8 +1,3 @@
-int x = 10;
-
-int y = {
-    x = x + 5;
-    yield x;
-};
-
-exit y;
+boolean var = false;
+int var2 = if (var) 10 else 20;
+exit var2;

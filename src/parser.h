@@ -52,6 +52,7 @@ typedef enum {
 	X(TRUE_)       \
 	X(FALSE_)      \
 	X(YIELD)       \
+	X(IF)          \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
@@ -101,6 +102,9 @@ typedef struct Node {
 			struct Node *child;
 			size_t size;
 		} scope;
+		struct {
+			struct Node *cond, *truthy, *falsy;
+		} ifelse;
 	};
 	Type *retType;
 } Node;

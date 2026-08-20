@@ -45,7 +45,7 @@ static void *Chunk_acquireData(Chunk *this, size_t size)
 
 static size_t compileNode(Chunk *this, const Node *node, Context *context);
 
-static size_t compileCast(Chunk *this, const Node *node, Context *context)
+static size_t compileCast(Chunk *this, const Node *node, __attribute__((unused)) Context *context)
 {
 	size_t resultSize = 0;
 	Opcode op = OP_NOOP;
@@ -217,6 +217,7 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 static size_t compileNode(Chunk *this, const Node *node, Context *context)
 {
 	size_t resultSize = 0;
+	size_t pos1, pos2;
 	Context childContext = {0};
 	switch (node->type)
 	{
@@ -308,6 +309,25 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		PUSH_OP(OP_JUMPF);
 		da_append(&context->block, this->instr.count);
 		PUSH_DATA(size_t, 0);
+		break;
+	case NODE_IF:
+		compileNode(this, node->ifelse.cond, context);
+		PUSH_OP(OP_JUMPF_IFN);
+		pos1 = this->instr.count;
+		PUSH_DATA(size_t, 0);
+		compileNode(this, node->ifelse.truthy, context);
+		if (node->ifelse.falsy)
+		{
+			PUSH_OP(OP_JUMPF);
+			pos2 = this->instr.count;
+			PUSH_DATA(size_t, 0);
+		}
+		*(size_t*)CHUNK_PTR(pos1) = this->instr.count - pos1;
+		if (node->ifelse.falsy)
+		{
+			compileNode(this, node->ifelse.falsy, context);
+			*(size_t*)CHUNK_PTR(pos2) = this->instr.count - pos2;
+		}
 		break;
 	}
 	return resultSize;
