@@ -75,7 +75,7 @@ Block itself creates a new scope, and returns the yielded value.
 
 ### If statement
 
-If statement is an expression that evaluets to different branches depending on the tesult of the given condition.
+If statement is an expression that evalueates to different branches depending on the tesult of the given condition.
 ```
 boolean cond = true;
 int value = if(cond) 1 else 2;
@@ -85,6 +85,17 @@ if (cond) {
 	exit 12;
 }
 // free if statement can have only "then" branch
+```
+
+### While loop
+
+While loop executes an expression while the given condition returns `true`.
+```
+int TARGET = 10;
+mut int current = 0;
+while(current < TARGET)
+	current = current + 1;
+exit current;  // 10
 ```
 
 ### Keywords
