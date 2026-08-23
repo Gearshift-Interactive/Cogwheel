@@ -1,3 +1,5 @@
-int value = 6;
-int result = if (value >= 5) 1 else 0;
-exit result;
+int TARGET = 10;
+mut int current = 0;
+while(current < TARGET)
+	current = current + 1;
+exit current;

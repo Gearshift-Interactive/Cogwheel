@@ -268,9 +268,17 @@ single:
 		printIndent(indent);
 		printf(")");
 		break;
-	default:
-		nob_log(ERROR, "Unexpected Node");
-		exit(EXIT_FAILURE);
+	case NODE_WHILE:
+		printf("(while\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->whileLoop.cond, indent + 1);
+		printf("\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->whileLoop.body, indent + 1);
+		printf("\n");
+		printIndent(indent);
+		printf(")");
+		break;
 	}
 	if (node->retType)
 		printf(" -> %s", Type_toString(node->retType));
@@ -306,7 +314,18 @@ void Node_free(const Node *node)
 		Node_free(node->ifelse.truthy);
 		if (node->ifelse.falsy)
 			Node_free(node->ifelse.falsy);
-	default: {}
+		break;
+	case NODE_WHILE:
+		Node_free(node->whileLoop.cond);
+		Node_free(node->whileLoop.body);
+		break;
+	case NODE_NUMBER_LIT:
+	case NODE_UNUMBER_LIT:
+	case NODE_FNUMBER_LIT:
+	case NODE_SYMBOL:
+	case NODE_TRUE_:
+	case NODE_FALSE_:
+		{}
 	}
 	free((void*)node);
 }
@@ -488,6 +507,17 @@ static Node *parseIf(TokenStream *tokens)
 	}
 	return result;
 }
+static Node *parseWhile(TokenStream *tokens)
+{
+	Node *result = Node_make();
+	result->type = NODE_WHILE;
+	TokenStream_consumeExpect(tokens, TOKEN_WHILE);
+	TokenStream_consumeExpect(tokens, TOKEN_LPAREN);
+	result->whileLoop.cond = parseExpr(tokens, 0);
+	TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
+	result->whileLoop.body = parseExpr(tokens, 0);
+	return result;
+}
 static Node *parseExprHead(TokenStream *tokens)
 {
 	Token *peek = TokenStream_peek(tokens);
@@ -547,6 +577,8 @@ static Node *parseExprHead(TokenStream *tokens)
 		return parseBlock(tokens);
 	else if (peek->type == TOKEN_IF) // if statement
 		return parseIf(tokens);
+	else if (peek->type == TOKEN_WHILE) // if statement
+		return parseWhile(tokens);
 	else if (peek->type == TOKEN_NOT) // logic negation
 	{
 		TokenStream_consume(tokens);

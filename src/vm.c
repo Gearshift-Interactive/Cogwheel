@@ -517,6 +517,10 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		curValue = Stack_currentPtr(&vm->stack);
 		curValue->v_bool = !curValue->v_bool;
 		break;
+	case OP_JUMPB:
+		arg1 = readSizeT(vm, chunk);
+		vm->pc -= arg1 + sizeof(size_t);
+		break;
 	default:
 		nob_log(ERROR, "Unsupported operation at %ld", vm->pc - 1);
 		exit(EXIT_FAILURE);

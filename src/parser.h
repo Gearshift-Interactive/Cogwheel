@@ -60,6 +60,7 @@ typedef enum {
 	X(YIELD)       \
 	X(IF)          \
 	X(NOT)         \
+	X(WHILE)       \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
@@ -112,6 +113,9 @@ typedef struct Node {
 		struct {
 			struct Node *cond, *truthy, *falsy;
 		} ifelse;
+		struct {
+			struct Node *cond, *body;
+		} whileLoop;
 	};
 	Type *retType;
 } Node;

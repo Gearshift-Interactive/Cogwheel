@@ -441,6 +441,19 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		compileNode(this, node->not.value, context);
 		PUSH_OP(OP_NOT);
 		break;
+	case NODE_WHILE:
+		pos2 = this->instr.count;
+		compileNode(this, node->whileLoop.cond, context);
+		PUSH_OP(OP_JUMPF_IFN);
+		pos1 = this->instr.count;
+		PUSH_DATA(size_t, 0);
+		compileNode(this, node->whileLoop.body, context);
+		if (node->whileLoop.body->retType != &TYPE_VOID_OBJ)
+			PUSH_OP(OP_POP);
+		PUSH_OP(OP_JUMPB);
+		PUSH_DATA(size_t, this->instr.count - pos2);
+		*(size_t*)CHUNK_PTR(pos1) = this->instr.count - pos1;
+		break;
 	}
 	return resultSize;
 }

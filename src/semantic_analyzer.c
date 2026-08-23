@@ -258,6 +258,11 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 	case NODE_IF:
 		mark(&node->ifelse.cond, scope, context);
 		mark(&node->ifelse.truthy, scope, context);
+		if (node->ifelse.cond->retType != &TYPE_BOOL_OBJ)
+		{
+			nob_log(ERROR, "\"if\" condition can only accept boolean values");
+			exit(EXIT_FAILURE);
+		}
 		if (node->ifelse.falsy)
 		{
 			mark(&node->ifelse.falsy, scope, context);
@@ -280,9 +285,16 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		}
 		node->retType = &TYPE_BOOL_OBJ;
 		break;
-	default:
-		nob_log(ERROR, "Unexpected Node for marking");
-		exit(EXIT_FAILURE);
+	case NODE_WHILE:
+		mark(&node->whileLoop.cond, scope, context);
+		mark(&node->whileLoop.body, scope, context);
+		if (node->whileLoop.cond->retType != &TYPE_BOOL_OBJ)
+		{
+			nob_log(ERROR, "\"while\" condition can only accept boolean values");
+			exit(EXIT_FAILURE);
+		}
+		node->retType = &TYPE_VOID_OBJ;
+		break;
 	}
 }
 static void mark(Node **node, ScopeInfo *scope, Context *context)
@@ -353,6 +365,11 @@ static void analyze(Node *node)
 		analyze(node->ifelse.truthy);
 		if (node->ifelse.falsy)
 			analyze(node->ifelse.falsy);
+		break;
+	case NODE_WHILE:
+		analyze(node->whileLoop.cond);
+		analyze(node->whileLoop.body);
+		break;
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:
 	case NODE_FNUMBER_LIT:

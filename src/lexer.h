@@ -45,6 +45,7 @@
 	X(YIELD) \
 	X(IF) \
 	X(ELSE) \
+	X(WHILE) \
 
 
 typedef enum {

@@ -78,6 +78,7 @@
 	/* jumps */ \
 	X(JUMPF, sizeof(size_t)) \
 	X(JUMPF_IFN, sizeof(size_t)) \
+	X(JUMPB, sizeof(size_t)) \
 
 typedef enum {
 	OP_NOOP = 0,
