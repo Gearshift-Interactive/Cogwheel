@@ -106,6 +106,17 @@ while (current < TARGET)
 	current = current + 1;
 };
 ```
+You can also break the loop with a specific value, that will be returned.
+But in this case you will also need to provide the `else` block:
+```
+mut int i = 0;
+exit while (i < 100) {
+	i = i + 1;
+	if (i == 50)
+		break 0;
+} else -1;
+```
+`else` block evaluates when the loop was executed without `break`s, or wasn't executed at all.
 
 ### Keywords
 
