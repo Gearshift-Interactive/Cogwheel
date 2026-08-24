@@ -195,6 +195,16 @@ static void Node_printImpl(const Node *node, const size_t indent)
 	case NODE_NOT:
 		printf("(not\n");
 		goto single;
+	case NODE_BREAK:
+		printf("(break");
+		if (node->loopBreak.value)
+		{
+			printf("\n");
+			goto single;
+		}
+		else
+			printf(")");
+		break;
 	case NODE_YIELD:
 		printf("(yield\n");
 single:
@@ -318,6 +328,10 @@ void Node_free(const Node *node)
 	case NODE_WHILE:
 		Node_free(node->whileLoop.cond);
 		Node_free(node->whileLoop.body);
+		break;
+	case NODE_BREAK:
+		if (node->loopBreak.value)
+			Node_free(node->loopBreak.value);
 		break;
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:
@@ -565,7 +579,7 @@ static Node *parseExprHead(TokenStream *tokens)
 		result->exit.value = parseExpr(tokens, 0);
 		return result;
 	}
-	else if (peek->type == TOKEN_YIELD) // exit keyword
+	else if (peek->type == TOKEN_YIELD) // yield keyword
 	{
 		TokenStream_consume(tokens);
 		Node *result = Node_make();
@@ -587,6 +601,15 @@ static Node *parseExprHead(TokenStream *tokens)
 		result->type = NODE_NOT;
 		result->not.value = parseExpr(tokens, bind);
 		// TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
+		return result;
+	}
+	else if (peek->type == TOKEN_BREAK) // break keyword
+	{
+		TokenStream_consume(tokens);
+		Node *result = Node_make();
+		result->type = NODE_BREAK;
+		if (!isTailToken(TokenStream_peek(tokens)->type))
+			result->loopBreak.value = parseExpr(tokens, 0);
 		return result;
 	}
 	return parseAtom(tokens);

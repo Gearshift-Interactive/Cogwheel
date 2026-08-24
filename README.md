@@ -97,11 +97,20 @@ while(current < TARGET)
 	current = current + 1;
 exit current;  // 10
 ```
+You can also use `break` to immediately exit out of the loop.
+```
+while (current < TARGET)
+{
+	if (current == 5)
+		break;
+	current = current + 1;
+};
+```
 
 ### Keywords
 
 #### `exit`
-`exit` keyword lets you immideately close the program with the given exit code.
+`exit` keyword lets you immediately close the program with the given exit code.
 ```
 int var1 = 12 + 24;
 uint var2 = 100u - (uint)var1;

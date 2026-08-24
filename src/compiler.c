@@ -1,18 +1,45 @@
 #include "compiler.h"
 
-typedef struct {
-	enum {
-		CONT_NULL = 0,
-		CONT_BLOCK,
-	} type;
+typedef enum {
+	CONT_NULL = 0,
+	CONT_BLOCK,
+	CONT_LOOP,
+} ContextType;
+
+typedef struct Context {
+	ContextType type;
 	union {
 		struct {
-			union { size_t *items, *yields; };
+			union { size_t *items, *yields, *breaks; };
 			size_t count, capacity,
 				length;
 		} block;
+		struct {
+			struct { size_t *items, count, capacity; } breaks;
+			size_t length;
+		} loop;
 	};
+	struct Context *parent;
 } Context;
+
+static Context *Context_findParent(Context *this, ContextType type)
+{
+	for (Context *current = this; current; current = current->parent)
+		if (current->type == type)
+			return current;
+	return NULL;
+}
+static size_t Context_findParentDepth(Context *this, ContextType type)
+{
+	size_t result = 0;
+	for (Context *current = this; current; current = current->parent)
+		if (current->type == type)
+			return result;
+		else
+			result++;
+	nob_log(ERROR, "Couln't find scope parent");
+	exit(EXIT_FAILURE);
+}
 
 #define PUSH_OP(OP) do { \
 	da_append(&this->instr, (uint8_t)OP); \
@@ -325,8 +352,9 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 static size_t compileNode(Chunk *this, const Node *node, Context *context)
 {
 	size_t resultSize = 0;
-	size_t pos1, pos2;
+	size_t pos1, pos2, depth;
 	Context childContext = {0};
+	Context *workingContext;
 	switch (node->type)
 	{
 	case NODE_NUMBER_LIT:
@@ -352,6 +380,7 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 	case NODE_BLOCK:
 		childContext = (Context) {
 			.type = CONT_BLOCK,
+			.parent = context,
 		};
 		da_foreach(struct Node*, child, &node->block)
 		{
@@ -413,9 +442,10 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		PUSH_OP(OP_CLOAD_FALSE);
 		break;
 	case NODE_YIELD:
+		workingContext = Context_findParent(context, CONT_BLOCK);
 		compileNode(this, node->yield.value, context);
 		PUSH_OP(OP_JUMPF);
-		da_append(&context->block, this->instr.count);
+		da_append(&workingContext->block, this->instr.count);
 		PUSH_DATA(size_t, 0);
 		break;
 	case NODE_IF:
@@ -442,17 +472,57 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		PUSH_OP(OP_NOT);
 		break;
 	case NODE_WHILE:
+
+		// childContext = (Context) {
+		// 	.type = CONT_BLOCK,
+		// };
+		// da_foreach(struct Node*, child, &node->block)
+		// {
+		// 	childContext.block.length += compileNode(this, *child, &childContext);
+		// 	if ((*child)->retType != &TYPE_VOID_OBJ && (*child)->type != NODE_YIELD)
+		// 	{
+		// 		PUSH_OP(OP_POP);
+		// 		childContext.block.length++;
+		// 	}
+		// }
+		// da_foreach(size_t, yield, &childContext.block)
+		// 	*(size_t*)CHUNK_PTR(*yield) = this->instr.count - *yield;
+		// if(childContext.block.items)
+		// 	free(childContext.block.items);
+
+		childContext = (Context){
+			.type = CONT_LOOP,
+			.parent = context,
+		};
 		pos2 = this->instr.count;
 		compileNode(this, node->whileLoop.cond, context);
 		PUSH_OP(OP_JUMPF_IFN);
 		pos1 = this->instr.count;
 		PUSH_DATA(size_t, 0);
-		compileNode(this, node->whileLoop.body, context);
+		childContext.loop.length += compileNode(this, node->whileLoop.body, &childContext);
 		if (node->whileLoop.body->retType != &TYPE_VOID_OBJ)
+		{
 			PUSH_OP(OP_POP);
+			childContext.loop.length++;
+		}
 		PUSH_OP(OP_JUMPB);
 		PUSH_DATA(size_t, this->instr.count - pos2);
 		*(size_t*)CHUNK_PTR(pos1) = this->instr.count - pos1;
+		da_foreach(size_t, break_, &childContext.loop.breaks)
+			*(size_t*)CHUNK_PTR(*break_) = this->instr.count - *break_;
+		if(childContext.loop.breaks.items)
+			free(childContext.loop.breaks.items);
+		break;
+	case NODE_BREAK:
+		workingContext = Context_findParent(context, CONT_LOOP);
+		if (node->loopBreak.value)
+			compileNode(this, node->loopBreak.value, context);
+		depth = Context_findParentDepth(context, CONT_LOOP);
+		for (size_t i = 0; i < depth; i++)
+			PUSH_OP(OP_SCOPE_EXIT);
+		PUSH_OP(OP_JUMPF);
+		da_append(&workingContext->loop.breaks, this->instr.count);
+		PUSH_DATA(size_t, 0);
 		break;
 	}
 	return resultSize;

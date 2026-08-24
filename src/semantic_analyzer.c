@@ -1,17 +1,29 @@
 #include "semantic_analyzer.h"
 #include "lexer.h"
 
-typedef struct {
-	enum {
-		CONT_NULL = 0,
-		CONT_BLOCK,
-	} type;
+typedef enum {
+	CONT_NULL = 0,
+	CONT_BLOCK,
+	CONT_LOOP,
+} ContextType;
+
+typedef struct Context {
+	ContextType type;
 	union {
 		struct {
 			Type *retType;
-		} block;
+		} block, loop;
 	};
+	struct Context *parent;
 } Context;
+
+static Context *Context_findParent(Context *this, ContextType type)
+{
+	for (Context *current = this; current; current = current->parent)
+		if (current->type == type)
+			return current;
+	return NULL;
+}
 
 typedef struct {
 	const TokenPosition *name;
@@ -108,6 +120,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 {
 	struct Node *left, *right;
 	Context childContext;
+	Context *operatingContext;
 	switch (node->type)
 	{
 	case NODE_NUMBER_LIT:
@@ -136,6 +149,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 	case NODE_BLOCK:
 		childContext = (Context){
 			.type = CONT_BLOCK,
+			.parent = context,
 		};
 		da_foreach(Node*, child, &node->block)
 			mark(child, scope, &childContext);
@@ -239,17 +253,18 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		node->retType = &TYPE_BOOL_OBJ;
 		break;
 	case NODE_YIELD:
-		if (context->type != CONT_BLOCK)
+		operatingContext = Context_findParent(context, CONT_BLOCK);
+		if (!operatingContext)
 		{
 			nob_log(ERROR, "You can't use \"yield\" in non-block context");
 			exit(EXIT_FAILURE);
 		}
 		mark(&node->yield.value, scope, context);
 		node->retType = node->yield.value->retType;
-		if (!context->block.retType)
-			context->block.retType = node->retType;
+		if (!operatingContext->block.retType)
+			operatingContext->block.retType = node->retType;
 		else
-			if (context->block.retType != node->retType)
+			if (operatingContext->block.retType != node->retType)
 			{
 				nob_log(ERROR, "Block can't yield multiple data types at once");
 				exit(EXIT_FAILURE);
@@ -287,13 +302,45 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		break;
 	case NODE_WHILE:
 		mark(&node->whileLoop.cond, scope, context);
-		mark(&node->whileLoop.body, scope, context);
+		childContext = (Context){
+			.type = CONT_LOOP,
+			.parent = context,
+		};
+		mark(&node->whileLoop.body, scope, &childContext);
+		if (childContext.loop.retType && childContext.loop.retType != &TYPE_VOID_OBJ)
+		{
+			nob_log(ERROR, "\"while\" loop doesn't support breaking with values");
+			exit(EXIT_FAILURE);
+		}
 		if (node->whileLoop.cond->retType != &TYPE_BOOL_OBJ)
 		{
 			nob_log(ERROR, "\"while\" condition can only accept boolean values");
 			exit(EXIT_FAILURE);
 		}
 		node->retType = &TYPE_VOID_OBJ;
+		break;
+	case NODE_BREAK:
+		operatingContext = Context_findParent(context, CONT_LOOP);
+		if (!operatingContext)
+		{
+			nob_log(ERROR, "You can't use \"break\" in non-loop context");
+			exit(EXIT_FAILURE);
+		}
+		if (node->loopBreak.value)
+		{
+			mark(&node->loopBreak.value, scope, context);
+			node->retType = node->yield.value->retType;
+		}
+		else
+			node->retType = &TYPE_VOID_OBJ;
+		if (!operatingContext->block.retType)
+			operatingContext->block.retType = node->retType;
+		else
+			if (operatingContext->block.retType != node->retType)
+			{
+				nob_log(ERROR, "Loop can't break with multiple data types at once");
+				exit(EXIT_FAILURE);
+			}
 		break;
 	}
 }
@@ -370,6 +417,9 @@ static void analyze(Node *node)
 		analyze(node->whileLoop.cond);
 		analyze(node->whileLoop.body);
 		break;
+	case NODE_BREAK:
+		if (node->loopBreak.value)
+			analyze(node->loopBreak.value);
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:
 	case NODE_FNUMBER_LIT:

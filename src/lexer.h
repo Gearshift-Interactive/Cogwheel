@@ -46,6 +46,7 @@
 	X(IF) \
 	X(ELSE) \
 	X(WHILE) \
+	X(BREAK) \
 
 
 typedef enum {

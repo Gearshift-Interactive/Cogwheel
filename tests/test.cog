@@ -1,5 +1,11 @@
 int TARGET = 10;
 mut int current = 0;
-while(current < TARGET)
+while (current < TARGET)
+{
+	if (current == 5)
+		break
+	else if (current == 3)
+		break;
 	current = current + 1;
+};
 exit current;
