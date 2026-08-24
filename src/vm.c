@@ -521,6 +521,10 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		arg1 = readSizeT(vm, chunk);
 		vm->pc -= arg1 + sizeof(size_t);
 		break;
+	case OP_POP_IFPR:
+		if (vm->stack.count)
+			Stack_pop(&vm->stack);
+		break;
 	default:
 		nob_log(ERROR, "Unsupported operation at %ld", vm->pc - 1);
 		exit(EXIT_FAILURE);

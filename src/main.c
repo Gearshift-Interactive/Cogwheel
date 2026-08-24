@@ -43,7 +43,9 @@ int main(int argc, char **argv)
 	free(sb.items);
 	// Chunk_free(&code);
 	// return 0;
-	return run(&code);
+	int result = run(&code);
+	printf("RESULT: %d\n", result);
+	return result;
 }
 
 #endif

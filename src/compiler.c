@@ -472,24 +472,6 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		PUSH_OP(OP_NOT);
 		break;
 	case NODE_WHILE:
-
-		// childContext = (Context) {
-		// 	.type = CONT_BLOCK,
-		// };
-		// da_foreach(struct Node*, child, &node->block)
-		// {
-		// 	childContext.block.length += compileNode(this, *child, &childContext);
-		// 	if ((*child)->retType != &TYPE_VOID_OBJ && (*child)->type != NODE_YIELD)
-		// 	{
-		// 		PUSH_OP(OP_POP);
-		// 		childContext.block.length++;
-		// 	}
-		// }
-		// da_foreach(size_t, yield, &childContext.block)
-		// 	*(size_t*)CHUNK_PTR(*yield) = this->instr.count - *yield;
-		// if(childContext.block.items)
-		// 	free(childContext.block.items);
-
 		childContext = (Context){
 			.type = CONT_LOOP,
 			.parent = context,
@@ -507,8 +489,16 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		}
 		PUSH_OP(OP_JUMPB);
 		PUSH_DATA(size_t, this->instr.count - pos2);
+		// back to condition
 		*(size_t*)CHUNK_PTR(pos1) = this->instr.count - pos1;
+		if (node->whileLoop.elseBlock)
+		{
+			compileNode(this, node->whileLoop.elseBlock, context);
+			// if (node->whileLoop.elseBlock->retType != &TYPE_VOID_OBJ)
+			// 	PUSH_OP(OP_JUMPB);
+		}
 		da_foreach(size_t, break_, &childContext.loop.breaks)
+			// breaks
 			*(size_t*)CHUNK_PTR(*break_) = this->instr.count - *break_;
 		if(childContext.loop.breaks.items)
 			free(childContext.loop.breaks.items);

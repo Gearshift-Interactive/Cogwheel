@@ -1,11 +1,19 @@
-int TARGET = 10;
-mut int current = 0;
-while (current < TARGET)
+mut int i = 0;
+
+int result = while (i < 10)
 {
-	if (current == 5)
-		break
-	else if (current == 3)
-		break;
-	current = current + 1;
-};
-exit current;
+    int multiplier = 10;
+
+    {
+        int value = i + 2;
+
+        if (i == 1)
+            break value * multiplier;
+    };
+
+    i = i + 1;
+}
+else
+    -1;
+
+exit result;

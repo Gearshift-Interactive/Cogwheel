@@ -286,6 +286,12 @@ single:
 		printIndent(indent + 1);
 		Node_printImpl(node->whileLoop.body, indent + 1);
 		printf("\n");
+		if (node->whileLoop.elseBlock)
+		{
+			printIndent(indent + 1);
+			Node_printImpl(node->whileLoop.elseBlock, indent + 1);
+			printf("\n");
+		}
 		printIndent(indent);
 		printf(")");
 		break;
@@ -328,6 +334,8 @@ void Node_free(const Node *node)
 	case NODE_WHILE:
 		Node_free(node->whileLoop.cond);
 		Node_free(node->whileLoop.body);
+		if (node->whileLoop.elseBlock)
+			Node_free(node->whileLoop.elseBlock);
 		break;
 	case NODE_BREAK:
 		if (node->loopBreak.value)
@@ -530,6 +538,11 @@ static Node *parseWhile(TokenStream *tokens)
 	result->whileLoop.cond = parseExpr(tokens, 0);
 	TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
 	result->whileLoop.body = parseExpr(tokens, 0);
+	if (TokenStream_peek(tokens)->type == TOKEN_ELSE)
+	{
+		TokenStream_consume(tokens);
+		result->whileLoop.elseBlock = parseExpr(tokens, 0);
+	}
 	return result;
 }
 static Node *parseExprHead(TokenStream *tokens)

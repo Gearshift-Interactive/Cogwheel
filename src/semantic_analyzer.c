@@ -302,22 +302,33 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		break;
 	case NODE_WHILE:
 		mark(&node->whileLoop.cond, scope, context);
+		if (node->whileLoop.elseBlock)
+			mark(&node->whileLoop.elseBlock, scope, context);
 		childContext = (Context){
 			.type = CONT_LOOP,
 			.parent = context,
 		};
 		mark(&node->whileLoop.body, scope, &childContext);
-		if (childContext.loop.retType && childContext.loop.retType != &TYPE_VOID_OBJ)
-		{
-			nob_log(ERROR, "\"while\" loop doesn't support breaking with values");
-			exit(EXIT_FAILURE);
-		}
+		// if (childContext.loop.retType && childContext.loop.retType != &TYPE_VOID_OBJ)
+		// {
+		// 	nob_log(ERROR, "\"while\" loop doesn't support breaking with values");
+		// 	exit(EXIT_FAILURE);
+		// }
 		if (node->whileLoop.cond->retType != &TYPE_BOOL_OBJ)
 		{
 			nob_log(ERROR, "\"while\" condition can only accept boolean values");
 			exit(EXIT_FAILURE);
 		}
 		node->retType = &TYPE_VOID_OBJ;
+		if (node->whileLoop.elseBlock)
+		{
+			if (node->whileLoop.elseBlock->retType != childContext.loop.retType)
+			{
+				nob_log(ERROR, "\"while\" can't return values of multiple data types");
+				exit(EXIT_FAILURE);
+			}
+			node->retType = childContext.loop.retType;
+		}
 		break;
 	case NODE_BREAK:
 		operatingContext = Context_findParent(context, CONT_LOOP);
@@ -327,16 +338,17 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			exit(EXIT_FAILURE);
 		}
 		if (node->loopBreak.value)
-		{
 			mark(&node->loopBreak.value, scope, context);
-			node->retType = node->yield.value->retType;
-		}
-		else
-			node->retType = &TYPE_VOID_OBJ;
-		if (!operatingContext->block.retType)
-			operatingContext->block.retType = node->retType;
-		else
-			if (operatingContext->block.retType != node->retType)
+		node->retType = &TYPE_VOID_OBJ;
+		if (node->loopBreak.value)
+			if (!operatingContext->block.retType && node->loopBreak.value->retType)
+				operatingContext->block.retType = node->loopBreak.value->retType;
+			else if (operatingContext->block.retType && !node->retType)
+			{
+				nob_log(ERROR, "Loop can't break with multiple data types at once");
+				exit(EXIT_FAILURE);
+			}
+			else if (operatingContext->block.retType != node->retType)
 			{
 				nob_log(ERROR, "Loop can't break with multiple data types at once");
 				exit(EXIT_FAILURE);
@@ -416,6 +428,8 @@ static void analyze(Node *node)
 	case NODE_WHILE:
 		analyze(node->whileLoop.cond);
 		analyze(node->whileLoop.body);
+		if (node->whileLoop.elseBlock)
+			analyze(node->whileLoop.elseBlock);
 		break;
 	case NODE_BREAK:
 		if (node->loopBreak.value)

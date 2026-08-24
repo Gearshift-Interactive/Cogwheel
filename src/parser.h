@@ -115,7 +115,7 @@ typedef struct Node {
 			struct Node *cond, *truthy, *falsy;
 		} ifelse;
 		struct {
-			struct Node *cond, *body;
+			struct Node *cond, *body, *elseBlock;
 		} whileLoop;
 	};
 	Type *retType;
