@@ -125,5 +125,5 @@ exit while (i < 100) {
 ```
 int var1 = 12 + 24;
 uint var2 = 100u - (uint)var1;
-exit var2;
+exit (int)var2;
 ```

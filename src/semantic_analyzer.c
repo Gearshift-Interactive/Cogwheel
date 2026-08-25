@@ -341,6 +341,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			mark(&node->loopBreak.value, scope, context);
 		node->retType = &TYPE_VOID_OBJ;
 		if (node->loopBreak.value)
+		{
 			if (!operatingContext->block.retType && node->loopBreak.value->retType)
 				operatingContext->block.retType = node->loopBreak.value->retType;
 			else if (operatingContext->block.retType && !node->retType)
@@ -353,6 +354,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 				nob_log(ERROR, "Loop can't break with multiple data types at once");
 				exit(EXIT_FAILURE);
 			}
+		}
 		break;
 	}
 }

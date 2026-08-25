@@ -62,7 +62,7 @@ static void *Chunk_idxToPtr(Chunk *this, size_t index)
 {
 	return this->instr.items + index;
 }
-static void *Chunk_acquireData(Chunk *this, size_t size)
+__attribute__((unused)) static void *Chunk_acquireData(Chunk *this, size_t size)
 {
 	void *result = this->instr.items + this->instr.count;
 	for (size_t i = 0; i < size; i++) \
