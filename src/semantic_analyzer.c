@@ -172,7 +172,16 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		left = node->infix.left;
 		right = node->infix.right;
 		if (node->infix.type == INFIX_ASSIGN)
+		{
 			node->retType = node->infix.right->retType;
+			VarInfo *info = ScopeInfo_getInfo(scope, left->symbol.scopeIndex, left->symbol.scopeDepth);
+			if (info->type != right->retType)
+				comptimeMessage(MESSAGE_ERRORN, node->var_decl.value->pos,
+					"Cant assign a value of type \"%s\" to a variable of type \"%s\"",
+					Type_toString(right->retType),
+					Type_toString(info->type)
+				);
+		}
 		else if (node->infix.type == INFIX_OR || node->infix.type == INFIX_AND)
 		{
 			if (left->retType == &TYPE_BOOL_OBJ && right->retType == &TYPE_BOOL_OBJ)
