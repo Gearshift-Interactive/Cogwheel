@@ -1,1 +1,8 @@
-mut int i = 10u;
+boolean cond = false;
+int a = {
+	if (cond)
+		yield 12
+	else
+		yield -1;
+};
+exit a;

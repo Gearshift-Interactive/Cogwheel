@@ -365,6 +365,47 @@ static void mark(Node **node, ScopeInfo *scope, Context *context)
 	else
 		markImpl(*node, scope, context);
 }
+static bool isNodeFinal(Node *node)
+{
+	bool foundFinal = false;
+	switch (node->type)
+	{
+	case NODE_NUMBER_LIT:
+	case NODE_UNUMBER_LIT:
+	case NODE_FNUMBER_LIT:
+	case NODE_SYMBOL:
+	case NODE_INFIX:
+	case NODE_NEGATION:
+	case NODE_CAST:
+	case NODE_VAR_DECL:
+	case NODE_TRUE_:
+	case NODE_FALSE_:
+	case NODE_NOT:
+		return false;
+	case NODE_EXIT:
+	case NODE_YIELD:
+	case NODE_BREAK:
+		return true;
+	case NODE_SCOPE:
+		return isNodeFinal(node->scope.child);
+	case NODE_IF:
+		if (node->ifelse.falsy)
+			return isNodeFinal(node->ifelse.falsy);
+		return false;
+	case NODE_WHILE:
+		if (node->whileLoop.elseBlock)
+			return isNodeFinal(node->whileLoop.elseBlock);
+		return false;
+	case NODE_BLOCK:
+		da_foreach(Node*, child, &node->block)
+			if (foundFinal)
+				(*child)->unreachable = true;
+			else
+				foundFinal = isNodeFinal(*child);
+		return foundFinal;
+	}
+	return false;
+}
 static void analyze(Node *node)
 {
 	switch (node->type)
@@ -372,6 +413,11 @@ static void analyze(Node *node)
 	case NODE_BLOCK:
 		da_foreach(Node*, child, &node->block)
 			analyze(*child);
+		if (!isNodeFinal(node) && node->retType)
+		{
+			nob_log(ERROR, "Missing return statement");
+			exit(EXIT_FAILURE);
+		}
 		break;
 	case NODE_INFIX:
 		analyze(node->infix.left);

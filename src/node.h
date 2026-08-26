@@ -101,6 +101,7 @@ typedef struct Node {
 		} whileLoop;
 	};
 	Type *retType;
+	bool unreachable;
 } Node;
 
 const char *InfixType_toString(const InfixType *);
