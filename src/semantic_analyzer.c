@@ -260,11 +260,12 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			exit(EXIT_FAILURE);
 		}
 		mark(&node->yield.value, scope, context);
-		node->retType = node->yield.value->retType;
+		// node->retType = node->yield.value->retType;
+		node->retType = &TYPE_VOID_OBJ;
 		if (!operatingContext->block.retType)
-			operatingContext->block.retType = node->retType;
+			operatingContext->block.retType = node->yield.value->retType;
 		else
-			if (operatingContext->block.retType != node->retType)
+			if (operatingContext->block.retType != node->yield.value->retType)
 			{
 				nob_log(ERROR, "Block can't yield multiple data types at once");
 				exit(EXIT_FAILURE);

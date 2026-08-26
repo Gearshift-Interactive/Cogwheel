@@ -3,6 +3,6 @@ int a = {
 	if (cond)
 		yield 12
 	else
-		yield -1;
+		exit -1;
 };
 exit a;
