@@ -232,6 +232,15 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		break;
 	case NODE_CAST:
 		mark(&node->cast.value, scope, context);
+		if (
+			node->cast.value->retType != &TYPE_INT_OBJ &&
+			node->cast.value->retType != &TYPE_UINT_OBJ &&
+			node->cast.value->retType != &TYPE_FLOAT_OBJ
+		)
+			comptimeMessage(MESSAGE_ERRORN, node->cast.value->pos,
+				"Cant cast a value of type \"%s\"",
+				Type_toString(node->cast.value->retType)
+			);
 		node->retType = node->cast.target;
 		break;
 	case NODE_NEGATION:

@@ -1,2 +1,2 @@
-int x = false;
-exit x;
+boolean test = true and false;
+exit (int)test;
