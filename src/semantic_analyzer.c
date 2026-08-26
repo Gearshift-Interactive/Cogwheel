@@ -336,7 +336,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		}
 		else
 		{
-			if (childContext.type)
+			if (childContext.loop.retType)
 				comptimeMessage(MESSAGE_WARN, node->pos,
 					"\"break\" statements with values are ignored since there are no \"else\" block");
 		}
