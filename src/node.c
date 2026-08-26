@@ -23,6 +23,8 @@ static void printIndent(const size_t indent)
 }
 static void Node_printImpl(const Node *node, const size_t indent)
 {
+	if (node->unreachable)
+		printf(":UNREACHABLE ");
 	switch (node->type)
 	{
 	case NODE_NUMBER_LIT:

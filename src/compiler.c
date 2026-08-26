@@ -351,6 +351,8 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 }
 static size_t compileNode(Chunk *this, const Node *node, Context *context)
 {
+	if (node->unreachable)
+		return 0;
 	size_t resultSize = 0;
 	size_t pos1, pos2, depth;
 	Context childContext = {0};
