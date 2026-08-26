@@ -3,6 +3,10 @@ Cogwheel is a programming language.
 
 ## Usage
 
+### Statements
+
+**All** statements require a trailing semicolon.
+
 ### Data Types
 
 #### Numeric
