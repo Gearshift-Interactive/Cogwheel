@@ -268,13 +268,49 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		INFIX(&TYPE_FLOAT_OBJ, v_float, -);
 		break;
 	case OP_DIV_INT:
-		INFIX(&TYPE_INT_OBJ, v_int, /);
+		{
+			Value rhs = Stack_pop(&vm->stack);
+			Value lhs = Stack_pop(&vm->stack);
+			if (rhs.v_int == 0)
+				PANIC("Devision by zero");
+			Value result = {
+#ifdef DEBUG
+				.type = &TYPE_INT_OBJ,
+#endif
+				.v_int = lhs.v_int / rhs.v_int,
+			};
+			Stack_push(&vm->stack, result);
+		}
 		break;
 	case OP_DIV_UINT:
-		INFIX(&TYPE_UINT_OBJ, v_uint, /);
+		{
+			Value rhs = Stack_pop(&vm->stack);
+			Value lhs = Stack_pop(&vm->stack);
+			if (rhs.v_uint == 0)
+				PANIC("Devision by zero");
+			Value result = {
+#ifdef DEBUG
+				.type = &TYPE_UINT_OBJ,
+#endif
+				.v_uint = lhs.v_uint / rhs.v_uint,
+			};
+			Stack_push(&vm->stack, result);
+		}
 		break;
 	case OP_DIV_FLOAT:
-		INFIX(&TYPE_FLOAT_OBJ, v_float, /);
+		{
+			Value rhs = Stack_pop(&vm->stack);
+			Value lhs = Stack_pop(&vm->stack);
+			if (rhs.v_float == 0)
+				PANIC("Devision by zero");
+			Value result = {
+#ifdef DEBUG
+				.type = &TYPE_FLOAT_OBJ,
+#endif
+				.v_float = lhs.v_float / rhs.v_float,
+			};
+			Stack_push(&vm->stack, result);
+		}
 		break;
 	case OP_MUL_INT:
 		INFIX(&TYPE_INT_OBJ, v_int, *);
