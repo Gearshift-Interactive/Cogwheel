@@ -436,7 +436,6 @@ static void analyze(Node *node)
 					"Can't assign to non-variable");
 				break;
 			}
-			printf("%d\n", node->infix.left->symbol.isMutable);
 			if (!node->infix.left->symbol.isMutable)
 				comptimeMessage(MESSAGE_ERRORN, node->pos,
 					"Can't assign to immutable variable");
