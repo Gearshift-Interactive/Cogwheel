@@ -64,7 +64,7 @@ static size_t ScopeInfo_getVarIndex(const ScopeInfo *this, const TokenPosition *
 		for (size_t i = 0; i < current->count; i++)
 			if (TokenPosition_eq((current->vars + i)->name, name))
 				return i;
-	comptimeMessage(MESSAGE_ERROR, *name, "Undefined variable");
+	comptimeMessage(MESSAGE_ERRORN, *name, "Undefined variable");
 	return 0;
 }
 static size_t ScopeInfo_getVarDepth(const ScopeInfo *this, const TokenPosition *name)
@@ -77,7 +77,7 @@ static size_t ScopeInfo_getVarDepth(const ScopeInfo *this, const TokenPosition *
 				return depth;
 		depth++;
 	}
-	comptimeMessage(MESSAGE_ERROR, *name, "Undefined variable");
+	comptimeMessage(MESSAGE_ERRORN, *name, "Undefined variable");
 	return 0;
 }
 static VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index, size_t depth)
@@ -135,7 +135,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		break;
 	case NODE_SYMBOL:
 		if (!ScopeInfo_isVarPresent(scope, &node->symbol.token.pos))
-			comptimeMessage(MESSAGE_ERROR, node->symbol.token.pos,
+			comptimeMessage(MESSAGE_ERRORN, node->symbol.token.pos,
 				"Undefined variable");
 		size_t varIndex = ScopeInfo_getVarIndex(scope, &node->symbol.token.pos);
 		size_t varDepth = ScopeInfo_getVarDepth(scope, &node->symbol.token.pos);
@@ -193,12 +193,14 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					left->retType == &TYPE_UINT_OBJ ||
 					left->retType == &TYPE_FLOAT_OBJ
 				)
-			)
-				comptimeMessage(MESSAGE_ERROR, node->pos,
+			) {
+				comptimeMessage(MESSAGE_ERRORN, node->pos,
 					"Can't perform %s on %s and %s",
 					InfixType_toString(&node->infix.type),
 					Type_toString(left->retType),
 					Type_toString(right->retType));
+				break;
+			}
 			node->retType = &TYPE_BOOL_OBJ;
 		}
 		else if (left->retType == &TYPE_INT_OBJ && right->retType == &TYPE_INT_OBJ)
@@ -208,7 +210,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		else if (left->retType == &TYPE_FLOAT_OBJ && right->retType == &TYPE_FLOAT_OBJ)
 			node->retType = &TYPE_FLOAT_OBJ;
 		else {
-			comptimeMessage(MESSAGE_ERROR, node->pos,
+			comptimeMessage(MESSAGE_ERRORN, node->pos,
 				"Can't perform %s on %s and %s",
 				InfixType_toString(&node->infix.type),
 				Type_toString(left->retType),
@@ -232,16 +234,18 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		node->retType = node->var_decl.value->retType;
 		if (node->var_decl.type != node->var_decl.value->retType)
 		{
-			comptimeMessage(MESSAGE_ERROR, node->var_decl.value->pos,
+			comptimeMessage(MESSAGE_ERRORN, node->var_decl.value->pos,
 				"Cant assign a value of type \"%s\" to a variable of type \"%s\"",
 				Type_toString(node->var_decl.value->retType),
 				Type_toString(node->var_decl.type)
 			);
+			break;
 		}
 		if (ScopeInfo_isVarPresentShallow(scope, &node->var_decl.name.pos))
 		{
-			comptimeMessage(MESSAGE_ERROR, node->var_decl.name.pos,
+			comptimeMessage(MESSAGE_ERRORN, node->var_decl.name.pos,
 				"Variable is already declared");
+			break;
 		}
 		ScopeInfo_declare(scope,
 			&node->var_decl.name.pos,
@@ -260,8 +264,11 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 	case NODE_YIELD:
 		operatingContext = Context_findParent(context, CONT_BLOCK);
 		if (!operatingContext)
-			comptimeMessage(MESSAGE_ERROR, node->pos,
+		{
+			comptimeMessage(MESSAGE_ERRORN, node->pos,
 				"You can't use \"yield\" in non-block context");
+			break;
+		}
 		mark(&node->yield.value, scope, context);
 		// node->retType = node->yield.value->retType;
 		node->retType = &TYPE_VOID_OBJ;
@@ -269,20 +276,23 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			operatingContext->block.retType = node->yield.value->retType;
 		else
 			if (operatingContext->block.retType != node->yield.value->retType)
-				comptimeMessage(MESSAGE_ERROR, node->yield.value->pos,
+				comptimeMessage(MESSAGE_ERRORN, node->yield.value->pos,
 					"Block can't yield multiple data types at once");
 		break;
 	case NODE_IF:
 		mark(&node->ifelse.cond, scope, context);
 		mark(&node->ifelse.truthy, scope, context);
 		if (node->ifelse.cond->retType != &TYPE_BOOL_OBJ)
-			comptimeMessage(MESSAGE_ERROR, node->ifelse.cond->pos,
+		{
+			comptimeMessage(MESSAGE_ERRORN, node->ifelse.cond->pos,
 				"\"if\" condition can only accept boolean values");
+			break;
+		}
 		if (node->ifelse.falsy)
 		{
 			mark(&node->ifelse.falsy, scope, context);
 			if (node->ifelse.truthy->retType != node->ifelse.falsy->retType)
-				comptimeMessage(MESSAGE_ERROR, node->ifelse.falsy->pos,
+				comptimeMessage(MESSAGE_ERRORN, node->ifelse.falsy->pos,
 					"If statement can't return multiple data types at once");
 			node->retType = node->ifelse.truthy->retType;
 		}
@@ -292,7 +302,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 	case NODE_NOT:
 		mark(&node->not.value, scope, context);
 		if (node->not.value->retType != &TYPE_BOOL_OBJ)
-			comptimeMessage(MESSAGE_ERROR, node->not.value->pos,
+			comptimeMessage(MESSAGE_ERRORN, node->not.value->pos,
 				"\"not\" can only accept boolean values");
 		node->retType = &TYPE_BOOL_OBJ;
 		break;
@@ -311,13 +321,16 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		// 	exit(EXIT_FAILURE);
 		// }
 		if (node->whileLoop.cond->retType != &TYPE_BOOL_OBJ)
-			comptimeMessage(MESSAGE_ERROR, node->whileLoop.cond->pos,
+		{
+			comptimeMessage(MESSAGE_ERRORN, node->whileLoop.cond->pos,
 				"\"while\" condition can only accept boolean values");
+			break;
+		}
 		node->retType = &TYPE_VOID_OBJ;
 		if (node->whileLoop.elseBlock)
 		{
 			if (node->whileLoop.elseBlock->retType != childContext.loop.retType)
-				comptimeMessage(MESSAGE_ERROR, node->whileLoop.elseBlock->pos,
+				comptimeMessage(MESSAGE_ERRORN, node->whileLoop.elseBlock->pos,
 					"\"while\" can't return values of multiple data types");
 			node->retType = childContext.loop.retType;
 		}
@@ -325,8 +338,11 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 	case NODE_BREAK:
 		operatingContext = Context_findParent(context, CONT_LOOP);
 		if (!operatingContext)
-			comptimeMessage(MESSAGE_ERROR, node->pos,
+		{
+			comptimeMessage(MESSAGE_ERRORN, node->pos,
 				"You can't use \"break\" in non-loop context");
+			break;
+		}
 		if (node->loopBreak.value)
 			mark(&node->loopBreak.value, scope, context);
 		node->retType = &TYPE_VOID_OBJ;
@@ -335,10 +351,10 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			if (!operatingContext->block.retType && node->loopBreak.value->retType)
 				operatingContext->block.retType = node->loopBreak.value->retType;
 			else if (operatingContext->block.retType && !node->retType)
-				comptimeMessage(MESSAGE_ERROR, node->pos,
+				comptimeMessage(MESSAGE_ERRORN, node->pos,
 					"Loop can't break with multiple data types at once");
 			else if (operatingContext->block.retType != node->loopBreak.value->retType)
-				comptimeMessage(MESSAGE_ERROR, node->loopBreak.value->pos,
+				comptimeMessage(MESSAGE_ERRORN, node->loopBreak.value->pos,
 					"Loop can't break with multiple data types at once");
 		}
 		break;
@@ -400,7 +416,7 @@ static void analyze(Node *node)
 		da_foreach(Node*, child, &node->block)
 			analyze(*child);
 		if (!isNodeFinal(node) && node->retType != &TYPE_VOID_OBJ)
-			comptimeMessage(MESSAGE_ERROR, node->block.posEnd,
+			comptimeMessage(MESSAGE_ERRORN, node->block.posEnd,
 				"Missing yield statement");
 		break;
 	case NODE_INFIX:
@@ -409,17 +425,20 @@ static void analyze(Node *node)
 		if (node->infix.type == INFIX_ASSIGN)
 		{
 			if (node->infix.left->type != NODE_SYMBOL)
-				comptimeMessage(MESSAGE_ERROR, node->infix.left->pos,
+			{
+				comptimeMessage(MESSAGE_ERRORN, node->infix.left->pos,
 					"Can't assign to non-variable");
+				break;
+			}
 			printf("%d\n", node->infix.left->symbol.isMutable);
 			if (!node->infix.left->symbol.isMutable)
-				comptimeMessage(MESSAGE_ERROR, node->pos,
+				comptimeMessage(MESSAGE_ERRORN, node->pos,
 					"Can't assign to immutable variable");
 		}
 		break;
 	case NODE_EXIT:
 		if (node->exit.value->retType->kind != TYPE_INT)
-			comptimeMessage(MESSAGE_ERROR, node->exit.value->pos,
+			comptimeMessage(MESSAGE_ERRORN, node->exit.value->pos,
 				"Cant exit with non-int value");
 		analyze(node->exit.value);
 		break;
@@ -433,7 +452,7 @@ static void analyze(Node *node)
 	case NODE_NEGATION:
 		if (node->negation.value->retType->kind != TYPE_INT &&
 			node->negation.value->retType->kind != TYPE_FLOAT)
-			comptimeMessage(MESSAGE_ERROR, node->negation.value->pos,
+			comptimeMessage(MESSAGE_ERRORN, node->negation.value->pos,
 				"Cannot negate %s", Type_toString(node->retType));
 		analyze(node->negation.value);
 		break;

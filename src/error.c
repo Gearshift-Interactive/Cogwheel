@@ -1,6 +1,8 @@
 #include "error.h"
 #include <stdarg.h>
 
+bool errorOccured = false;
+
 // typedef struct {
 // 	const char *origin;
 // 	size_t start;
@@ -108,6 +110,8 @@ void comptimeMessage(MessageLevel level, TokenPosition pos, const char *fmt, ...
 
 	printf("\n");
 
+	if (level == MESSAGE_ERROR || level == MESSAGE_ERRORN)
+		errorOccured = true;
 	if (level == MESSAGE_ERROR)
 		exit(EXIT_FAILURE);
 }

@@ -2,9 +2,9 @@ boolean cond = false;
 mut int a = {
     if (cond)
         yield 1;
-    yield 2;
+    yield 2u;
 };
 {
-    a = a + 1;
+    1 = a + 1;
 };
 exit a;

@@ -21,6 +21,7 @@
 #define MESSAGE_LEVELS \
 	X(INFO, info) \
 	X(WARN, warning) \
+	X(ERRORN, error) \
 	X(ERROR, error)
 
 typedef enum {
@@ -28,5 +29,7 @@ typedef enum {
 	MESSAGE_LEVELS
 #undef X
 } MessageLevel;
+
+extern bool errorOccured;
 
 void comptimeMessage(MessageLevel level, TokenPosition pos, const char *fmt, ...);

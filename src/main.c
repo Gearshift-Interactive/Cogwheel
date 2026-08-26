@@ -5,6 +5,7 @@
 #include "vm.h"
 #include "compiler.h"
 #include "semantic_analyzer.h"
+#include "error.h"
 
 #ifdef COG_STANDALONE
 
@@ -33,8 +34,13 @@ int main(int argc, char **argv)
 	Node_print(ast);
 	printf("\n");
 #	endif
+	if (errorOccured)
+	{
+		free(sb.items);
+		Node_free(ast);
+		return EXIT_FAILURE;
+	}
 	Chunk code = compile(ast);
-	// Node_free(ast);
 #	ifdef DEBUG
 	printf("//// BYTECODE ////\n");
 	Chunk_print(&code);
