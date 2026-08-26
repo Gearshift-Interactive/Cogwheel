@@ -247,7 +247,7 @@ static Node *parseBlockInside(TokenStream *tokens, bool fileRoot)
 	block->block.capacity = 0;
 	if (fileRoot)
 		block->block.type = BLOCK_FILE_ROOT;
-	while (TokenStream_peek(tokens))
+	while (TokenStream_peek(tokens) && TokenStream_peek(tokens)->type != TOKEN_EOF)
 	{
 		Token *token = TokenStream_peek(tokens);
 		if (token->type == TOKEN_RBRACE) return block;

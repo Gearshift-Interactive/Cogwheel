@@ -1,11 +1,1 @@
-boolean cond = false;
-mut int a = {
-    if (cond)
-        yield 1;
-    yield 2;
-};
-{
-    a = a + 1;
-    a = 1.5f;
-};
-exit a;
+exit (uint)-1.0f;

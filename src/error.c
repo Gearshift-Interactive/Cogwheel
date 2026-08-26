@@ -11,7 +11,7 @@ bool errorOccured = false;
 static size_t TokenPosition_countLineNumber(TokenPosition pos)
 {
 	size_t result = 1;
-	for (size_t i = 0; i < pos.start; i++)
+	for (size_t i = 0; i < pos.start && pos.origin[i]; i++)
 		if (pos.origin[i] == '\n')
 			result++;
 	return result;
@@ -19,7 +19,7 @@ static size_t TokenPosition_countLineNumber(TokenPosition pos)
 static size_t TokenPosition_countLinePos(TokenPosition pos)
 {
 	size_t result = 1;
-	for (size_t i = 0; i < pos.start; i++)
+	for (size_t i = 0; i < pos.start && pos.origin[i]; i++)
 		if (pos.origin[i] == '\n')
 			result = 0;
 		else
@@ -53,7 +53,7 @@ static void TokenPosition_pprint(TokenPosition pos, size_t lineNumber, size_t li
 		printLineNumber(curLine);
 		printnl = true;
 	}
-	for (size_t i = 0; true; i++)
+	for (size_t i = 0; pos.origin[i]; i++)
 	{
 		if (pos.origin[i] == '\n')
 		{

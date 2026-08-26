@@ -82,6 +82,7 @@ bool TokenPosition_eq(const TokenPosition *a, const TokenPosition *b)
 Token TokenStream_consume(TokenStream *this)
 {
 	assert(this);
+	fflush(stdout);
 	if (this->next >= this->count)
 		PANIC("Ran out of tokens");
 	Token token = *(this->items + (this->next++));
@@ -257,7 +258,7 @@ TokenStream tokenize(String_View text, const char *filename)
 		.offset = 0,
 		.originName = filename,
 	};
-	while (tokenizer.offset < tokenizer.text.count)
+	while (tokenizer.offset < tokenizer.text.count - 1)
 	{
 		// printf("curchar %c\n", *(tokenizer.text.data + tokenizer.offset));
 		if (Tokenizer_checkSymbolBeginning(&tokenizer))
@@ -269,5 +270,15 @@ TokenStream tokenize(String_View text, const char *filename)
 		else
 			da_append(&tokens, Tokenizer_handleOperator(&tokenizer));
 	}
+	Token eof = {
+		.type = TOKEN_EOF,
+		.pos = (TokenPosition) {
+			.origin = text.data,
+			.start = text.count - 2,
+			.length = 1,
+			.originName = filename,
+		},
+	};
+	da_append(&tokens, eof);
 	return tokens;
 }

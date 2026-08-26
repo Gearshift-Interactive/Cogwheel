@@ -330,11 +330,8 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		// 	exit(EXIT_FAILURE);
 		// }
 		if (node->whileLoop.cond->retType != &TYPE_BOOL_OBJ)
-		{
 			comptimeMessage(MESSAGE_ERRORN, node->whileLoop.cond->pos,
 				"\"while\" condition can only accept boolean values");
-			break;
-		}
 		node->retType = &TYPE_VOID_OBJ;
 		if (node->whileLoop.elseBlock)
 		{
@@ -342,6 +339,12 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 				comptimeMessage(MESSAGE_ERRORN, node->whileLoop.elseBlock->pos,
 					"\"while\" can't return values of multiple data types");
 			node->retType = childContext.loop.retType;
+		}
+		else
+		{
+			if (childContext.type)
+				comptimeMessage(MESSAGE_WARN, node->pos,
+					"\"break\" statements with values are ignored since there are no \"else\" block");
 		}
 		break;
 	case NODE_BREAK:

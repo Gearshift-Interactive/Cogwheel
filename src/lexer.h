@@ -3,6 +3,7 @@
 #include "nob.h"
 
 #define TOKEN_TYPE \
+	X(EOF) \
 	/* atoms */ \
 	X(NUMBER) \
 	X(UNUMBER) \
