@@ -242,20 +242,14 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		mark(&node->var_decl.value, scope, context);
 		node->retType = node->var_decl.value->retType;
 		if (node->var_decl.type != node->var_decl.value->retType)
-		{
 			comptimeMessage(MESSAGE_ERRORN, node->var_decl.value->pos,
 				"Cant assign a value of type \"%s\" to a variable of type \"%s\"",
 				Type_toString(node->var_decl.value->retType),
 				Type_toString(node->var_decl.type)
 			);
-			break;
-		}
 		if (ScopeInfo_isVarPresentShallow(scope, &node->var_decl.name.pos))
-		{
 			comptimeMessage(MESSAGE_ERRORN, node->var_decl.name.pos,
 				"Variable is already declared");
-			break;
-		}
 		ScopeInfo_declare(scope,
 			&node->var_decl.name.pos,
 			node->var_decl.type,

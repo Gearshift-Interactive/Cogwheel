@@ -1,1 +1,2 @@
-exit (uint)-1.0f;
+int x = false;
+exit x;
