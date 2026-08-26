@@ -54,10 +54,12 @@ typedef enum {
 	TOKEN_TYPE
 #undef X
 } TokenType;
+
 typedef struct {
 	const char *origin;
 	size_t start;
 	size_t length;
+	const char *originName;
 } TokenPosition;
 
 typedef struct {
@@ -81,4 +83,4 @@ Token *TokenStream_current(const TokenStream *);
 Token *TokenStream_peek(const TokenStream *);
 Token *TokenStream_peekForward(const TokenStream *, size_t countForward);
 void TokenStream_free(const TokenStream *);
-TokenStream tokenize(String_View text);
+TokenStream tokenize(String_View text, const char *filename);

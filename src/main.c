@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 	assert(argc == 2);
 	String_Builder sb = {0};
 	read_entire_file(argv[1], &sb);
-	TokenStream tokens = tokenize(nob_sv_from_parts(sb.items, sb.count));
+	TokenStream tokens = tokenize(nob_sv_from_parts(sb.items, sb.count), argv[1]);
 #	ifdef DEBUG
 	da_foreach(Token, i, &tokens)
 	{

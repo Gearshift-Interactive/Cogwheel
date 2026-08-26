@@ -59,12 +59,13 @@ static const TokenType ATOMIC_TYPE_TOKENS[] = {
 	TOKEN_INT_T, TOKEN_UINT_T, TOKEN_FLOAT_T, TOKEN_BOOL_T, TOKEN_STRING_T
 };
 
-static Type *tokenToType(TokenType tt)
+static Type *tokenToType(Token t)
 {
 	for (size_t i = 0; i < ARRAY_LEN(TOKEN_TO_TYPE); i++)
-		if (TOKEN_TO_TYPE[i].tt == tt)
+		if (TOKEN_TO_TYPE[i].tt == t.type)
 			return TOKEN_TO_TYPE[i].t;
-	PANIC("Invalid atomic type %s", TokenType_toString(tt));
+	comptimeMessage(MESSAGE_ERROR, t.pos, "Invalid atomic type of %s", TokenType_toString(t.type));
+	return NULL;
 }
 static bool TokenType_isAtomicType(TokenType tt)
 {
@@ -77,23 +78,26 @@ static Token TokenStream_consumeExpect(TokenStream *this, TokenType tt)
 {
 	Token token = TokenStream_consume(this);
 	if (token.type != tt)
-		PANIC("Unexpected token of type %s, expected %s",
+		comptimeMessage(MESSAGE_ERROR, token.pos,
+			"Unexpected token of type %s, expected %s",
 			TokenType_toString(token.type), TokenType_toString(tt));
 	return token;
 }
-static BindingPower getBindingFor(TokenType tt)
+static BindingPower getBindingFor(Token t)
 {
 	for (size_t i = 0; i < ARRAY_LEN(BINDING_POWERS); i++)
-		if (BINDING_POWERS[i].op == tt)
+		if (BINDING_POWERS[i].op == t.type)
 			return BINDING_POWERS[i];
-	PANIC("Unexpected TokenType");
+	comptimeMessage(MESSAGE_ERROR, t.pos, "Unexpected Token");
+	return (BindingPower){0};
 }
-static PrefixBindingPower getPrefixBindingFor(TokenType tt)
+static PrefixBindingPower getPrefixBindingFor(Token t)
 {
 	for (size_t i = 0; i < ARRAY_LEN(PREFIX_POWERS); i++)
-		if (PREFIX_POWERS[i].op == tt)
+		if (PREFIX_POWERS[i].op == t.type)
 			return PREFIX_POWERS[i];
-	PANIC("Unexpected TokenType");
+	comptimeMessage(MESSAGE_ERROR, t.pos, "Unexpected Token");
+	return (PrefixBindingPower){0};
 }
 static int64_t parseNumber(Token token)
 {
@@ -171,13 +175,14 @@ static Node *parseAtom(TokenStream *tokens)
 		}
 		default: {
 			TokenPosition tp = consumed.pos;
-			PANIC("Unexpected \"%.*s\"", (int)tp.length, tp.origin + tp.start);
+			comptimeMessage(MESSAGE_ERROR, tp, "Unexpected token");
+			return NULL;
 		}
 	}
 }
-static InfixType getInfixType(TokenType tt)
+static InfixType getInfixType(Token t)
 {
-	switch (tt)
+	switch (t.type)
 	{
 		case TOKEN_ADD: return INFIX_ADD;
 		case TOKEN_SUB: return INFIX_SUB;
@@ -194,7 +199,8 @@ static InfixType getInfixType(TokenType tt)
 		case TOKEN_ELT: return INFIX_ELT;
 		case TOKEN_NEQ: return INFIX_NEQ;
 		default: {
-			PANIC("Unexpected infix operator");
+			comptimeMessage(MESSAGE_ERROR, t.pos, "Unexpected infix operator");
+			return 0;
 		}
 	}
 }
@@ -227,18 +233,20 @@ static Node *parseVarDecl(TokenStream *tokens)
 	result->type = NODE_VAR_DECL;
 	result->var_decl.name = TokenStream_consumeExpect(tokens, TOKEN_SYMBOL);
 	TokenStream_consumeExpect(tokens, TOKEN_ASSIGN);
-	result->var_decl.type = tokenToType(type.type);
+	result->var_decl.type = tokenToType(type);
 	result->var_decl.value = parseExpr(tokens, 0);
 	result->var_decl.isMutable = mut;
 	return result;
 }
-static Node *parseBlockInside(TokenStream *tokens)
+static Node *parseBlockInside(TokenStream *tokens, bool fileRoot)
 {
 	Node *block = Node_makeRaw();
 	block->type = NODE_BLOCK;
 	block->block.items = NULL;
 	block->block.count = 0;
 	block->block.capacity = 0;
+	if (fileRoot)
+		block->block.type = BLOCK_FILE_ROOT;
 	while (TokenStream_peek(tokens))
 	{
 		Token *token = TokenStream_peek(tokens);
@@ -251,7 +259,7 @@ static Node *parseBlockInside(TokenStream *tokens)
 static Node *parseBlock(TokenStream *tokens)
 {
 	Token start = TokenStream_consumeExpect(tokens, TOKEN_LBRACE);
-	Node *result = parseBlockInside(tokens);
+	Node *result = parseBlockInside(tokens, false);
 	result->pos = start.pos;
 	result->block.posEnd = TokenStream_consumeExpect(tokens, TOKEN_RBRACE).pos;
 	return result;
@@ -292,18 +300,19 @@ static Node *parseExprHead(TokenStream *tokens)
 	if (peek->type == TOKEN_LPAREN)
 	{
 		TokenStream_consume(tokens);
+		Token *peekOld = peek;
 		peek = TokenStream_peek(tokens);
 		Node *result = NULL;
 		if (TokenType_isAtomicType(peek->type)) // cast
 		{
 			TokenStream_consume(tokens);
-			Token token = TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
+			TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
 			Node *value = parseExpr(tokens, CAST_BINDING_POWER);
-			result = Node_make(token.pos);
+			result = Node_make(peekOld->pos);
 			result->pos.length += peek->pos.length + 1;
 			result->type = NODE_CAST;
 			result->cast.value = value;
-			result->cast.target = tokenToType(peek->type);
+			result->cast.target = tokenToType(*peek);
 		}
 		else {
 			result = parseExpr(tokens, 0);
@@ -314,7 +323,7 @@ static Node *parseExprHead(TokenStream *tokens)
 	else if (peek->type == TOKEN_SUB)
 	{
 		Token token = TokenStream_consume(tokens);
-		float bind = getPrefixBindingFor(peek->type).power;
+		float bind = getPrefixBindingFor(*peek).power;
 		Node *result = Node_make(token.pos);
 		result->type = NODE_NEGATION;
 		result->negation.value = parseExpr(tokens, bind);
@@ -349,7 +358,7 @@ static Node *parseExprHead(TokenStream *tokens)
 	else if (peek->type == TOKEN_NOT) // logic negation
 	{
 		Token token = TokenStream_consume(tokens);
-		float bind = getPrefixBindingFor(peek->type).power;
+		float bind = getPrefixBindingFor(*peek).power;
 		Node *result = Node_make(token.pos);
 		result->type = NODE_NOT;
 		result->not.value = parseExpr(tokens, bind);
@@ -372,14 +381,14 @@ static Node *parseExprTail(TokenStream *tokens, float parentBind, Node *left)
 	{
 		Token *op = TokenStream_peek(tokens);
 		if (isTailToken(op->type)) break;
-		BindingPower bind = getBindingFor(op->type);
+		BindingPower bind = getBindingFor(*op);
 		if (bind.right < parentBind) break;
 		if (bind.right == parentBind && bind.left < bind.right) break;
 		Token token = TokenStream_consume(tokens);
 		Node *right = parseExpr(tokens, bind.left);
 		Node *newLeft = Node_make(token.pos);
 		newLeft->type = NODE_INFIX;
-		newLeft->infix.type = getInfixType(op->type);
+		newLeft->infix.type = getInfixType(*op);
 		newLeft->infix.left = left;
 		newLeft->infix.right = right;
 		left = newLeft;
@@ -393,7 +402,7 @@ static Node *parseExpr(TokenStream *tokens, float parentBind)
 }
 Node *parse(TokenStream tokens)
 {
-	Node *result = parseBlockInside(&tokens);
+	Node *result = parseBlockInside(&tokens, true);
 	// Node *result = Node_make();
 	// result->type = NODE_EXIT;
 	// result->exit.value = parseExpr(&tokens, 0);

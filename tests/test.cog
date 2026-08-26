@@ -1,8 +1,10 @@
-boolean cond = false
-int a = {
-	if (cond)
-		yield 12
-	else
-		exit -1;
+boolean cond = false;
+mut int a = {
+    if (cond)
+        yield 1;
+    yield 2;
+};
+{
+    a = a + 1;
 };
 exit a;

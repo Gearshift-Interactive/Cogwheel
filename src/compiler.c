@@ -119,7 +119,7 @@ static size_t compileCast(Chunk *this, const Node *node, __attribute__((unused))
 	// case ATOM_BOOL:
 	// 	break;
 	default:
-		PANIC("Invalid cast target");
+		comptimeMessage(MESSAGE_ERROR, node->pos, "Invalid cast target");
 		break;
 	}
 	da_append(&this->instr, op);

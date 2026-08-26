@@ -67,6 +67,10 @@ typedef struct Node {
 			struct Node **items;
 			size_t count, capacity;
 			TokenPosition posEnd;
+			enum {
+				BLOCK_REGULAR = 0,
+				BLOCK_FILE_ROOT,
+			} type;
 		} block;
 		struct {
 			struct Node *left, *right;

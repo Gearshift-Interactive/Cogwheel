@@ -116,6 +116,7 @@ typedef struct {
 	String_View text;
 	size_t offset;
 	size_t lastAdvancement;
+	const char *originName;
 } Tokenizer;
 static void Tokenizer_advance(Tokenizer *this) { assert(this);
 	this->offset += bytes_for_utf8[(uint8_t)*(this->text.data + this->offset)];
@@ -156,6 +157,7 @@ static Token Tokenizer_handleSymbol(Tokenizer *this)
 		.origin = this->origin,
 		.start = start,
 		.length = length,
+		.originName = this->originName,
 	};
 	return (Token){
 		.type = Tokenizer_matchSymbol(this, pos),
@@ -179,6 +181,7 @@ static Token Tokenizer_handleOperator(Tokenizer *this)
 					.origin = this->origin,
 					.start = this->offset,
 					.length = opLen,
+					.originName = this->originName,
 				},
 			};
 			success = true;
@@ -240,10 +243,11 @@ static Token Tokenizer_handleNumber(Tokenizer *this)
 			.origin = this->origin,
 			.start = start,
 			.length = length,
+			.originName = this->originName,
 		},
 	};
 }
-TokenStream tokenize(String_View text)
+TokenStream tokenize(String_View text, const char *filename)
 {
 	assert(text.data);
 	TokenStream tokens = {0};
@@ -251,6 +255,7 @@ TokenStream tokenize(String_View text)
 		.origin = text.data,
 		.text = text,
 		.offset = 0,
+		.originName = filename,
 	};
 	while (tokenizer.offset < tokenizer.text.count)
 	{

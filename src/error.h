@@ -1,5 +1,7 @@
 #pragma once
 
+#include "lexer.h"
+
 #define PANIC(...) PANIC_IMPL(__VA_ARGS__)
 
 #ifdef DEBUG
@@ -15,3 +17,16 @@
 		exit(EXIT_FAILURE); \
 	} while(0)
 #endif
+
+#define MESSAGE_LEVELS \
+	X(INFO, info) \
+	X(WARN, warning) \
+	X(ERROR, error)
+
+typedef enum {
+#define X(NAME, TEXT) MESSAGE_##NAME,
+	MESSAGE_LEVELS
+#undef X
+} MessageLevel;
+
+void comptimeMessage(MessageLevel level, TokenPosition pos, const char *fmt, ...);
