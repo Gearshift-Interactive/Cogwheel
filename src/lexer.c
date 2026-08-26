@@ -1,4 +1,5 @@
 #include "lexer.h"
+#include "error.h"
 
 #include "nob.h"
 
@@ -82,7 +83,7 @@ Token TokenStream_consume(TokenStream *this)
 {
 	assert(this);
 	if (this->next >= this->count)
-		exit(EXIT_FAILURE);
+		PANIC("Ran out of tokens");
 	Token token = *(this->items + (this->next++));
 	return token;
 }
@@ -188,8 +189,7 @@ static Token Tokenizer_handleOperator(Tokenizer *this)
 	}
 	if (success)
 		return result;
-	nob_log(ERROR, "Illegal character \"%c\"", *(this->text.data + this->offset));
-	exit(0);
+	PANIC("Illegal character \"%c\"", *(this->text.data + this->offset));
 }
 static bool Tokenizer_checkNumber(const Tokenizer *this) { assert(this);
 	return strchr(NUMBERS, *(this->text.data + this->offset));
@@ -231,10 +231,7 @@ static Token Tokenizer_handleNumber(Tokenizer *this)
 		if (curChar == 'f')
 			Tokenizer_advance(this);
 		else if (curChar == 'u')
-		{
-			nob_log(ERROR, "Invaild \"u\" postfix");
-			exit(EXIT_FAILURE);
-		}
+			PANIC("Invaild \"u\" postfix");
 		type = TOKEN_FNUMBER;
 	}
 	return (Token){

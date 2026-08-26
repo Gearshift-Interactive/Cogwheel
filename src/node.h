@@ -66,6 +66,7 @@ typedef struct Node {
 		struct {
 			struct Node **items;
 			size_t count, capacity;
+			TokenPosition posEnd;
 		} block;
 		struct {
 			struct Node *left, *right;
@@ -102,9 +103,11 @@ typedef struct Node {
 	};
 	Type *retType;
 	bool unreachable;
+	TokenPosition pos;
 } Node;
 
 const char *InfixType_toString(const InfixType *);
-Node *Node_make(void);
+Node *Node_make(TokenPosition);
+Node *Node_makeRaw(void);
 void Node_print(const Node *);
 void Node_free(const Node *);

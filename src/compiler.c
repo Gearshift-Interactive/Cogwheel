@@ -1,4 +1,5 @@
 #include "compiler.h"
+#include "error.h"
 
 typedef enum {
 	CONT_NULL = 0,
@@ -37,8 +38,7 @@ static size_t Context_findParentDepth(Context *this, ContextType type)
 			return result;
 		else
 			result++;
-	nob_log(ERROR, "Couln't find scope parent");
-	exit(EXIT_FAILURE);
+	PANIC("Couln't find scope parent");
 }
 
 #define PUSH_OP(OP) do { \
@@ -119,7 +119,7 @@ static size_t compileCast(Chunk *this, const Node *node, __attribute__((unused))
 	// case ATOM_BOOL:
 	// 	break;
 	default:
-		exit(EXIT_FAILURE);
+		PANIC("Invalid cast target");
 		break;
 	}
 	da_append(&this->instr, op);
@@ -152,11 +152,7 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 			PUSH_OP(OP_ADD_FLOAT);
 			break;
 		default:
-			nob_log(ERROR,
-				"Unsupported type for infix: %s",
-				Type_toString(node->retType)
-			);
-			exit(EXIT_FAILURE);
+			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
 			break;
 		}
 		break;
@@ -173,8 +169,7 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 			PUSH_OP(OP_SUB_FLOAT);
 			break;
 		default:
-			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
-			exit(EXIT_FAILURE);
+			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
 			break;
 		}
 		break;
@@ -191,8 +186,7 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 			PUSH_OP(OP_MUL_FLOAT);
 			break;
 		default:
-			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
-			exit(EXIT_FAILURE);
+			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
 			break;
 		}
 		break;
@@ -209,8 +203,7 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 			PUSH_OP(OP_DIV_FLOAT);
 			break;
 		default:
-			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
-			exit(EXIT_FAILURE);
+			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
 			break;
 		}
 		break;
@@ -227,8 +220,7 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 			PUSH_OP(OP_POW_FLOAT);
 			break;
 		default:
-			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
-			exit(EXIT_FAILURE);
+			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
 			break;
 		}
 		break;
@@ -251,8 +243,7 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 			PUSH_OP(OP_EQ_FLOAT);
 			break;
 		default:
-			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
-			exit(EXIT_FAILURE);
+			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
 			break;
 		}
 		break;
@@ -269,8 +260,7 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 			PUSH_OP(OP_NEQ_FLOAT);
 			break;
 		default:
-			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
-			exit(EXIT_FAILURE);
+			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
 			break;
 		}
 		break;
@@ -287,8 +277,7 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 			PUSH_OP(OP_LT_FLOAT);
 			break;
 		default:
-			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
-			exit(EXIT_FAILURE);
+			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
 			break;
 		}
 		break;
@@ -305,8 +294,7 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 			PUSH_OP(OP_GT_FLOAT);
 			break;
 		default:
-			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
-			exit(EXIT_FAILURE);
+			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
 			break;
 		}
 		break;
@@ -323,8 +311,7 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 			PUSH_OP(OP_ELT_FLOAT);
 			break;
 		default:
-			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
-			exit(EXIT_FAILURE);
+			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
 			break;
 		}
 		break;
@@ -341,8 +328,7 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 			PUSH_OP(OP_EGT_FLOAT);
 			break;
 		default:
-			nob_log(ERROR, "Unsupported type for infix: %s", Type_toString(node->retType));
-			exit(EXIT_FAILURE);
+			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
 			break;
 		}
 		break;
@@ -420,8 +406,7 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 			PUSH_OP(OP_NEG_FLOAT);
 			break;
 		default:
-			nob_log(ERROR, "Unsupported type for negation: %s", Type_toString(node->retType));
-			exit(EXIT_FAILURE);
+			PANIC("Unsupported type for negation: %s", Type_toString(node->retType));
 			break;
 		}
 		break;

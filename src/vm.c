@@ -1,4 +1,5 @@
 #include "vm.h"
+#include "error.h"
 
 #include <inttypes.h>
 #include <math.h>
@@ -118,8 +119,7 @@ static void Value_print(const Value *this) {
 			printf("(WTF)\n");
 			__attribute__((fallthrough));
 		case TYPE_VOID:
-			nob_log(ERROR, "TS is void");
-			exit(EXIT_FAILURE);
+			PANIC("TS is void");
 	}
 }
 static void Stack_print(const Stack *this)
@@ -141,10 +141,7 @@ static void Stack_checkCapacity(Stack *this)
 	{
 		this->values = malloc(sizeof(Value) * 64);
 		if (!this->values)
-		{
-			nob_log(ERROR, "Out of memory");
-			exit(EXIT_FAILURE);
-		}
+			PANIC("Out of memory");
 		this->capacity = 64;
 		return;
 	}
@@ -152,10 +149,7 @@ static void Stack_checkCapacity(Stack *this)
 		return;
 	this->values = realloc(this->values, sizeof(Value) * this->capacity * 2);
 	if (!this->values)
-	{
-		nob_log(ERROR, "Out of memory");
-		exit(EXIT_FAILURE);
-	}
+		PANIC("Out of memory");
 	this->capacity *= 2;
 }
 static void Stack_push(Stack *this, Value value)
@@ -166,28 +160,19 @@ static void Stack_push(Stack *this, Value value)
 static Value Stack_pop(Stack *this)
 {
 	if (this->count < 1)
-	{
-		nob_log(ERROR, "Stack is empty");
-		exit(EXIT_FAILURE);
-	}
+		PANIC("Stack is empty");
 	return this->values[--this->count];
 }
 static Value Stack_current(Stack *this)
 {
 	if (this->count < 1)
-	{
-		nob_log(ERROR, "Stack is empty");
-		exit(EXIT_FAILURE);
-	}
+		PANIC("Stack is empty");
 	return this->values[this->count - 1];
 }
 static Value *Stack_currentPtr(Stack *this)
 {
 	if (this->count < 1)
-	{
-		nob_log(ERROR, "Stack is empty");
-		exit(EXIT_FAILURE);
-	}
+		PANIC("Stack is empty");
 	return this->values + (this->count - 1);
 }
 static void Stack_free(const Stack *this)
@@ -301,16 +286,13 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		INFIX(&TYPE_FLOAT_OBJ, v_float, *);
 		break;
 	case OP_POW_INT:
-		nob_log(ERROR, "power is unsopported yet");
-		exit(EXIT_FAILURE);
+		PANIC("power is unsopported yet");
 		break;
 	case OP_POW_UINT:
-		nob_log(ERROR, "power is unsopported yet");
-		exit(EXIT_FAILURE);
+		PANIC("power is unsopported yet");
 		break;
 	case OP_POW_FLOAT:
-		nob_log(ERROR, "power is unsopported yet");
-		exit(EXIT_FAILURE);
+		PANIC("power is unsopported yet");
 		break;
 	case OP_CAST_ITOU:
 		Stack_push(&vm->stack, (Value){
@@ -526,8 +508,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			Stack_pop(&vm->stack);
 		break;
 	default:
-		nob_log(ERROR, "Unsupported operation at %ld", vm->pc - 1);
-		exit(EXIT_FAILURE);
+		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;
 	}
 #undef INFIX

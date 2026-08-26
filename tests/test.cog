@@ -1,4 +1,4 @@
-boolean cond = false;
+boolean cond = false
 int a = {
 	if (cond)
 		yield 12

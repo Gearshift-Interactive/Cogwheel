@@ -1,5 +1,6 @@
 #include "semantic_analyzer.h"
 #include "lexer.h"
+#include "error.h"
 
 typedef enum {
 	CONT_NULL = 0,
@@ -63,8 +64,7 @@ static size_t ScopeInfo_getVarIndex(const ScopeInfo *this, const TokenPosition *
 		for (size_t i = 0; i < current->count; i++)
 			if (TokenPosition_eq((current->vars + i)->name, name))
 				return i;
-	nob_log(ERROR, "Undefined variable");
-	exit(EXIT_FAILURE);
+	PANIC("Undefined variable");
 }
 static size_t ScopeInfo_getVarDepth(const ScopeInfo *this, const TokenPosition *name)
 {
@@ -76,8 +76,7 @@ static size_t ScopeInfo_getVarDepth(const ScopeInfo *this, const TokenPosition *
 				return depth;
 		depth++;
 	}
-	nob_log(ERROR, "Undefined variable");
-	exit(EXIT_FAILURE);
+	PANIC("Undefined variable");
 }
 static VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index, size_t depth)
 {
@@ -106,7 +105,7 @@ static Node *markScope(Node *node, ScopeInfo *parent, Context *context)
 {
 	ScopeInfo *scope = ScopeInfo_make();
 	scope->parent = parent;
-	Node *result = Node_make();
+	Node *result = Node_make(node->pos);
 	result->type = NODE_SCOPE;
 	result->scope.child = node;
 	markImpl(result->scope.child, scope, context);
@@ -134,10 +133,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		break;
 	case NODE_SYMBOL:
 		if (!ScopeInfo_isVarPresent(scope, &node->symbol.token.pos))
-		{
-			nob_log(ERROR, "Undefined variable");
-			exit(EXIT_FAILURE);
-		}
+			PANIC("Undefined variable");
 		size_t varIndex = ScopeInfo_getVarIndex(scope, &node->symbol.token.pos);
 		size_t varDepth = ScopeInfo_getVarDepth(scope, &node->symbol.token.pos);
 		VarInfo *varInfo = ScopeInfo_getInfo(scope, varIndex, varDepth);
@@ -185,13 +181,11 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					left->retType == &TYPE_UINT_OBJ ||
 					left->retType == &TYPE_FLOAT_OBJ
 				)
-			) {
-				nob_log(ERROR, "Cant perform %s on %s and %s",
+			)
+				PANIC("Cant perform %s on %s and %s",
 					InfixType_toString(&node->infix.type),
 					Type_toString(left->retType),
 					Type_toString(right->retType));
-				exit(EXIT_FAILURE);
-			}
 			node->retType = &TYPE_BOOL_OBJ;
 		}
 		else if (left->retType == &TYPE_INT_OBJ && right->retType == &TYPE_INT_OBJ)
@@ -201,11 +195,10 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		else if (left->retType == &TYPE_FLOAT_OBJ && right->retType == &TYPE_FLOAT_OBJ)
 			node->retType = &TYPE_FLOAT_OBJ;
 		else {
-			nob_log(ERROR, "Cant perform %s on %s and %s",
+			PANIC("Cant perform %s on %s and %s",
 				InfixType_toString(&node->infix.type),
 				Type_toString(left->retType),
 				Type_toString(right->retType));
-			exit(EXIT_FAILURE);
 		}
 		break;
 	case NODE_EXIT:
@@ -225,17 +218,15 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		node->retType = node->var_decl.value->retType;
 		if (node->var_decl.type != node->var_decl.value->retType)
 		{
-			nob_log(ERROR,
+			PANIC(
 				"Cant assign a value of type \"%s\" to a variable of type \"%s\"",
 				Type_toString(node->var_decl.value->retType),
 				Type_toString(node->var_decl.type)
 			);
-			exit(EXIT_FAILURE);
 		}
 		if (ScopeInfo_isVarPresentShallow(scope, &node->var_decl.name.pos))
 		{
-			nob_log(ERROR, "Variable is already declared");
-			exit(EXIT_FAILURE);
+			PANIC("Variable is already declared");
 		}
 		ScopeInfo_declare(scope,
 			&node->var_decl.name.pos,
@@ -246,8 +237,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		node->var_decl.scopeDepth = ScopeInfo_getVarDepth(scope, &node->var_decl.name.pos);
 		break;
 	case NODE_SCOPE:
-		nob_log(ERROR, "Node of type SCOPE should not be present in not analyzed ast");
-		exit(EXIT_FAILURE);
+		PANIC("Node of type SCOPE should not be present in not analyzed ast");
 	case NODE_FALSE_:
 	case NODE_TRUE_:
 		node->retType = &TYPE_BOOL_OBJ;
@@ -255,10 +245,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 	case NODE_YIELD:
 		operatingContext = Context_findParent(context, CONT_BLOCK);
 		if (!operatingContext)
-		{
-			nob_log(ERROR, "You can't use \"yield\" in non-block context");
-			exit(EXIT_FAILURE);
-		}
+			PANIC("You can't use \"yield\" in non-block context");
 		mark(&node->yield.value, scope, context);
 		// node->retType = node->yield.value->retType;
 		node->retType = &TYPE_VOID_OBJ;
@@ -266,27 +253,18 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			operatingContext->block.retType = node->yield.value->retType;
 		else
 			if (operatingContext->block.retType != node->yield.value->retType)
-			{
-				nob_log(ERROR, "Block can't yield multiple data types at once");
-				exit(EXIT_FAILURE);
-			}
+				PANIC("Block can't yield multiple data types at once");
 		break;
 	case NODE_IF:
 		mark(&node->ifelse.cond, scope, context);
 		mark(&node->ifelse.truthy, scope, context);
 		if (node->ifelse.cond->retType != &TYPE_BOOL_OBJ)
-		{
-			nob_log(ERROR, "\"if\" condition can only accept boolean values");
-			exit(EXIT_FAILURE);
-		}
+			PANIC("\"if\" condition can only accept boolean values");
 		if (node->ifelse.falsy)
 		{
 			mark(&node->ifelse.falsy, scope, context);
 			if (node->ifelse.truthy->retType != node->ifelse.falsy->retType)
-			{
-				nob_log(ERROR, "If statement can't return multiple data types at once");
-				exit(EXIT_FAILURE);
-			}
+				PANIC("If statement can't return multiple data types at once");
 			node->retType = node->ifelse.truthy->retType;
 		}
 		else
@@ -295,10 +273,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 	case NODE_NOT:
 		mark(&node->not.value, scope, context);
 		if (node->not.value->retType != &TYPE_BOOL_OBJ)
-		{
-			nob_log(ERROR, "\"not\" can only accept boolean values");
-			exit(EXIT_FAILURE);
-		}
+			PANIC("\"not\" can only accept boolean values");
 		node->retType = &TYPE_BOOL_OBJ;
 		break;
 	case NODE_WHILE:
@@ -316,28 +291,19 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		// 	exit(EXIT_FAILURE);
 		// }
 		if (node->whileLoop.cond->retType != &TYPE_BOOL_OBJ)
-		{
-			nob_log(ERROR, "\"while\" condition can only accept boolean values");
-			exit(EXIT_FAILURE);
-		}
+			PANIC("\"while\" condition can only accept boolean values");
 		node->retType = &TYPE_VOID_OBJ;
 		if (node->whileLoop.elseBlock)
 		{
 			if (node->whileLoop.elseBlock->retType != childContext.loop.retType)
-			{
-				nob_log(ERROR, "\"while\" can't return values of multiple data types");
-				exit(EXIT_FAILURE);
-			}
+				PANIC("\"while\" can't return values of multiple data types");
 			node->retType = childContext.loop.retType;
 		}
 		break;
 	case NODE_BREAK:
 		operatingContext = Context_findParent(context, CONT_LOOP);
 		if (!operatingContext)
-		{
-			nob_log(ERROR, "You can't use \"break\" in non-loop context");
-			exit(EXIT_FAILURE);
-		}
+			PANIC("You can't use \"break\" in non-loop context");
 		if (node->loopBreak.value)
 			mark(&node->loopBreak.value, scope, context);
 		node->retType = &TYPE_VOID_OBJ;
@@ -346,15 +312,9 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			if (!operatingContext->block.retType && node->loopBreak.value->retType)
 				operatingContext->block.retType = node->loopBreak.value->retType;
 			else if (operatingContext->block.retType && !node->retType)
-			{
-				nob_log(ERROR, "Loop can't break with multiple data types at once");
-				exit(EXIT_FAILURE);
-			}
+				PANIC("Loop can't break with multiple data types at once");
 			else if (operatingContext->block.retType != node->retType)
-			{
-				nob_log(ERROR, "Loop can't break with multiple data types at once");
-				exit(EXIT_FAILURE);
-			}
+				PANIC("Loop can't break with multiple data types at once");
 		}
 		break;
 	}
@@ -415,10 +375,7 @@ static void analyze(Node *node)
 		da_foreach(Node*, child, &node->block)
 			analyze(*child);
 		if (!isNodeFinal(node) && node->retType)
-		{
-			nob_log(ERROR, "Missing return statement");
-			exit(EXIT_FAILURE);
-		}
+			PANIC("Missing return statement");
 		break;
 	case NODE_INFIX:
 		analyze(node->infix.left);
@@ -426,24 +383,15 @@ static void analyze(Node *node)
 		if (node->infix.type == INFIX_ASSIGN)
 		{
 			if (node->infix.left->type != NODE_SYMBOL)
-			{
-				nob_log(ERROR, "Can't assign to not a variable");
-				exit(EXIT_FAILURE);
-			}
+				PANIC("Can't assign to not a variable");
 			printf("%d\n", node->infix.left->symbol.isMutable);
 			if (!node->infix.left->symbol.isMutable)
-			{
-				nob_log(ERROR, "Can't assign to immutable variable");
-				exit(EXIT_FAILURE);
-			}
+				PANIC("Can't assign to immutable variable");
 		}
 		break;
 	case NODE_EXIT:
 		if (node->exit.value->retType->kind != TYPE_INT)
-		{
-			nob_log(ERROR, "Cant exit with non-int value");
-			exit(EXIT_FAILURE);
-		}
+			PANIC("Cant exit with non-int value");
 		analyze(node->exit.value);
 		break;
 	case NODE_CAST:
@@ -456,10 +404,7 @@ static void analyze(Node *node)
 	case NODE_NEGATION:
 		if (node->negation.value->retType->kind != TYPE_INT &&
 			node->negation.value->retType->kind != TYPE_FLOAT)
-		{
-			nob_log(ERROR, "Cannot negate %s", Type_toString(node->retType));
-			exit(EXIT_FAILURE);
-		}
+			PANIC("Cannot negate %s", Type_toString(node->retType));
 		analyze(node->negation.value);
 		break;
 	case NODE_SCOPE:

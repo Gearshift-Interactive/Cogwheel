@@ -12,7 +12,13 @@ const char *InfixType_toString(const InfixType *it)
 	}
 	return "INVALID";
 }
-Node *Node_make(void)
+Node *Node_make(TokenPosition pos)
+{
+	Node* result = Node_makeRaw();
+	result->pos = pos;
+	return result;
+}
+Node *Node_makeRaw(void)
 {
 	return (Node*)calloc(1, sizeof(Node));
 }
