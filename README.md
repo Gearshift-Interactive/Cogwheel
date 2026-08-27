@@ -26,6 +26,13 @@ You can cast these types with classical C-style cast:
 - `(int)12u`: `12`
 - `(float)(12u - (uint)8)`: `4.0f`
 
+There are multiple infix math operations:
+- **Addition**: `+`
+- **Substraction**: `-`
+- **Multiplication**: `*`
+- **Division**: `/`
+- **Power**:  `^`
+
 All infix operations can only be performed on two numbers of the same type:
 - `53u - 12u`: OK
 - `24.23 * 32.9f`: OK

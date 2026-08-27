@@ -64,7 +64,7 @@ static size_t ScopeInfo_getVarIndex(const ScopeInfo *this, const TokenPosition *
 		for (size_t i = 0; i < current->count; i++)
 			if (TokenPosition_eq((current->vars + i)->name, name))
 				return i;
-	comptimeMessage(MESSAGE_ERRORN, *name, "Undefined variable");
+	// comptimeMessage(MESSAGE_ERRORN, *name, "Undefined variable");
 	return 0;
 }
 static size_t ScopeInfo_getVarDepth(const ScopeInfo *this, const TokenPosition *name)
@@ -77,7 +77,7 @@ static size_t ScopeInfo_getVarDepth(const ScopeInfo *this, const TokenPosition *
 				return depth;
 		depth++;
 	}
-	comptimeMessage(MESSAGE_ERRORN, *name, "Undefined variable");
+	// comptimeMessage(MESSAGE_ERRORN, *name, "Undefined variable");
 	return 0;
 }
 static VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index, size_t depth)

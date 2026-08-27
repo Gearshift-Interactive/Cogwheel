@@ -13,7 +13,7 @@
 #define FILE_OBJ_NOB DIR_BIN"/"FILENAME_OBJ_NOB
 
 #define ARGS "gcc", "-std=c11", "-pedantic-errors", "-Wall", "-Wextra",\
-	"-I"DIR_SRC, "-I.", FILE_OBJ_NOB, "-DCOG_STANDALONE"
+	"-I"DIR_SRC, "-I.", FILE_OBJ_NOB, "-DCOG_STANDALONE", "-lm"
 #define ARGS_NOB "gcc", "-x", "c", "-DNOB_IMPLEMENTATION", "-c", "nob.h"
 #define ARGS_DEBUG "-ggdb", "-fsanitize=address", "-DDEBUG"
 

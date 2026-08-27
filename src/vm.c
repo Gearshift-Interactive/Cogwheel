@@ -321,14 +321,41 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_MUL_FLOAT:
 		INFIX(&TYPE_FLOAT_OBJ, v_float, *);
 		break;
-	case OP_POW_INT:
-		PANIC("power is unsopported yet");
+	case OP_POW_INT: {
+		int64_t rhs = Stack_pop(&vm->stack).v_int;
+		int64_t lhs = Stack_pop(&vm->stack).v_int;
+		Value result = {
+#ifdef DEBUG
+			.type = &TYPE_INT_OBJ,
+#endif
+			.v_int = round(pow(lhs, rhs)),
+		};
+		Stack_push(&vm->stack, result);
+		}
 		break;
-	case OP_POW_UINT:
-		PANIC("power is unsopported yet");
+	case OP_POW_UINT: {
+		uint64_t rhs = Stack_pop(&vm->stack).v_uint;
+		uint64_t lhs = Stack_pop(&vm->stack).v_uint;
+		Value result = {
+#ifdef DEBUG
+			.type = &TYPE_UINT_OBJ,
+#endif
+			.v_uint = round(pow(lhs, rhs)),
+		};
+		Stack_push(&vm->stack, result);
+		}
 		break;
-	case OP_POW_FLOAT:
-		PANIC("power is unsopported yet");
+	case OP_POW_FLOAT: {
+		double rhs = Stack_pop(&vm->stack).v_float;
+		double lhs = Stack_pop(&vm->stack).v_float;
+		Value result = {
+#ifdef DEBUG
+			.type = &TYPE_FLOAT_OBJ,
+#endif
+			.v_float = pow(lhs, rhs),
+		};
+		Stack_push(&vm->stack, result);
+		}
 		break;
 	case OP_CAST_ITOU:
 		Stack_push(&vm->stack, (Value){

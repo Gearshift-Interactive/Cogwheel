@@ -1,2 +1,1 @@
-boolean test = true and false;
-exit (int)test;
+exit (int)(4u ^ 2u);
