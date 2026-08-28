@@ -1,27 +1,15 @@
 #include "vm.h"
 #include "error.h"
+#include "value.h"
+#include "gc.h"
 
-#include <inttypes.h>
 #include <math.h>
+#include <inttypes.h>
 
 #ifdef DEBUG
 #	include "parser.h"
 #endif
 
-typedef
-#ifdef DEBUG
-  struct {
-	Type *type;
-#endif
-	union {
-		int64_t v_int;
-		uint64_t v_uint;
-		double v_float;
-		bool v_bool;
-#ifdef DEBUG
-	};
-#endif
-} Value;
 
 typedef struct Scope {
 	struct Scope *parent;
@@ -47,6 +35,7 @@ typedef struct {
 	size_t pc;
 	int retCode;
 	bool done;
+	GC gc;
 } VM;
 
 void Chunk_free(const Chunk *this)
@@ -94,34 +83,6 @@ void Chunk_print(const Chunk *this)
 #undef da_enumerate
 }
 #ifdef DEBUG
-static void Value_print(const Value *this) {
-	printf("%s", Type_toString(this->type));
-	if (!this->type || !this->type->kind)
-	{
-		printf("(UNKNOWN_TYPE)\n");
-		return;
-	}
-	switch (this->type->kind)
-	{
-		case TYPE_INT:
-			printf("(%"PRId64")\n", this->v_int);
-			break;
-		case TYPE_UINT:
-			printf("(%"PRIu64")\n", this->v_uint);
-			break;
-		case TYPE_FLOAT:
-			printf("(%f)\n", this->v_float);
-			break;
-		case TYPE_BOOL:
-			printf("(%s)\n", this->v_bool ? "true" : "false");
-			break;
-		case TYPE_UNKNOWN:
-			printf("(WTF)\n");
-			__attribute__((fallthrough));
-		case TYPE_VOID:
-			PANIC("TS is void");
-	}
-}
 static void Stack_print(const Stack *this)
 {
 	printf("--STACK--\n");
@@ -175,6 +136,12 @@ static Value *Stack_currentPtr(Stack *this)
 		PANIC("Stack is empty");
 	return this->values + (this->count - 1);
 }
+static Value *Stack_countBack(Stack *this, size_t count)
+{
+	if (this->count < 1)
+		PANIC("Stack is empty");
+	return this->values + (this->count - count);
+}
 static void Stack_free(const Stack *this)
 {
 	if (this->values)
@@ -226,7 +193,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		arg1 = readSizeT(vm, chunk);
 		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-			.type = &TYPE_INT_OBJ,
+			.type = VALUE_INT,
 #endif
 			.v_int = chunk->intConsts.items[arg1],
 		});
@@ -235,7 +202,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		arg1 = readSizeT(vm, chunk);
 		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-			.type = &TYPE_UINT_OBJ,
+			.type = VALUE_UINT,
 #endif
 			.v_uint = chunk->uintConsts.items[arg1],
 		});
@@ -244,28 +211,28 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		arg1 = readSizeT(vm, chunk);
 		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-			.type = &TYPE_FLOAT_OBJ,
+			.type = VALUE_FLOAT,
 #endif
 			.v_float = chunk->floatConsts.items[arg1],
 		});
 		break;
 	case OP_ADD_INT:
-		INFIX(&TYPE_INT_OBJ, v_int, +);
+		INFIX(VALUE_INT, v_int, +);
 		break;
 	case OP_ADD_UINT:
-		INFIX(&TYPE_UINT_OBJ, v_uint, +);
+		INFIX(VALUE_UINT, v_uint, +);
 		break;
 	case OP_ADD_FLOAT:
-		INFIX(&TYPE_FLOAT_OBJ, v_float, +);
+		INFIX(VALUE_FLOAT, v_float, +);
 		break;
 	case OP_SUB_INT:
-		INFIX(&TYPE_INT_OBJ, v_int, -);
+		INFIX(VALUE_INT, v_int, -);
 		break;
 	case OP_SUB_UINT:
-		INFIX(&TYPE_UINT_OBJ, v_uint, -);
+		INFIX(VALUE_UINT, v_uint, -);
 		break;
 	case OP_SUB_FLOAT:
-		INFIX(&TYPE_FLOAT_OBJ, v_float, -);
+		INFIX(VALUE_FLOAT, v_float, -);
 		break;
 	case OP_DIV_INT:
 		{
@@ -275,7 +242,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 				PANIC("Devision by zero");
 			Value result = {
 #ifdef DEBUG
-				.type = &TYPE_INT_OBJ,
+				.type = VALUE_INT,
 #endif
 				.v_int = lhs.v_int / rhs.v_int,
 			};
@@ -290,7 +257,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 				PANIC("Devision by zero");
 			Value result = {
 #ifdef DEBUG
-				.type = &TYPE_UINT_OBJ,
+				.type = VALUE_UINT,
 #endif
 				.v_uint = lhs.v_uint / rhs.v_uint,
 			};
@@ -305,7 +272,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 				PANIC("Devision by zero");
 			Value result = {
 #ifdef DEBUG
-				.type = &TYPE_FLOAT_OBJ,
+				.type = VALUE_FLOAT,
 #endif
 				.v_float = lhs.v_float / rhs.v_float,
 			};
@@ -313,20 +280,20 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		}
 		break;
 	case OP_MUL_INT:
-		INFIX(&TYPE_INT_OBJ, v_int, *);
+		INFIX(VALUE_INT, v_int, *);
 		break;
 	case OP_MUL_UINT:
-		INFIX(&TYPE_UINT_OBJ, v_uint, *);
+		INFIX(VALUE_UINT, v_uint, *);
 		break;
 	case OP_MUL_FLOAT:
-		INFIX(&TYPE_FLOAT_OBJ, v_float, *);
+		INFIX(VALUE_FLOAT, v_float, *);
 		break;
 	case OP_POW_INT: {
 		int64_t rhs = Stack_pop(&vm->stack).v_int;
 		int64_t lhs = Stack_pop(&vm->stack).v_int;
 		Value result = {
 #ifdef DEBUG
-			.type = &TYPE_INT_OBJ,
+			.type = VALUE_INT,
 #endif
 			.v_int = round(pow(lhs, rhs)),
 		};
@@ -338,7 +305,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		uint64_t lhs = Stack_pop(&vm->stack).v_uint;
 		Value result = {
 #ifdef DEBUG
-			.type = &TYPE_UINT_OBJ,
+			.type = VALUE_UINT,
 #endif
 			.v_uint = round(pow(lhs, rhs)),
 		};
@@ -350,7 +317,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		double lhs = Stack_pop(&vm->stack).v_float;
 		Value result = {
 #ifdef DEBUG
-			.type = &TYPE_FLOAT_OBJ,
+			.type = VALUE_FLOAT,
 #endif
 			.v_float = pow(lhs, rhs),
 		};
@@ -360,7 +327,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_CAST_ITOU:
 		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-			.type = &TYPE_UINT_OBJ,
+			.type = VALUE_UINT,
 #endif
 			.v_uint = (uint64_t)Stack_pop(&vm->stack).v_int,
 		});
@@ -368,7 +335,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_CAST_ITOF:
 		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-			.type = &TYPE_FLOAT_OBJ,
+			.type = VALUE_FLOAT,
 #endif
 			.v_float = (double)Stack_pop(&vm->stack).v_int,
 		});
@@ -376,7 +343,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_CAST_UTOI:
 		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-			.type = &TYPE_INT_OBJ,
+			.type = VALUE_INT,
 #endif
 			.v_int = (int64_t)Stack_pop(&vm->stack).v_uint,
 		});
@@ -384,7 +351,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_CAST_UTOF:
 		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-			.type = &TYPE_FLOAT_OBJ,
+			.type = VALUE_FLOAT,
 #endif
 			.v_float = (double)Stack_pop(&vm->stack).v_uint,
 		});
@@ -392,7 +359,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_CAST_FTOI:
 		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-			.type = &TYPE_INT_OBJ,
+			.type = VALUE_INT,
 #endif
 			.v_int = (int64_t)Stack_pop(&vm->stack).v_float,
 		});
@@ -400,7 +367,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_CAST_FTOU:
 		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-			.type = &TYPE_UINT_OBJ,
+			.type = VALUE_UINT,
 #endif
 			.v_uint = (uint64_t)Stack_pop(&vm->stack).v_float,
 		});
@@ -408,7 +375,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_NEG_INT:
 		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-			.type = &TYPE_INT_OBJ,
+			.type = VALUE_INT,
 #endif
 			.v_int = -(int64_t)Stack_pop(&vm->stack).v_int,
 		});
@@ -416,7 +383,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_NEG_FLOAT:
 		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-			.type = &TYPE_FLOAT_OBJ,
+			.type = VALUE_FLOAT,
 #endif
 			.v_float = -(double)Stack_pop(&vm->stack).v_float,
 		});
@@ -454,7 +421,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_CLOAD_TRUE:
 		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-			.type = &TYPE_BOOL_OBJ,
+			.type = VALUE_BOOL,
 #endif
 			.v_bool = true,
 		});
@@ -462,16 +429,16 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_CLOAD_FALSE:
 		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
-			.type = &TYPE_BOOL_OBJ,
+			.type = VALUE_BOOL,
 #endif
 			.v_bool = false,
 		});
 		break;
 	case OP_OR:
-		INFIX(&TYPE_BOOL_OBJ, v_bool, ||);
+		INFIX(VALUE_BOOL, v_bool, ||);
 		break;
 	case OP_AND:
-		INFIX(&TYPE_BOOL_OBJ, v_bool, &&);
+		INFIX(VALUE_BOOL, v_bool, &&);
 		break;
 	case OP_JUMPF:
 		arg1 = readSizeT(vm, chunk);
@@ -488,7 +455,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			Value rhs = Stack_pop(&vm->stack);   \
 			Value lhs = Stack_pop(&vm->stack);   \
 			Value result = {                     \
-				.type = &TYPE_BOOL_OBJ,        \
+				.type = VALUE_BOOL,        \
 				.v_bool = lhs.FIELD OP rhs.FIELD, \
 			};                                   \
 			Stack_push(&vm->stack, result);      \
@@ -570,6 +537,33 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		if (vm->stack.count)
 			Stack_pop(&vm->stack);
 		break;
+	case OP_GC_ALLOC:
+		arg1 = readSizeT(vm, chunk);
+		Stack_push(&vm->stack, GC_alloc(&vm->gc, arg1));
+		break;
+	case OP_GC_ACCESS:
+		PANIC("UNIMPOLEMENTED");
+		break;
+	case OP_GC_ACCESS_FROMSTACK: {
+		Value index = Stack_pop(&vm->stack);
+		Value target = Stack_pop(&vm->stack);
+		Stack_push(&vm->stack, ((HeapObject*)target.v_heap)->items[index.v_uint]);
+	} break;
+	case OP_GC_ASSIGN:
+		PANIC("UNIMPOLEMENTED");
+		break;
+	case OP_GC_ASSIGN_FROMSTACK: {
+		Value value = Stack_pop(&vm->stack);
+		Value index = Stack_pop(&vm->stack);
+		Value *target = Stack_currentPtr(&vm->stack);
+		((HeapObject*)target->v_heap)->items[index.v_uint] = value;
+	} break;
+	case OP_GC_ASSIGNCOPY: {
+		Value *target = Stack_countBack(&vm->stack, 2);
+		Value *value = Stack_countBack(&vm->stack, 1);
+		arg1 = readSizeT(vm, chunk);
+		((HeapObject*)target->v_heap)->items[arg1] = *value;
+	} break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;
@@ -588,6 +582,7 @@ int run(const Chunk *chunk)
 		runInstruction(&vm, chunk);
 	}
 	Stack_free(&vm.stack);
+	GC_freeAll(&vm.gc);
 	Chunk_free(chunk);
 	if (vm.scope) Scope_free(vm.scope);
 	return vm.retCode;

@@ -126,23 +126,25 @@ static size_t compileCast(Chunk *this, const Node *node, __attribute__((unused))
 	return resultSize;
 }
 
-static size_t compileLValue(Chunk *this, const Node *node, Context *context)
+static size_t compileAssignment(Chunk *this, const Node *node, Context *context)
 {
 	fflush(stdout);
 	size_t resultSize = 0;
-	switch (node->type) {
+	switch (node->infix.left->type) {
 	case NODE_SYMBOL:
+		compileNode(this, node->infix.right, context);
 		PUSH_OP(OP_SCOPE_WRITE);
-		PUSH_DATA(size_t, node->symbol.scopeDepth);
-		PUSH_DATA(size_t, node->symbol.scopeIndex);
+		PUSH_DATA(size_t, node->infix.left->symbol.scopeDepth);
+		PUSH_DATA(size_t, node->infix.left->symbol.scopeIndex);
 		break;
 	case NODE_SUBSCRIPT:
-		compileNode(this, node->subscript.value, context);
-		compileNode(this, node->subscript.index, context);
+		compileNode(this, node->infix.left->subscript.value, context);
+		compileNode(this, node->infix.left->subscript.index, context);
+		compileNode(this, node->infix.right, context);
 		PUSH_OP(OP_GC_ASSIGN_FROMSTACK);
 		break;
 	default:
-		PANIC("Can't compile unassignable");
+		PANIC("Can't compile unassignable lvalue");
 	}
 	return resultSize;
 }
@@ -150,12 +152,14 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 {
 	size_t resultSize = 0;
 	if (node->infix.type != INFIX_ASSIGN)
+	{
 		compileNode(this, node->infix.left, context);
-	compileNode(this, node->infix.right, context);
+		compileNode(this, node->infix.right, context);
+	}
 	switch (node->infix.type)
 	{
 	case INFIX_ASSIGN:
-		compileLValue(this, node->infix.left, context);
+		compileAssignment(this, node, context);
 		break;
 	case INFIX_ADD:
 		switch (node->retType->kind)

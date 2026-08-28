@@ -1,5 +1,5 @@
 mut int asd = 12;
 mut int[] testArray = new int[5](0);
 testArray[2u] = 12;
-asd = asd ^ 2;
-exit testArray[2u] + asd;
+asd = asd + 1;
+exit testArray[0u] + asd;

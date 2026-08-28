@@ -30,12 +30,14 @@ int main(int argc, char **argv)
 	printf("//// AST ////\n");
 	Node_print(ast);
 	printf("\n");
+	fflush(stdout);
 #	endif
 	analyzeAndMark(&ast);
 #	ifdef DEBUG
 	printf("//// MARKED AST ////\n");
 	Node_print(ast);
 	printf("\n");
+	fflush(stdout);
 #	endif
 	if (errorOccured)
 	{
@@ -48,6 +50,7 @@ int main(int argc, char **argv)
 #	ifdef DEBUG
 	printf("//// BYTECODE ////\n");
 	Chunk_print(&code);
+	fflush(stdout);
 	printf("//// EXECUTION ////\n");
 #	endif
 	free(sb.items);
