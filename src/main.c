@@ -6,11 +6,13 @@
 #include "compiler.h"
 #include "semantic_analyzer.h"
 #include "error.h"
+#include "bank.h"
 
 #ifdef COG_STANDALONE
 
 int main(int argc, char **argv)
 {
+	Bank_init();
 	assert(argc == 2);
 	String_Builder sb = {0};
 	read_entire_file(argv[1], &sb);
@@ -39,6 +41,7 @@ int main(int argc, char **argv)
 	{
 		free(sb.items);
 		Node_free(ast);
+		Bank_freeAll();
 		return EXIT_FAILURE;
 	}
 	Chunk code = compile(ast);
@@ -51,6 +54,7 @@ int main(int argc, char **argv)
 	// Chunk_free(&code);
 	// return 0;
 	int result = run(&code);
+	Bank_freeAll();
 	printf("RESULT: %d\n", result);
 	return result;
 }
