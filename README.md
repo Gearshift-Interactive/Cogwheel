@@ -51,6 +51,19 @@ There are also these operators for numeric comparison that all always return boo
 - `>=`: Greater than or equal to
 - `<=`: Less than or equal to
 
+#### Arrays
+
+Arrays are a sequence of values with fixed size.
+
+```
+int testArray = new int[5](12);
+// all members will be     ^^
+// initialized with 12
+exit testArray[2u];
+```
+
+Array indexes can only be of type `uint`
+
 ### Variables
 
 You can declare a variable with it's type, followed by its name, an equal sign and a value:
