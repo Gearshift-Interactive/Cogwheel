@@ -34,3 +34,4 @@ extern Type TYPE_BOOL_OBJ;
 extern Type TYPE_VOID_OBJ;
 
 const char *Type_toString(const Type *);
+bool Type_areCompatible(const Type *, const Type *);

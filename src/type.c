@@ -27,9 +27,6 @@ const char *Type_toString(const Type *t)
 	TYPE_KINDS
 #undef X
 		case TYPE_ARRAY: {
-			// TODO: global pointer bank
-			// Pointers like these are stored in a global
-			// bank and freed later before bytecode execution
 			String_Builder sb = {0};
 			sb_appendf(&sb, "%s[", Type_toString(t->array.underlying));
 			if (t->array.size)
@@ -41,4 +38,21 @@ const char *Type_toString(const Type *t)
 		}
 		default: return "INVALID";
 	}
+}
+bool Type_areCompatible(const Type *a, const Type *b)
+{
+	if (a->kind != b->kind)
+		return false;
+	if (a->kind == TYPE_ARRAY)
+	{
+		if (!Type_areCompatible(a->array.underlying, b->array.underlying))
+			return false;
+		// printf("a: %d, b: %d\n", a->array.size, b->array.size);
+		// printf("a: %b, b: %b\n", a->array.size, !b->array.size);
+		if (a->array.size && !b->array.size)
+			return false;
+		if (a->array.size && a->array.size != b->array.size)
+			return false;
+	}
+	return true;
 }

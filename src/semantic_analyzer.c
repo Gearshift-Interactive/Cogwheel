@@ -175,7 +175,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		{
 			node->retType = node->infix.right->retType;
 			VarInfo *info = ScopeInfo_getInfo(scope, left->symbol.scopeIndex, left->symbol.scopeDepth);
-			if (info->type != right->retType)
+			if (!Type_areCompatible(info->type, right->retType))
 				comptimeMessage(MESSAGE_ERRORN, right->pos,
 					"Cant assign a value of type \"%s\" to a variable of type \"%s\"",
 					Type_toString(right->retType),
@@ -250,7 +250,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 	case NODE_VAR_DECL:
 		mark(&node->var_decl.value, scope, context);
 		node->retType = node->var_decl.value->retType;
-		if (node->var_decl.type != node->var_decl.value->retType)
+		if (!Type_areCompatible(node->var_decl.type, node->var_decl.value->retType))
 			comptimeMessage(MESSAGE_ERRORN, node->var_decl.value->pos,
 				"Cant assign a value of type \"%s\" to a variable of type \"%s\"",
 				Type_toString(node->var_decl.value->retType),
