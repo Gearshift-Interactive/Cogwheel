@@ -1,3 +1,6 @@
+#pragma once
+
+#include "nob.h"
 
 #define TYPE_KINDS  \
 	X(VOID, void)   \
@@ -11,11 +14,17 @@ typedef enum {
 #define X(NAME, LITERAL) TYPE_##NAME,
 	TYPE_KINDS
 #undef X
+	TYPE_ARRAY,
 } TypeKind;
 
 typedef struct Type {
 	TypeKind kind;
-	// union {};
+	union {
+		struct {
+			size_t size;
+			struct Type *underlying;
+		} array;
+	};
 } Type;
 
 extern Type TYPE_INT_OBJ;

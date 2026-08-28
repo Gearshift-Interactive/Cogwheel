@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "error.h"
+#include "bank.h"
 
 #include "nob.h"
 
@@ -53,7 +54,7 @@ static const PrefixBindingPower PREFIX_POWERS[] = {
 };
 static const float CAST_BINDING_POWER = 15.0f;
 static const TokenType TAIL_TOKENS[] = {
-	TOKEN_SEMICOLON, TOKEN_RPAREN, TOKEN_ELSE,
+	TOKEN_SEMICOLON, TOKEN_RPAREN, TOKEN_ELSE, TOKEN_RBRACKET,
 };
 static const TokenType ATOMIC_TYPE_TOKENS[] = {
 	TOKEN_INT_T, TOKEN_UINT_T, TOKEN_FLOAT_T, TOKEN_BOOL_T, TOKEN_STRING_T
@@ -220,6 +221,25 @@ static Node *parseExpr(TokenStream *tokens, float parentBind);
 // 	result->symbol.token = name;
 // 	return result;
 // }
+static Type *parseType(TokenStream *tokens)
+{
+	Token typeTok = TokenStream_consume(tokens);
+	Type *type = tokenToType(typeTok);
+	if (TokenStream_peek(tokens)->type == TOKEN_LBRACKET)
+	{
+		TokenStream_consume(tokens);
+		size_t arrSize = 0;
+		if (TokenStream_peek(tokens)->type == TOKEN_NUMBER)
+			arrSize = (size_t)parseNumber(TokenStream_consume(tokens));
+		TokenStream_consumeExpect(tokens, TOKEN_RBRACKET);
+		Type *result = Bank_alloc(sizeof *result);
+		result->kind = TYPE_ARRAY;
+		result->array.size = arrSize;
+		result->array.underlying = type;
+		return result;
+	}
+	return type;
+}
 static Node *parseVarDecl(TokenStream *tokens)
 {
 	bool mut = false;
@@ -228,12 +248,13 @@ static Node *parseVarDecl(TokenStream *tokens)
 		TokenStream_consume(tokens);
 		mut = true;
 	}
-	Token type = TokenStream_consume(tokens);
-	Node *result = Node_make(type.pos);
+	Token *typeTok = TokenStream_peek(tokens);
+	Type *type = parseType(tokens);
+	Node *result = Node_make(typeTok->pos);
 	result->type = NODE_VAR_DECL;
 	result->var_decl.name = TokenStream_consumeExpect(tokens, TOKEN_SYMBOL);
 	TokenStream_consumeExpect(tokens, TOKEN_ASSIGN);
-	result->var_decl.type = tokenToType(type);
+	result->var_decl.type = type;
 	result->var_decl.value = parseExpr(tokens, 0);
 	result->var_decl.isMutable = mut;
 	return result;
@@ -373,6 +394,13 @@ static Node *parseExprHead(TokenStream *tokens)
 			result->loopBreak.value = parseExpr(tokens, 0);
 		return result;
 	}
+	else if (peek->type == TOKEN_NEW) // new
+	{
+		Node *result = Node_make(TokenStream_consume(tokens).pos);
+		result->type = NODE_NEW;
+		result->new.type = parseType(tokens);
+		return result;
+	}
 	return parseAtom(tokens);
 }
 static Node *parseExprTail(TokenStream *tokens, float parentBind, Node *left)
@@ -381,6 +409,17 @@ static Node *parseExprTail(TokenStream *tokens, float parentBind, Node *left)
 	{
 		Token *op = TokenStream_peek(tokens);
 		if (isTailToken(op->type)) break;
+		if (op->type == TOKEN_LBRACKET)
+		{
+			Token token = TokenStream_consume(tokens);
+			Node *newLeft = Node_make(token.pos);
+			newLeft->type = NODE_SUBSCRIPT;
+			newLeft->subscript.value = left;
+			newLeft->subscript.index = parseExpr(tokens, 0);
+			TokenStream_consumeExpect(tokens, TOKEN_RBRACKET);
+			left = newLeft;
+			continue;
+		}
 		BindingPower bind = getBindingFor(*op);
 		if (bind.right < parentBind) break;
 		if (bind.right == parentBind && bind.left < bind.right) break;

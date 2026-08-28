@@ -176,6 +176,19 @@ single:
 		printIndent(indent);
 		printf(")");
 		break;
+	case NODE_NEW:
+		printf("(new %s)", Type_toString(node->new.type));
+		break;
+	case NODE_SUBSCRIPT:
+		printf("($index\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->subscript.value, indent + 1);
+		printf("\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->subscript.index, indent + 1);
+		printf("\n");
+		printIndent(indent);
+		printf(")");
 	}
 	if (node->retType)
 		printf(" -> %s", Type_toString(node->retType));
@@ -198,6 +211,7 @@ void Node_free(const Node *node)
 		Node_free(node->exit.value);
 		break;
 	case NODE_INFIX:
+	case NODE_SUBSCRIPT:
 		Node_free(node->infix.left);
 		Node_free(node->infix.right);
 		break;
@@ -228,6 +242,7 @@ void Node_free(const Node *node)
 	case NODE_SYMBOL:
 	case NODE_TRUE_:
 	case NODE_FALSE_:
+	case NODE_NEW:
 		{}
 	}
 	free((void*)node);

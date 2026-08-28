@@ -44,6 +44,8 @@ typedef enum {
 	X(NOT)         \
 	X(WHILE)       \
 	X(BREAK)       \
+	X(NEW)         \
+	X(SUBSCRIPT)   \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
@@ -104,6 +106,12 @@ typedef struct Node {
 		struct {
 			struct Node *cond, *body, *elseBlock;
 		} whileLoop;
+		struct {
+			Type *type;
+		} new;
+		struct {
+			struct Node *value, *index;
+		} subscript;
 	};
 	Type *retType;
 	bool unreachable;

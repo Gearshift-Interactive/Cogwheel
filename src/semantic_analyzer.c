@@ -373,6 +373,23 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					"Loop can't break with multiple data types at once");
 		}
 		break;
+	case NODE_NEW:
+		node->retType = node->new.type;
+		break;
+	case NODE_SUBSCRIPT:
+		mark(&node->subscript.value, scope, context);
+		mark(&node->subscript.index, scope, context);
+		if (node->subscript.index->retType != &TYPE_UINT_OBJ)
+			comptimeMessage(MESSAGE_ERRORN, node->subscript.index->pos,
+				"Subscript cant accept non-uint index");
+		if (node->subscript.value->retType->kind != TYPE_ARRAY)
+		{
+			comptimeMessage(MESSAGE_ERRORN, node->subscript.value->pos,
+				"Subscript cant index non-array value");
+			break;
+		}
+		node->retType = node->subscript.value->retType->array.underlying;
+		break;
 	}
 }
 static void mark(Node **node, ScopeInfo *scope, Context *context)

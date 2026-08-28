@@ -33,6 +33,8 @@
 	X(RPAREN) \
 	X(LBRACE) \
 	X(RBRACE) \
+	X(LBRACKET) \
+	X(RBRACKET) \
 	X(SEMICOLON) \
 	/* atomic types */ \
 	X(INT_T) \
@@ -48,6 +50,7 @@
 	X(ELSE) \
 	X(WHILE) \
 	X(BREAK) \
+	X(NEW) \
 
 
 typedef enum {

@@ -1,1 +1,3 @@
-exit (int)(4u ^ 2u);
+mut int[] testArray = new int[5];
+testArray[2u] = 12;
+exit testArray[2u];
