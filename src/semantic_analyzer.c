@@ -415,6 +415,8 @@ static bool isNodeFinal(Node *node)
 	case NODE_TRUE_:
 	case NODE_FALSE_:
 	case NODE_NOT:
+	case NODE_NEW:
+	case NODE_SUBSCRIPT:
 		return false;
 	case NODE_EXIT:
 	case NODE_YIELD:
@@ -526,12 +528,18 @@ static void analyze(Node *node)
 	case NODE_BREAK:
 		if (node->loopBreak.value)
 			analyze(node->loopBreak.value);
+		break;
+	case NODE_SUBSCRIPT:
+		analyze(node->subscript.value);
+		analyze(node->subscript.index);
+		break;
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:
 	case NODE_FNUMBER_LIT:
 	case NODE_SYMBOL:
 	case NODE_TRUE_:
 	case NODE_FALSE_:
+	case NODE_NEW:
 	{}
 	}
 }
