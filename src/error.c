@@ -81,7 +81,7 @@ static void TokenPosition_pprint(TokenPosition pos, size_t lineNumber, size_t li
 	}
 	putchar('\n');
 	printLineNumber(0);
-	for (size_t i = 0; i < linePos; i++)
+	for (size_t i = 0; i < linePos - ((lineNumber == 1) ? 1 : 0); i++)
 		putchar(' ');
 	putchar('^');
 	for (size_t i = 0; i < pos.length - 1; i++)
