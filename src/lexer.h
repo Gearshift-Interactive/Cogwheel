@@ -36,6 +36,7 @@
 	X(LBRACKET) \
 	X(RBRACKET) \
 	X(SEMICOLON) \
+	X(COMMA) \
 	/* atomic types */ \
 	X(INT_T) \
 	X(UINT_T) \

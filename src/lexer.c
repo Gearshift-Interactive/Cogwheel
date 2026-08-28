@@ -29,6 +29,7 @@ static const SymbolInfo PUNCTUATION[] = {
 	{ "[", TOKEN_LBRACKET },
 	{ "]", TOKEN_RBRACKET },
 	{ ";", TOKEN_SEMICOLON },
+	{ ",", TOKEN_COMMA },
 };
 static const SymbolInfo KEYWORDS[] = {
 	{ "int", TOKEN_INT_T },

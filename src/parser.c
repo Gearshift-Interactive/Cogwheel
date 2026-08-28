@@ -54,7 +54,7 @@ static const PrefixBindingPower PREFIX_POWERS[] = {
 };
 static const float CAST_BINDING_POWER = 15.0f;
 static const TokenType TAIL_TOKENS[] = {
-	TOKEN_SEMICOLON, TOKEN_RPAREN, TOKEN_ELSE, TOKEN_RBRACKET,
+	TOKEN_SEMICOLON, TOKEN_RPAREN, TOKEN_ELSE, TOKEN_RBRACKET, TOKEN_COMMA
 };
 static const TokenType ATOMIC_TYPE_TOKENS[] = {
 	TOKEN_INT_T, TOKEN_UINT_T, TOKEN_FLOAT_T, TOKEN_BOOL_T, TOKEN_STRING_T
@@ -399,6 +399,19 @@ static Node *parseExprHead(TokenStream *tokens)
 		Node *result = Node_make(TokenStream_consume(tokens).pos);
 		result->type = NODE_NEW;
 		result->new.type = parseType(tokens);
+		peek = TokenStream_peek(tokens);
+		if (peek->type == TOKEN_LPAREN)
+		{
+			TokenStream_consume(tokens);
+			Node *value = parseExpr(tokens, 0);
+			da_append(&result->new.builderArgs, value);
+			result->new.kind = NEW_OBJ;
+			TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
+		}
+		else if (peek->type == TOKEN_LBRACE)
+			PANIC("Not implemented");
+		else
+			comptimeMessage(MESSAGE_ERROR, peek->pos, "Extected \"{\" or \"(\"");
 		return result;
 	}
 	return parseAtom(tokens);

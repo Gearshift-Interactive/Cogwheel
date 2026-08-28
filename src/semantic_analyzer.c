@@ -177,7 +177,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			// VarInfo *info = ScopeInfo_getInfo(scope, left->symbol.scopeIndex, left->symbol.scopeDepth);
 			if (!Type_areCompatible(left->retType, right->retType))
 				comptimeMessage(MESSAGE_ERRORN, right->pos,
-					"Cant assign a value of type \"%s\" to a variable of type \"%s\"",
+					"Can't assign a value of type \"%s\" to a variable of type \"%s\"",
 					Type_toString(right->retType),
 					Type_toString(left->retType)
 				);
@@ -238,7 +238,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			node->cast.value->retType != &TYPE_FLOAT_OBJ
 		)
 			comptimeMessage(MESSAGE_ERRORN, node->cast.value->pos,
-				"Cant cast a value of type \"%s\"",
+				"Can't cast a value of type \"%s\"",
 				Type_toString(node->cast.value->retType)
 			);
 		node->retType = node->cast.target;
@@ -252,7 +252,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		node->retType = node->var_decl.value->retType;
 		if (!Type_areCompatible(node->var_decl.type, node->var_decl.value->retType))
 			comptimeMessage(MESSAGE_ERRORN, node->var_decl.value->pos,
-				"Cant assign a value of type \"%s\" to a variable of type \"%s\"",
+				"Can't assign a value of type \"%s\" to a variable of type \"%s\"",
 				Type_toString(node->var_decl.value->retType),
 				Type_toString(node->var_decl.type)
 			);
@@ -375,6 +375,8 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		break;
 	case NODE_NEW:
 		node->retType = node->new.type;
+		da_foreach(Node*, child, &node->new.builderArgs)
+			mark(child, scope, context);
 		break;
 	case NODE_SUBSCRIPT:
 		mark(&node->subscript.value, scope, context);
@@ -490,7 +492,7 @@ static void analyze(Node *node)
 	case NODE_EXIT:
 		if (node->exit.value->retType->kind != TYPE_INT)
 			comptimeMessage(MESSAGE_ERRORN, node->exit.value->pos,
-				"Cant exit with non-int value");
+				"Can't exit with non-int value");
 		analyze(node->exit.value);
 		break;
 	case NODE_CAST:
@@ -533,13 +535,59 @@ static void analyze(Node *node)
 		analyze(node->subscript.value);
 		analyze(node->subscript.index);
 		break;
+	case NODE_NEW:
+		if (node->new.type->kind != TYPE_ARRAY)
+		{
+			comptimeMessage(MESSAGE_ERRORN, node->pos,
+				"You can't use \"new\" on atomic types");
+			break;
+		}
+		switch (node->new.kind)
+		{
+		case NEW_OBJ:
+			if (node->new.builderArgs.count != 1)
+			{
+				comptimeMessage(MESSAGE_ERRORN, node->pos,
+					"%s's builder recieves %zu arguments, %d given",
+					Type_toString(node->new.type),
+					1,
+					node->new.builderArgs.count
+				);
+				break;
+			}
+			if (!Type_areCompatible(
+				node->new.type->array.underlying,
+				node->new.builderArgs.items[0]->retType
+			)) comptimeMessage(MESSAGE_ERRORN, node->new.builderArgs.items[0]->pos,
+				"Can't assign a value of type \"%s\""
+				" to a variable of type \"%s\"",
+				Type_toString(node->new.builderArgs.items[0]->retType),
+				Type_toString(node->new.type->array.underlying)
+			);
+			break;
+		case NEW_ARRAY:
+			da_foreach(Node*, child, &node->new.arrayItems)
+			{
+				analyze(*child);
+				if (!Type_areCompatible(
+					node->new.type->array.underlying,
+					(*child)->retType
+				)) comptimeMessage(MESSAGE_ERRORN, (*child)->pos,
+					"Can't assign a value of type \"%s\""
+					" to a variable of type \"%s\"",
+					Type_toString((*child)->retType),
+					Type_toString(node->new.type->array.underlying)
+				);
+			}
+			break;
+		}
+		break;
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:
 	case NODE_FNUMBER_LIT:
 	case NODE_SYMBOL:
 	case NODE_TRUE_:
 	case NODE_FALSE_:
-	case NODE_NEW:
 	{}
 	}
 }

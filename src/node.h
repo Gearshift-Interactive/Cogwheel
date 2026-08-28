@@ -108,6 +108,13 @@ typedef struct Node {
 		} whileLoop;
 		struct {
 			Type *type;
+			enum { NEW_OBJ, NEW_ARRAY } kind;
+			union {
+				struct {
+					struct Node **items;
+					size_t count, capacity;
+				} builderArgs, arrayItems;
+			};
 		} new;
 		struct {
 			struct Node *value, *index;

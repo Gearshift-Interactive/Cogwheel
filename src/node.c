@@ -177,7 +177,21 @@ single:
 		printf(")");
 		break;
 	case NODE_NEW:
-		printf("(new %s)", Type_toString(node->new.type));
+		printf("(new %s :", Type_toString(node->new.type));
+		switch (node->new.kind)
+		{
+		case NEW_OBJ:   printf("object"); break;
+		case NEW_ARRAY: printf("array");  break;
+		}
+		printf("\n");
+		da_foreach(Node*, child, &node->new.builderArgs)
+		{
+			printIndent(indent + 1);
+			Node_printImpl(*child, indent + 1);
+			printf("\n");
+		}
+		printIndent(indent);
+		printf(")");
 		break;
 	case NODE_SUBSCRIPT:
 		printf("($index\n");
@@ -236,13 +250,19 @@ void Node_free(const Node *node)
 		if (node->loopBreak.value)
 			Node_free(node->loopBreak.value);
 		break;
+	case NODE_NEW:
+		if (!node->new.builderArgs.items)
+			break;
+		da_foreach(Node*, child, &node->new.builderArgs)
+			Node_free(*child);
+		free(node->new.builderArgs.items);
+		break;
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:
 	case NODE_FNUMBER_LIT:
 	case NODE_SYMBOL:
 	case NODE_TRUE_:
 	case NODE_FALSE_:
-	case NODE_NEW:
 		{}
 	}
 	free((void*)node);

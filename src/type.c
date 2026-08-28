@@ -41,6 +41,8 @@ const char *Type_toString(const Type *t)
 }
 bool Type_areCompatible(const Type *a, const Type *b)
 {
+	// printf("%p, %p\n", a, b);
+	// fflush(stdout);
 	if (a->kind != b->kind)
 		return false;
 	if (a->kind == TYPE_ARRAY)
