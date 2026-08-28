@@ -80,6 +80,13 @@
 	X(JUMPF, sizeof(size_t)) \
 	X(JUMPF_IFN, sizeof(size_t)) \
 	X(JUMPB, sizeof(size_t)) \
+	/* heap objects */ \
+	X(GC_ALLOC, sizeof(size_t)) \
+	X(GC_ACCESS, sizeof(size_t)) \
+	X(GC_ACCESS_FROMSTACK, 0) \
+	X(GC_ASSIGN, sizeof(size_t)) \
+	X(GC_ASSIGN_FROMSTACK, 0) \
+	X(GC_ASSIGNCOPY, sizeof(size_t)) \
 
 typedef enum {
 	OP_NOOP = 0,

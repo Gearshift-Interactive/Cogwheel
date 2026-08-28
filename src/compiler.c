@@ -126,6 +126,26 @@ static size_t compileCast(Chunk *this, const Node *node, __attribute__((unused))
 	return resultSize;
 }
 
+static size_t compileLValue(Chunk *this, const Node *node, Context *context)
+{
+	fflush(stdout);
+	size_t resultSize = 0;
+	switch (node->type) {
+	case NODE_SYMBOL:
+		PUSH_OP(OP_SCOPE_WRITE);
+		PUSH_DATA(size_t, node->symbol.scopeDepth);
+		PUSH_DATA(size_t, node->symbol.scopeIndex);
+		break;
+	case NODE_SUBSCRIPT:
+		compileNode(this, node->subscript.value, context);
+		compileNode(this, node->subscript.index, context);
+		PUSH_OP(OP_GC_ASSIGN_FROMSTACK);
+		break;
+	default:
+		PANIC("Can't compile unassignable");
+	}
+	return resultSize;
+}
 static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 {
 	size_t resultSize = 0;
@@ -135,9 +155,7 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 	switch (node->infix.type)
 	{
 	case INFIX_ASSIGN:
-		PUSH_OP(OP_SCOPE_WRITE);
-		PUSH_DATA(size_t, node->infix.left->symbol.scopeDepth);
-		PUSH_DATA(size_t, node->infix.left->symbol.scopeIndex);
+		compileLValue(this, node->infix.left, context);
 		break;
 	case INFIX_ADD:
 		switch (node->retType->kind)
@@ -500,6 +518,39 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		PUSH_OP(OP_JUMPF);
 		da_append(&workingContext->loop.breaks, this->instr.count);
 		PUSH_DATA(size_t, 0);
+		break;
+	case NODE_NEW:
+		if (node->new.type->kind != TYPE_ARRAY)
+			PANIC("Compiling non-array \"new\"");
+		PUSH_OP(OP_GC_ALLOC);
+		PUSH_DATA(size_t, node->new.type->array.size);
+		switch (node->new.kind)
+		{
+		case NEW_OBJ: {
+			compileNode(this, node->new.builderArgs.items[0], context);
+			for(size_t i = 0; i < node->new.type->array.size; i++)
+			{
+				PUSH_OP(OP_GC_ASSIGNCOPY);
+				PUSH_DATA(size_t, i);
+			}
+			PUSH_OP(OP_POP);
+		} break;
+		case NEW_ARRAY: {
+			size_t i = 0;
+			da_foreach(Node*, item, &node->new.arrayItems)
+			{
+				compileNode(this, *item, context);
+				PUSH_OP(OP_GC_ASSIGN);
+				PUSH_DATA(size_t, i);
+				i++;
+			}
+		} break;
+		}
+		break;
+	case NODE_SUBSCRIPT:
+		compileNode(this, node->subscript.value, context);
+		compileNode(this, node->subscript.index, context);
+		PUSH_OP(OP_GC_ACCESS_FROMSTACK);
 		break;
 	}
 	return resultSize;
