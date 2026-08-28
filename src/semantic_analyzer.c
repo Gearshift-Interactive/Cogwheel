@@ -174,12 +174,12 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		if (node->infix.type == INFIX_ASSIGN)
 		{
 			node->retType = node->infix.right->retType;
-			VarInfo *info = ScopeInfo_getInfo(scope, left->symbol.scopeIndex, left->symbol.scopeDepth);
-			if (!Type_areCompatible(info->type, right->retType))
+			// VarInfo *info = ScopeInfo_getInfo(scope, left->symbol.scopeIndex, left->symbol.scopeDepth);
+			if (!Type_areCompatible(left->retType, right->retType))
 				comptimeMessage(MESSAGE_ERRORN, right->pos,
 					"Cant assign a value of type \"%s\" to a variable of type \"%s\"",
 					Type_toString(right->retType),
-					Type_toString(info->type)
+					Type_toString(left->retType)
 				);
 		}
 		else if (node->infix.type == INFIX_OR || node->infix.type == INFIX_AND)
@@ -440,6 +440,24 @@ static bool isNodeFinal(Node *node)
 	}
 	return false;
 }
+static bool checkAssignable(Node *node)
+{
+	switch (node->type)
+	{
+		case NODE_SYMBOL:    return true;
+		case NODE_SUBSCRIPT: return checkAssignable(node->subscript.value);
+		default:             return false;
+	}
+}
+static bool checkMutable(Node *node)
+{
+	switch (node->type)
+	{
+		case NODE_SYMBOL:    return node->symbol.isMutable;
+		case NODE_SUBSCRIPT: return checkMutable(node->subscript.value);
+		default:             PANIC("ts isn't assignable");
+	}
+}
 static void analyze(Node *node)
 {
 	switch (node->type)
@@ -456,13 +474,13 @@ static void analyze(Node *node)
 		analyze(node->infix.right);
 		if (node->infix.type == INFIX_ASSIGN)
 		{
-			if (node->infix.left->type != NODE_SYMBOL)
+			if (!checkAssignable(node->infix.left))
 			{
 				comptimeMessage(MESSAGE_ERRORN, node->infix.left->pos,
 					"Can't assign to non-variable");
 				break;
 			}
-			if (!node->infix.left->symbol.isMutable)
+			if (!checkMutable(node->infix.left))
 				comptimeMessage(MESSAGE_ERRORN, node->pos,
 					"Can't assign to immutable variable");
 		}
