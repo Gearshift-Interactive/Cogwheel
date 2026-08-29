@@ -224,21 +224,21 @@ static Node *parseExpr(TokenStream *tokens, float parentBind);
 static Type *parseType(TokenStream *tokens)
 {
 	Token typeTok = TokenStream_consume(tokens);
-	Type *type = tokenToType(typeTok);
-	if (TokenStream_peek(tokens)->type == TOKEN_LBRACKET)
+	Type *result = tokenToType(typeTok);
+	while (TokenStream_peek(tokens)->type == TOKEN_LBRACKET)
 	{
 		TokenStream_consume(tokens);
 		size_t arrSize = 0;
 		if (TokenStream_peek(tokens)->type == TOKEN_NUMBER)
 			arrSize = (size_t)parseNumber(TokenStream_consume(tokens));
 		TokenStream_consumeExpect(tokens, TOKEN_RBRACKET);
-		Type *result = Bank_alloc(sizeof *result);
-		result->kind = TYPE_ARRAY;
-		result->array.size = arrSize;
-		result->array.underlying = type;
-		return result;
+		Type *newResult = Bank_alloc(sizeof *result);
+		newResult->kind = TYPE_ARRAY;
+		newResult->array.size = arrSize;
+		newResult->array.underlying = result;
+		result = newResult;
 	}
-	return type;
+	return result;
 }
 static Node *parseVarDecl(TokenStream *tokens)
 {

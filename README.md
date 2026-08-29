@@ -61,11 +61,11 @@ exit testArray[2u];
 In this case all 5 elements of the array will be initialized with value of 12.
 You can also specify the exact init values of each element
 ```
-uint[] someArray = new int[3]{ 2u, 4u, 8u }
+uint[] someArray = new uint[3]{ 2u, 4u, 8u }
 ```
 In this case you can ommit the element count.
 ```
-uint[] someArray = new int[]{ 2u, 4u, 8u }
+uint[] someArray = new uint[]{ 2u, 4u, 8u }
 // same thing
 ```
 
