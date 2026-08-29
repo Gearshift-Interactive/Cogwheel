@@ -8,8 +8,8 @@ Value GC_alloc(GC *this, size_t valueCount)
 	return (Value){
 #ifdef DEBUG
 		.type = VALUE_HEAP,
-		.v_heap = obj,
 #endif
+		.v_heap = obj,
 	};
 }
 void GC_freeAll(GC *this)
