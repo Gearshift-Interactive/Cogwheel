@@ -415,11 +415,13 @@ static Node *parseExprHead(TokenStream *tokens)
 			while (TokenStream_peek(tokens)->type != TOKEN_RBRACE)
 			{
 				Node *value = parseExpr(tokens, 0);
-				da_append(&result->new.builderArgs, value);
+				da_append(&result->new.arrayItems, value);
 				if (TokenStream_peek(tokens)->type == TOKEN_COMMA)
 					TokenStream_consume(tokens);
 			}
 			TokenStream_consumeExpect(tokens, TOKEN_RBRACE);
+			if (result->new.type->array.size == 0)
+				result->new.type->array.size = result->new.arrayItems.count;
 		}
 		else
 			comptimeMessage(MESSAGE_ERROR, peek->pos, "Extected \"{\" or \"(\"");

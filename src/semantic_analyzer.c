@@ -579,6 +579,12 @@ static void analyze(Node *node)
 					Type_toString(node->new.type->array.underlying)
 				);
 			}
+			if (node->new.type->array.size != node->new.arrayItems.count)
+				comptimeMessage(MESSAGE_ERRORN, node->pos,
+					"Expected %zu items in an array, got %zu",
+					node->new.type->array.size,
+					node->new.arrayItems.count
+				);
 			break;
 		}
 		break;

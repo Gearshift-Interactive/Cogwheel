@@ -1,4 +1,4 @@
 mut int asd = 2;
-mut int[] testArray = new int[5]{ 1, 2, 3, 4, 5 };
+mut int[] testArray = new int[]{ 1, 2, 3, 4, 5 };
 asd = asd + 1;
 exit testArray[0u] + asd;
