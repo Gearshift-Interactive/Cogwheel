@@ -542,16 +542,19 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		Stack_push(&vm->stack, GC_alloc(&vm->gc, arg1));
 		break;
 	case OP_GC_ACCESS:
-		PANIC("UNIMPOLEMENTED");
+		PANIC("UNIMPLEMENTED");
 		break;
 	case OP_GC_ACCESS_FROMSTACK: {
 		Value index = Stack_pop(&vm->stack);
 		Value target = Stack_pop(&vm->stack);
 		Stack_push(&vm->stack, ((HeapObject*)target.v_heap)->items[index.v_uint]);
 	} break;
-	case OP_GC_ASSIGN:
-		PANIC("UNIMPOLEMENTED");
-		break;
+	case OP_GC_ASSIGN: {
+		Value value = Stack_pop(&vm->stack);
+		Value *target = Stack_currentPtr(&vm->stack);
+		arg1 = readSizeT(vm, chunk);
+		((HeapObject*)target->v_heap)->items[arg1] = value;
+	} break;
 	case OP_GC_ASSIGN_FROMSTACK: {
 		Value value = Stack_pop(&vm->stack);
 		Value index = Stack_pop(&vm->stack);
