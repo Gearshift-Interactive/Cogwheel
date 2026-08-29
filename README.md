@@ -54,12 +54,19 @@ There are also these operators for numeric comparison that all always return boo
 #### Arrays
 
 Arrays are a sequence of values with fixed size.
-
 ```
-int testArray = new int[5](12);
-// all members will be     ^^
-// initialized with 12
+int[] testArray = new int[5](12);
 exit testArray[2u];
+```
+In this case all 5 elements of the array will be initialized with value of 12.
+You can also specify the exact init values of each element
+```
+uint[] someArray = new int[3]{ 2u, 4u, 8u }
+```
+In this case you can ommit the element count.
+```
+uint[] someArray = new int[]{ 2u, 4u, 8u }
+// same thing
 ```
 
 Array indexes can only be of type `uint`
