@@ -53,6 +53,7 @@
 	X(BREAK) \
 	X(NEW) \
 	X(VAR) \
+	X(SIZEOF) \
 
 
 typedef enum {

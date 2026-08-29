@@ -87,6 +87,7 @@
 	X(GC_ASSIGN, sizeof(size_t)) \
 	X(GC_ASSIGN_FROMSTACK, 0) \
 	X(GC_ASSIGNCOPY, sizeof(size_t)) \
+	X(GC_SIZEOF, 0) \
 
 typedef enum {
 	OP_NOOP = 0,

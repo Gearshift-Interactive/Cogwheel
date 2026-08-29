@@ -556,6 +556,10 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		compileNode(this, node->subscript.index, context);
 		PUSH_OP(OP_GC_ACCESS_FROMSTACK);
 		break;
+	case NODE_SIZEOF:
+		compileNode(this, node->sizeOf.value, context);
+		PUSH_OP(OP_GC_SIZEOF);
+		break;
 	}
 	return resultSize;
 }

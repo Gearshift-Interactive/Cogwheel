@@ -9,6 +9,7 @@ Value GC_alloc(GC *this, size_t valueCount)
 #ifdef DEBUG
 		.type = VALUE_HEAP,
 #endif
+		.isHeap = true,
 		.v_heap = obj,
 	};
 }

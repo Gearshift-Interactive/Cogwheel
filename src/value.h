@@ -23,19 +23,18 @@ typedef enum {
 #endif
 
 typedef
-#ifdef DEBUG
   struct {
+#ifdef DEBUG
 	ValueType type;
 #endif
+	bool isHeap;
 	union {
 		int64_t v_int;
 		uint64_t v_uint;
 		double v_float;
 		bool v_bool;
 		void *v_heap;
-#ifdef DEBUG
 	};
-#endif
 } Value;
 
 #ifdef DEBUG

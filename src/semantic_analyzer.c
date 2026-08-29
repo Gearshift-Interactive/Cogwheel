@@ -396,6 +396,13 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		}
 		node->retType = node->subscript.value->retType->array.underlying;
 		break;
+	case NODE_SIZEOF:
+		mark(&node->sizeOf.value, scope, context);
+		node->retType = &TYPE_UINT_OBJ;
+		if (node->sizeOf.value->retType->kind != TYPE_ARRAY)
+			comptimeMessage(MESSAGE_ERRORN, node->sizeOf.value->pos,
+				"Can't get the size of non-array value");
+		break;
 	}
 }
 static void mark(Node **node, ScopeInfo *scope, Context *context)
@@ -423,6 +430,7 @@ static bool isNodeFinal(Node *node)
 	case NODE_NOT:
 	case NODE_NEW:
 	case NODE_SUBSCRIPT:
+	case NODE_SIZEOF:
 		return false;
 	case NODE_EXIT:
 	case NODE_YIELD:
@@ -517,6 +525,7 @@ static void analyze(Node *node)
 	case NODE_VAR_DECL:
 	case NODE_YIELD:
 	case NODE_NOT:
+	case NODE_SIZEOF:
 		analyze(node->scope.child);
 		break;
 	case NODE_IF:

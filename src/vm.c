@@ -583,6 +583,15 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		else
 			PANIC("Buffer overflow");
 	} break;
+	case OP_GC_SIZEOF: {
+		Value value = Stack_pop(&vm->stack);
+		Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
+			.type = VALUE_UINT,
+#endif
+			.v_uint = ((HeapObject*)value.v_heap)->count,
+		});
+	} break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;

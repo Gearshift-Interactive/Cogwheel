@@ -26,26 +26,27 @@ typedef enum {
 } InfixType;
 
 #define NODE_TYPE  \
-	X(NUMBER_LIT)  \
+	X(NUMBER_LIT) \
 	X(UNUMBER_LIT) \
 	X(FNUMBER_LIT) \
-	X(SYMBOL)      \
-	X(BLOCK)       \
-	X(INFIX)       \
-	X(NEGATION)    \
-	X(EXIT)        \
-	X(CAST)        \
-	X(VAR_DECL)    \
-	X(SCOPE)       \
-	X(TRUE_)       \
-	X(FALSE_)      \
-	X(YIELD)       \
-	X(IF)          \
-	X(NOT)         \
-	X(WHILE)       \
-	X(BREAK)       \
-	X(NEW)         \
-	X(SUBSCRIPT)   \
+	X(SYMBOL) \
+	X(BLOCK) \
+	X(INFIX) \
+	X(NEGATION) \
+	X(EXIT) \
+	X(CAST) \
+	X(VAR_DECL) \
+	X(SCOPE) \
+	X(TRUE_) \
+	X(FALSE_) \
+	X(YIELD) \
+	X(IF) \
+	X(NOT) \
+	X(WHILE) \
+	X(BREAK) \
+	X(NEW) \
+	X(SUBSCRIPT) \
+	X(SIZEOF) \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
@@ -84,7 +85,7 @@ typedef struct Node {
 		} let;
 		struct {
 			struct Node *value;
-		} exit, negation, yield, not, loopBreak;
+		} exit, negation, yield, not, loopBreak, sizeOf;
 		struct {
 			struct Node *value;
 			Type *target;

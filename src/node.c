@@ -205,6 +205,15 @@ single:
 		printf("\n");
 		printIndent(indent);
 		printf(")");
+		break;
+	case NODE_SIZEOF:
+		printf("(sizeof\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->sizeOf.value, indent + 1);
+		printf("\n");
+		printIndent(indent);
+		printf(")");
+		break;
 	}
 	if (node->retType)
 		printf(" -> %s", Type_toString(node->retType));
@@ -224,6 +233,7 @@ void Node_free(const Node *node)
 	case NODE_YIELD:
 	case NODE_VAR_DECL:
 	case NODE_NOT:
+	case NODE_SIZEOF:
 		Node_free(node->exit.value);
 		break;
 	case NODE_INFIX:

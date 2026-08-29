@@ -1,9 +1,10 @@
 mut var arr = new int[]{ 7, 2, 9, 1, 5, 3, 8, 4 };
 mut var i = 0u;
-while (i < 7u)
+var maxArrayIndex = sizeof arr - 1u;
+while (i < maxArrayIndex)
 {
     mut var j = 0u;
-    while (j < 7u - i)
+    while (j < maxArrayIndex - i)
     {
         if (arr[j] > arr[j + 1u])
         {
@@ -15,4 +16,4 @@ while (i < 7u)
     };
     i = i + 1u;
 };
-exit arr[0u] + arr[7u];
+exit arr[0u] + arr[maxArrayIndex];

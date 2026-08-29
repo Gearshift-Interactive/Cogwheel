@@ -45,14 +45,15 @@ static const BindingPower BINDING_POWERS[] = {
 	{ TOKEN_DIV,    7.0f,  7.1f },
 	{ TOKEN_POW,    10.1f, 10.0f },
 
-	{ TOKEN_LPAREN, 11.0f, 11.1f },
-	{ TOKEN_RPAREN, 11.0f, 11.1f },
+	{ TOKEN_LPAREN, 12.0f, 12.1f },
+	{ TOKEN_RPAREN, 12.0f, 12.1f },
 };
 static const PrefixBindingPower PREFIX_POWERS[] = {
 	{ TOKEN_NOT, 3.5f },
 	{ TOKEN_SUB, 8.0f },
 };
 static const float CAST_BINDING_POWER = 15.0f;
+static const float SIZEOF_BINDING_POWER = 11.0f;
 static const TokenType TAIL_TOKENS[] = {
 	TOKEN_SEMICOLON, TOKEN_RPAREN, TOKEN_ELSE, TOKEN_RBRACKET, TOKEN_COMMA, TOKEN_RBRACE
 };
@@ -432,6 +433,13 @@ static Node *parseExprHead(TokenStream *tokens)
 		}
 		else
 			comptimeMessage(MESSAGE_ERROR, peek->pos, "Extected \"{\" or \"(\"");
+		return result;
+	}
+	else if (peek->type == TOKEN_SIZEOF)  // sizeof
+	{
+		Node *result = Node_make(TokenStream_consume(tokens).pos);
+		result->type = NODE_SIZEOF;
+		result->sizeOf.value = parseExpr(tokens, SIZEOF_BINDING_POWER);
 		return result;
 	}
 	return parseAtom(tokens);
