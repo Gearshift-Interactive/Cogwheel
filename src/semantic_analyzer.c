@@ -383,11 +383,12 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		mark(&node->subscript.index, scope, context);
 		if (node->subscript.index->retType != &TYPE_UINT_OBJ)
 			comptimeMessage(MESSAGE_ERRORN, node->subscript.index->pos,
-				"Subscript cant accept non-uint index");
+				"Subscript can't accept non-uint index");
 		if (node->subscript.value->retType->kind != TYPE_ARRAY)
 		{
 			comptimeMessage(MESSAGE_ERRORN, node->subscript.value->pos,
-				"Subscript cant index non-array value");
+				"Subscript can't index non-array value");
+			node->retType = &TYPE_VOID_OBJ;
 			break;
 		}
 		node->retType = node->subscript.value->retType->array.underlying;
