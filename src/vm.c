@@ -547,25 +547,41 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_GC_ACCESS_FROMSTACK: {
 		Value index = Stack_pop(&vm->stack);
 		Value target = Stack_pop(&vm->stack);
-		Stack_push(&vm->stack, ((HeapObject*)target.v_heap)->items[index.v_uint]);
+		HeapObject *obj = target.v_heap;
+		if (index.v_uint < obj->count)
+			Stack_push(&vm->stack, obj->items[index.v_uint]);
+		else
+			PANIC("Buffer overflow");
 	} break;
 	case OP_GC_ASSIGN: {
 		Value value = Stack_pop(&vm->stack);
 		Value *target = Stack_currentPtr(&vm->stack);
 		arg1 = readSizeT(vm, chunk);
-		((HeapObject*)target->v_heap)->items[arg1] = value;
+		HeapObject *obj = target->v_heap;
+		if (arg1 < obj->count)
+			obj->items[arg1] = value;
+		else
+			PANIC("Buffer overflow");
 	} break;
 	case OP_GC_ASSIGN_FROMSTACK: {
 		Value value = Stack_pop(&vm->stack);
 		Value index = Stack_pop(&vm->stack);
 		Value *target = Stack_currentPtr(&vm->stack);
-		((HeapObject*)target->v_heap)->items[index.v_uint] = value;
+		HeapObject *obj = target->v_heap;
+		if (index.v_uint < obj->count)
+			obj->items[index.v_uint] = value;
+		else
+			PANIC("Buffer overflow");
 	} break;
 	case OP_GC_ASSIGNCOPY: {
 		Value *target = Stack_countBack(&vm->stack, 2);
 		Value *value = Stack_countBack(&vm->stack, 1);
 		arg1 = readSizeT(vm, chunk);
-		((HeapObject*)target->v_heap)->items[arg1] = *value;
+		HeapObject *obj = target->v_heap;
+		if (arg1 < obj->count)
+			obj->items[arg1] = *value;
+		else
+			PANIC("Buffer overflow");
 	} break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
