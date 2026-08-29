@@ -68,6 +68,7 @@ In this case you can ommit the element count.
 uint[] someArray = new uint[]{ 2u, 4u, 8u }
 // same thing
 ```
+You can use `sizeof` operator to get the amount of elements in the given array.
 
 Array indexes can only be of type `uint`
 
