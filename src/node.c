@@ -115,9 +115,11 @@ single:
 		printf("(define ");
 		if (node->var_decl.isMutable)
 			printf(":mut ");
-		printf(":type %s :i %ld\n",
-			Type_toString(node->var_decl.type),
-			node->var_decl.scopeIndex
+		if (node->var_decl.type)
+			printf(":type %s ", Type_toString(node->var_decl.type));
+		printf(":i %zu :d %zu\n",
+			node->var_decl.scopeIndex,
+			node->var_decl.scopeDepth
 		);
 		printIndent(indent + 1);
 		TokenPosition_print(node->var_decl.name.pos);

@@ -20,7 +20,7 @@ Type TYPE_VOID_OBJ = {
 const char *Type_toString(const Type *t)
 {
 	if (!t)
-		return "UNKNOWN";
+		return "INVALID";
 	switch (t->kind)
 	{
 #define X(NAME, LITERAL) case TYPE_##NAME: return #LITERAL;
@@ -43,6 +43,8 @@ bool Type_areCompatible(const Type *a, const Type *b)
 {
 	// printf("%p, %p\n", a, b);
 	// fflush(stdout);
+	if (!a || !b)
+		return false;
 	if (a->kind != b->kind)
 		return false;
 	if (a->kind == TYPE_ARRAY)

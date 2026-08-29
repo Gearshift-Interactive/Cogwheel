@@ -52,6 +52,7 @@
 	X(WHILE) \
 	X(BREAK) \
 	X(NEW) \
+	X(VAR) \
 
 
 typedef enum {

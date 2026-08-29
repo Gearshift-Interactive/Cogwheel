@@ -50,6 +50,7 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "while", TOKEN_WHILE },
 	{ "break", TOKEN_BREAK },
 	{ "new", TOKEN_NEW },
+	{ "var", TOKEN_VAR },
 };
 static const char LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char LETTERS_AND_NUMBERS[] =

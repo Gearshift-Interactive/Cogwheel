@@ -1,2 +1,18 @@
-mut int[] asd = new int[]{ 1, 2, 3, 4, 5 };
-exit asd[12u];
+mut var arr = new int[]{ 7, 2, 9, 1, 5, 3, 8, 4 };
+mut var i = 0u;
+while (i < 7u)
+{
+    mut var j = 0u;
+    while (j < 7u - i)
+    {
+        if (arr[j] > arr[j + 1u])
+        {
+            var temp = arr[j];
+            arr[j] = arr[j + 1u];
+            arr[j + 1u] = temp;
+        };
+        j = j + 1u;
+    };
+    i = i + 1u;
+};
+exit arr[0u] + arr[7u];

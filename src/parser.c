@@ -249,7 +249,14 @@ static Node *parseVarDecl(TokenStream *tokens)
 		mut = true;
 	}
 	Token *typeTok = TokenStream_peek(tokens);
-	Type *type = parseType(tokens);
+	Type *type;
+	if (TokenStream_peek(tokens)->type == TOKEN_VAR)
+	{
+		type = NULL;
+		TokenStream_consume(tokens);
+	}
+	else
+		type = parseType(tokens);
 	Node *result = Node_make(typeTok->pos);
 	result->type = NODE_VAR_DECL;
 	result->var_decl.name = TokenStream_consumeExpect(tokens, TOKEN_SYMBOL);
@@ -351,7 +358,7 @@ static Node *parseExprHead(TokenStream *tokens)
 		// TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
 		return result;
 	}
-	else if (TokenType_isAtomicType(peek->type) || peek->type == TOKEN_MUT)
+	else if (TokenType_isAtomicType(peek->type) || peek->type == TOKEN_MUT || peek->type == TOKEN_VAR)
 		// variable declaration
 	{
 		return parseVarDecl(tokens);

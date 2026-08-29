@@ -250,6 +250,8 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 	case NODE_VAR_DECL:
 		mark(&node->var_decl.value, scope, context);
 		node->retType = node->var_decl.value->retType;
+		if (!node->var_decl.type)
+			node->var_decl.type = node->var_decl.value->retType;
 		if (!Type_areCompatible(node->var_decl.type, node->var_decl.value->retType))
 			comptimeMessage(MESSAGE_ERRORN, node->var_decl.value->pos,
 				"Can't assign a value of type \"%s\" to a variable of type \"%s\"",
@@ -259,6 +261,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		if (ScopeInfo_isVarPresentShallow(scope, &node->var_decl.name.pos))
 			comptimeMessage(MESSAGE_ERRORN, node->var_decl.name.pos,
 				"Variable is already declared");
+		printf("%s\n", Type_toString(node->var_decl.type));
 		ScopeInfo_declare(scope,
 			&node->var_decl.name.pos,
 			node->var_decl.type,
