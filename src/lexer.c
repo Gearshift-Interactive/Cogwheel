@@ -254,6 +254,46 @@ static Token Tokenizer_handleNumber(Tokenizer *this)
 		},
 	};
 }
+static bool Tokenizer_checkComment(Tokenizer *this)
+{
+	if (*(this->text.data + this->offset) == '/')
+	{
+		if (*(this->text.data + this->offset + 1) == '/')
+			return true;
+		if (*(this->text.data + this->offset + 1) == '*')
+			return true;
+	}
+	return false;
+
+}
+static void Tokenizer_handleComment(Tokenizer *this)
+{
+	Tokenizer_advance(this);
+	if (*(this->text.data + this->offset) == '/')
+	{
+		Tokenizer_advance(this);
+		Tokenizer_advance(this);
+		while (*(this->text.data + this->offset) != '\n')
+			Tokenizer_advance(this);
+		Tokenizer_advance(this);
+	}
+	else if (*(this->text.data + this->offset) == '*')
+	{
+		Tokenizer_advance(this);
+		while (true)
+		{
+			Tokenizer_advance(this);
+			if (
+				*(this->text.data + this->offset) == '*' &&
+				*(this->text.data + this->offset + 1) == '/'
+			) {
+				Tokenizer_advance(this);
+				Tokenizer_advance(this);
+				break;
+			}
+		}
+	}
+}
 TokenStream tokenize(String_View text, const char *filename)
 {
 	assert(text.data);
@@ -271,6 +311,8 @@ TokenStream tokenize(String_View text, const char *filename)
 			da_append(&tokens, Tokenizer_handleSymbol(&tokenizer));
 		else if (Tokenizer_checkNumber(&tokenizer))
 			da_append(&tokens, Tokenizer_handleNumber(&tokenizer));
+		else if (Tokenizer_checkComment(&tokenizer))
+			Tokenizer_handleComment(&tokenizer);
 		else if (Tokenizer_checkWhitespace(&tokenizer))
 			Tokenizer_advance(&tokenizer);
 		else

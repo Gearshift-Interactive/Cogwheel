@@ -1,6 +1,6 @@
 mut var arr = new int[]{ 7, 2, 9, 1, 5, 3, 8, 4 };
-mut var i = 0u;
 var maxArrayIndex = sizeof arr - 1u;
+mut var i = 0u;
 while (i < maxArrayIndex)
 {
     mut var j = 0u;
