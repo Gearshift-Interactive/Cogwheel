@@ -1,4 +1,4 @@
-mut uint? request = 12u;
+uint? request = 12u;
 if (request?)
     exit (int)request!
 else

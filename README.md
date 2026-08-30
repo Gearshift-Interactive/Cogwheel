@@ -51,27 +51,6 @@ There are also these operators for numeric comparison that all always return boo
 - `>=`: Greater than or equal to
 - `<=`: Less than or equal to
 
-#### Arrays
-
-Arrays are a sequence of values with fixed size.
-```
-int[] testArray = new int[5](12);
-exit testArray[2u];
-```
-In this case all 5 elements of the array will be initialized with value of 12.
-You can also specify the exact init values of each element
-```
-uint[] someArray = new uint[3]{ 2u, 4u, 8u }
-```
-In this case you can ommit the element count.
-```
-uint[] someArray = new uint[]{ 2u, 4u, 8u }
-// same thing
-```
-You can use `sizeof` operator to get the amount of elements in the given array.
-
-Array indexes can only be of type `uint`
-
 ### Variables
 
 You can declare a variable with it's type, followed by its name, an equal sign and a value:
@@ -96,6 +75,48 @@ You can also declare a variable with `var` keyword without specifying it's type.
 ```
 var something = 10; // int
 var somethingTheSequel = new uint[10](0u); // int[]
+```
+
+#### Arrays
+
+Arrays are a sequence of values with fixed size.
+```
+int[] testArray = new int[5](12);
+exit testArray[2u];
+```
+In this case all 5 elements of the array will be initialized with value of 12.
+You can also specify the exact init values of each element
+```
+uint[] someArray = new uint[3]{ 2u, 4u, 8u }
+```
+In this case you can ommit the element count.
+```
+uint[] someArray = new uint[]{ 2u, 4u, 8u }
+// same thing
+```
+You can use `sizeof` operator to get the amount of elements in the given array.
+
+Array indexes can only be of type `uint`
+
+### Options
+
+Option is a kind of value, that can have either an actual value of given type or `null`.
+```
+int? request = null;
+//  ^ indicates option
+```
+You can't use this kind of value directly. To use it you need to **unwrap** it with `!`:
+```
+exit request!;
+```
+Unwrap operator will throw a runtime error, if the given value contains `null`.
+To avoid that you can use **check** operator: `?`, that will return `true`, if the value is
+present and `false` when its `null`:
+```
+if (request?)
+	exit request!
+else
+	exit -1;
 ```
 
 ### Free Blocks
