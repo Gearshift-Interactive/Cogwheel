@@ -136,8 +136,12 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		break;
 	case NODE_SYMBOL:
 		if (!ScopeInfo_isVarPresent(scope, &node->symbol.token.pos))
+		{
 			comptimeMessage(MESSAGE_ERRORN, node->symbol.token.pos,
 				"Undefined variable");
+			node->retType = &TYPE_VOID_OBJ;
+			break;
+		}
 		size_t varIndex = ScopeInfo_getVarIndex(scope, &node->symbol.token.pos);
 		size_t varDepth = ScopeInfo_getVarDepth(scope, &node->symbol.token.pos);
 		VarInfo *varInfo = ScopeInfo_getInfo(scope, varIndex, varDepth);
