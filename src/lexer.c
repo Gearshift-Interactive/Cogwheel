@@ -283,7 +283,9 @@ static void Tokenizer_handleComment(Tokenizer *this)
 		while (true)
 		{
 			Tokenizer_advance(this);
-			if (
+			if (*(this->text.data + this->offset) == '\0')
+				break;
+			else if (
 				*(this->text.data + this->offset) == '*' &&
 				*(this->text.data + this->offset + 1) == '/'
 			) {
