@@ -103,7 +103,7 @@ Array indexes can only be of type `uint`
 Option is a kind of value, that can have either an actual value of given type or `null`.
 ```
 int? request = null;
-//  ^ indicates option
+// ^ indicates option
 ```
 You can't use this kind of value directly. To use it you need to **unwrap** it with `!`:
 ```

@@ -1,5 +1,9 @@
-uint? request = 12u;
-if (request?)
-    exit (int)request!
-else
-    exit -1;
+int?[] values = new int?[]{ null, null, null, null, null, null };
+mut uint i = 0u;
+while (i < sizeof values)
+{
+    if (values[i]?)
+        exit values[i]!;
+    i = i + 1u;
+};
+exit -1;

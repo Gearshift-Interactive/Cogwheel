@@ -67,6 +67,8 @@ bool Type_areCompatible(const Type *a, const Type *b)
 	{
 		if (b->kind == TYPE_NULL)
 			return true;
+		if (b->kind == TYPE_OPTION)
+			return Type_areCompatible(a->option.underlying, b->option.underlying);
 		return Type_areCompatible(a->option.underlying, b);
 	}
 	if (a->kind != b->kind)
