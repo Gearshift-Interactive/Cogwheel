@@ -1,5 +1,5 @@
-int?[] values = new int?[]{ null, null, null, null, null, null };
-mut uint i = 0u;
+var values = new int?[]{ null, null, 12, null, null, null };
+mut var i = 0u;
 while (i < sizeof values)
 {
     if (values[i]?)

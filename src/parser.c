@@ -54,7 +54,7 @@ static const PrefixBindingPower PREFIX_POWERS[] = {
 };
 static const float CAST_BINDING_POWER = 15.0f;
 static const float SIZEOF_BINDING_POWER = 11.1f;
-static const float UNWRAP_BINDING_POWER = 11.0f;
+// static const float UNWRAP_BINDING_POWER = 11.0f;
 static const TokenType TAIL_TOKENS[] = {
 	TOKEN_SEMICOLON, TOKEN_RPAREN, TOKEN_ELSE, TOKEN_RBRACKET, TOKEN_COMMA, TOKEN_RBRACE
 };

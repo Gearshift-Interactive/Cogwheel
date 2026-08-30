@@ -49,6 +49,8 @@ void Value_print(const Value *this) {
 			__attribute__((fallthrough));
 		case VALUE_VOID:
 			PANIC("TS is void");
+		case VALUE_NULL:
+			PANIC("TS is null");
 	}
 }
 #endif

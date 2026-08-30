@@ -74,7 +74,7 @@ variable2 = variable3 = variable2 + 8;
 You can also declare a variable with `var` keyword without specifying it's type.
 ```
 var something = 10; // int
-var somethingTheSequel = new uint[10](0u); // int[]
+var somethingTheSequel = new uint[10](0u); // uint[]
 ```
 
 #### Arrays
