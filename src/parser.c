@@ -450,7 +450,7 @@ static Node *parseExprHead(TokenStream *tokens)
 				result->new.type->array.size = result->new.arrayItems.count;
 		}
 		else
-			comptimeMessage(MESSAGE_ERROR, peek->pos, "Extected \"{\" or \"(\"");
+			comptimeMessage(MESSAGE_ERROR, peek->pos, "Expected \"{\" or \"(\"");
 		return result;
 	}
 	else if (peek->type == TOKEN_SIZEOF)  // sizeof
