@@ -49,6 +49,7 @@ typedef enum {
 	X(SIZEOF) \
 	X(NULL) \
 	X(UNWRAP) \
+	X(CHECK) \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
@@ -87,7 +88,7 @@ typedef struct Node {
 		} let;
 		struct {
 			struct Node *value;
-		} exit, negation, yield, not, loopBreak, sizeOf, unwrap;
+		} exit, negation, yield, not, loopBreak, sizeOf, unwrap, check;
 		struct {
 			struct Node *value;
 			Type *target;

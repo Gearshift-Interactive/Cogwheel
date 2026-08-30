@@ -89,6 +89,9 @@ static void Node_printImpl(const Node *node, const size_t indent)
 	case NODE_UNWRAP:
 		printf("(unwrap\n");
 		goto single;
+	case NODE_CHECK:
+		printf("(check\n");
+		goto single;
 	case NODE_YIELD:
 		printf("(yield\n");
 single:
@@ -241,6 +244,7 @@ void Node_free(const Node *node)
 	case NODE_NOT:
 	case NODE_SIZEOF:
 	case NODE_UNWRAP:
+	case NODE_CHECK:
 		Node_free(node->exit.value);
 		break;
 	case NODE_INFIX:

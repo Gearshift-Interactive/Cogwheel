@@ -91,6 +91,7 @@
 	X(GC_SIZEOF, 0) \
 	/* options */ \
 	X(OPT_UNWRAP, 0) \
+	X(OPT_CHECK, 0) \
 
 typedef enum {
 	OP_NOOP = 0,

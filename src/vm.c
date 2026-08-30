@@ -605,6 +605,15 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		if (value->isNull)
 			PANIC("Unwrap failed");
 	} break;
+	case OP_OPT_CHECK: {
+		Value *value = Stack_currentPtr(&vm->stack);
+		*value = (Value){
+#ifdef DEBUG
+			.type = VALUE_BOOL,
+#endif
+			.v_bool = !value->isNull,
+		};
+	} break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;

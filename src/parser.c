@@ -488,6 +488,15 @@ static Node *parseExprTail(TokenStream *tokens, float parentBind, Node *left)
 			left = newLeft;
 			continue;
 		}
+		else if (op->type == TOKEN_QUESTION)
+		{
+			Token token = TokenStream_consume(tokens);
+			Node *newLeft = Node_make(token.pos);
+			newLeft->type = NODE_CHECK;
+			newLeft->check.value = left;
+			left = newLeft;
+			continue;
+		}
 		BindingPower bind = getBindingFor(*op);
 		if (bind.right < parentBind) break;
 		if (bind.right == parentBind && bind.left < bind.right) break;

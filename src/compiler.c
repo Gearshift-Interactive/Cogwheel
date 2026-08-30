@@ -567,6 +567,10 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		compileNode(this, node->unwrap.value, context);
 		PUSH_OP(OP_OPT_UNWRAP);
 		break;
+	case NODE_CHECK:
+		compileNode(this, node->check.value, context);
+		PUSH_OP(OP_OPT_CHECK);
+		break;
 	}
 	return resultSize;
 }

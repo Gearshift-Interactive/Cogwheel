@@ -417,6 +417,13 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		// node->retType->nullable = false;
 		node->retType = node->unwrap.value->retType->option.underlying;
 		break;
+	case NODE_CHECK:
+		mark(&node->check.value, scope, context);
+		if (node->unwrap.value->retType->kind != TYPE_OPTION)
+			comptimeMessage(MESSAGE_ERRORN, node->unwrap.value->pos,
+				"Can't unwrap non-option value");
+		node->retType = &TYPE_BOOL_OBJ;
+		break;
 	}
 }
 static void mark(Node **node, ScopeInfo *scope, Context *context)
@@ -447,6 +454,7 @@ static bool isNodeFinal(Node *node)
 	case NODE_SIZEOF:
 	case NODE_NULL:
 	case NODE_UNWRAP:
+	case NODE_CHECK:
 		return false;
 	case NODE_EXIT:
 	case NODE_YIELD:
@@ -543,6 +551,7 @@ static void analyze(Node *node)
 	case NODE_NOT:
 	case NODE_SIZEOF:
 	case NODE_UNWRAP:
+	case NODE_CHECK:
 		analyze(node->scope.child);
 		break;
 	case NODE_IF:
