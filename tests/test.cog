@@ -1,9 +1,1 @@
-var values = new int?[]{ null, null, 12, null, null, null };
-mut var i = 0u;
-while (i < sizeof values)
-{
-    if (values[i]?)
-        exit values[i]!;
-    i = i + 1u;
-};
-exit -1;
+exit 12!;

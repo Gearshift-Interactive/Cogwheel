@@ -411,8 +411,12 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 	case NODE_UNWRAP:
 		mark(&node->unwrap.value, scope, context);
 		if (node->unwrap.value->retType->kind != TYPE_OPTION)
+		{
 			comptimeMessage(MESSAGE_ERRORN, node->unwrap.value->pos,
 				"Can't unwrap non-option value");
+			node->retType = &TYPE_VOID_OBJ;
+			break;
+		}
 		// node->retType = Type_copy(node->unwrap.value->retType);
 		// node->retType->nullable = false;
 		node->retType = node->unwrap.value->retType->option.underlying;
@@ -421,7 +425,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		mark(&node->check.value, scope, context);
 		if (node->unwrap.value->retType->kind != TYPE_OPTION)
 			comptimeMessage(MESSAGE_ERRORN, node->unwrap.value->pos,
-				"Can't unwrap non-option value");
+				"Can't check non-option value");
 		node->retType = &TYPE_BOOL_OBJ;
 		break;
 	}
