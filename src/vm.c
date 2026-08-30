@@ -592,6 +592,19 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			.v_uint = ((HeapObject*)value.v_heap)->count,
 		});
 	} break;
+	case OP_CLOAD_NULL:
+		Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
+			.type = VALUE_NULL,
+#endif
+			.isNull = true,
+		});
+		break;
+	case OP_OPT_UNWRAP: {
+		Value *value = Stack_currentPtr(&vm->stack);
+		if (value->isNull)
+			PANIC("Unwrap failed");
+	} break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;

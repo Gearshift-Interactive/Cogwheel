@@ -16,6 +16,11 @@ static const char *ValueType_toString(ValueType type)
 	}
 }
 void Value_print(const Value *this) {
+	if (this->isNull)
+	{
+		printf("NULL\n");
+		return;
+	}
 	printf("%s", ValueType_toString(this->type));
 	if (!this->type)
 	{

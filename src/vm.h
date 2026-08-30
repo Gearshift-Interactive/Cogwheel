@@ -13,6 +13,7 @@
 	X(CLOAD_FLOAT, sizeof(size_t)) \
 	X(CLOAD_TRUE, 0) \
 	X(CLOAD_FALSE, 0) \
+	X(CLOAD_NULL, 0) \
 	/* add */ \
 	X(ADD_INT, 0) \
 	X(ADD_UINT, 0) \
@@ -88,6 +89,8 @@
 	X(GC_ASSIGN_FROMSTACK, 0) \
 	X(GC_ASSIGNCOPY, sizeof(size_t)) \
 	X(GC_SIZEOF, 0) \
+	/* options */ \
+	X(OPT_UNWRAP, 0) \
 
 typedef enum {
 	OP_NOOP = 0,

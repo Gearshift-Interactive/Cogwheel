@@ -11,7 +11,8 @@
 		X(UINT) \
 		X(FLOAT) \
 		X(BOOL) \
-		X(HEAP)
+		X(HEAP) \
+		X(NULL)
 
 typedef enum {
 	VALUE_UNKNOWN = 0,
@@ -22,12 +23,7 @@ typedef enum {
 
 #endif
 
-typedef
-  struct {
-#ifdef DEBUG
-	ValueType type;
-#endif
-	bool isHeap;
+typedef struct {
 	union {
 		int64_t v_int;
 		uint64_t v_uint;
@@ -35,6 +31,10 @@ typedef
 		bool v_bool;
 		void *v_heap;
 	};
+#ifdef DEBUG
+	ValueType type;
+#endif
+	bool isHeap, isNull;
 } Value;
 
 #ifdef DEBUG
