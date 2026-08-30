@@ -17,6 +17,9 @@ Type TYPE_BOOL_OBJ = {
 Type TYPE_VOID_OBJ = {
 	.kind = TYPE_VOID,
 };
+Type TYPE_NULL_OBJ = {
+	.kind = TYPE_NULL,
+};
 static const char *TypeKind_toString(const TypeKind tk)
 {
 	switch (tk)
@@ -26,6 +29,7 @@ static const char *TypeKind_toString(const TypeKind tk)
 	TYPE_KINDS
 #undef X
 		case TYPE_ARRAY: return "[]";
+		case TYPE_OPTION: return "?";
 	}
 	return "INVALID";
 }
@@ -33,20 +37,22 @@ const char *Type_toString(const Type *t)
 {
 	if (!t)
 		return "INVALID";
-	if (!t->nullable && t->kind != TYPE_ARRAY)
+	if (t->kind != TYPE_OPTION && t->kind != TYPE_ARRAY)
 		return (char*)TypeKind_toString(t->kind);
 	String_Builder sb = {0};
 	if (t->kind == TYPE_ARRAY)
 	{
-		sb_appendf(&sb, "%s[", Type_toString(t->array.underlying));
+		sb_append_cstr(&sb, Type_toString(t->array.underlying));
+		da_append(&sb, '[');
 		if (t->array.size)
 			sb_appendf(&sb, "%zu", t->array.size);
 		sb_appendf(&sb, "]");
 	}
-	else
-		sb_append_cstr(&sb, TypeKind_toString(t->kind));
-	if (t->nullable)
+	else if (t->kind == TYPE_OPTION)
+	{
+		sb_append_cstr(&sb, Type_toString(t->option.underlying));
 		da_append(&sb, '?');
+	}
 	nob_sb_append_null(&sb);
 	Bank_handOff(sb.items);
 	return sb.items;
@@ -57,9 +63,13 @@ bool Type_areCompatible(const Type *a, const Type *b)
 	// fflush(stdout);
 	if (!a || !b)
 		return false;
+	if (a->kind == TYPE_OPTION)
+	{
+		if (b->kind == TYPE_NULL)
+			return true;
+		return Type_areCompatible(a->option.underlying, b);
+	}
 	if (a->kind != b->kind)
-		return false;
-	if (!a->nullable && b->nullable)
 		return false;
 	if (a->kind == TYPE_ARRAY)
 	{
@@ -73,4 +83,11 @@ bool Type_areCompatible(const Type *a, const Type *b)
 			return false;
 	}
 	return true;
+}
+Type *Type_copy(const Type *src)
+{
+	Type *result = malloc(sizeof *result);
+	*result = *src;
+	Bank_handOff(result);
+	return result;
 }

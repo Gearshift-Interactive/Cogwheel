@@ -250,7 +250,12 @@ static Type *parseType(TokenStream *tokens)
 			result = newResult;
 		}
 		else if (consumed.type == TOKEN_QUESTION)
-			result->nullable = true;
+		{
+			Type *newResult = Bank_alloc(sizeof *result);
+			newResult->kind = TYPE_OPTION;
+			newResult->option.underlying = result;
+			result = newResult;
+		}
 	}
 	return result;
 }

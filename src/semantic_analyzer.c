@@ -126,6 +126,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 	{
 	case NODE_NUMBER_LIT:
 		node->retType = &TYPE_INT_OBJ;
+		// printf("!!!%d\n", TYPE_INT_OBJ.nullable);
 		break;
 	case NODE_UNUMBER_LIT:
 		node->retType = &TYPE_UINT_OBJ;
@@ -174,6 +175,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		if (node->infix.type == INFIX_ASSIGN)
 		{
 			node->retType = node->infix.right->retType;
+			// printf(">>>>%s\n", Type_toString(node->infix.right->retType));
 			// VarInfo *info = ScopeInfo_getInfo(scope, left->symbol.scopeIndex, left->symbol.scopeDepth);
 			if (!Type_areCompatible(left->retType, right->retType))
 				comptimeMessage(MESSAGE_ERRORN, right->pos,
@@ -261,7 +263,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		if (ScopeInfo_isVarPresentShallow(scope, &node->var_decl.name.pos))
 			comptimeMessage(MESSAGE_ERRORN, node->var_decl.name.pos,
 				"Variable is already declared");
-		printf("%s\n", Type_toString(node->var_decl.type));
+		// printf("%s\n", Type_toString(node->var_decl.type));
 		ScopeInfo_declare(scope,
 			&node->var_decl.name.pos,
 			node->var_decl.type,
@@ -403,6 +405,18 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			comptimeMessage(MESSAGE_ERRORN, node->sizeOf.value->pos,
 				"Can't get the size of non-array value");
 		break;
+	case NODE_NULL:
+		node->retType = &TYPE_NULL_OBJ;
+		break;
+	case NODE_UNWRAP:
+		mark(&node->unwrap.value, scope, context);
+		if (node->unwrap.value->retType->kind != TYPE_OPTION)
+			comptimeMessage(MESSAGE_ERRORN, node->unwrap.value->pos,
+				"Can't unwrap non-option value");
+		// node->retType = Type_copy(node->unwrap.value->retType);
+		// node->retType->nullable = false;
+		node->retType = node->unwrap.value->retType->option.underlying;
+		break;
 	}
 }
 static void mark(Node **node, ScopeInfo *scope, Context *context)
@@ -431,6 +445,8 @@ static bool isNodeFinal(Node *node)
 	case NODE_NEW:
 	case NODE_SUBSCRIPT:
 	case NODE_SIZEOF:
+	case NODE_NULL:
+	case NODE_UNWRAP:
 		return false;
 	case NODE_EXIT:
 	case NODE_YIELD:
@@ -526,6 +542,7 @@ static void analyze(Node *node)
 	case NODE_YIELD:
 	case NODE_NOT:
 	case NODE_SIZEOF:
+	case NODE_UNWRAP:
 		analyze(node->scope.child);
 		break;
 	case NODE_IF:
@@ -607,6 +624,7 @@ static void analyze(Node *node)
 	case NODE_SYMBOL:
 	case NODE_TRUE_:
 	case NODE_FALSE_:
+	case NODE_NULL:
 	{}
 	}
 }

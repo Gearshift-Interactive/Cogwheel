@@ -8,6 +8,7 @@
 	X(UINT, uint)   \
 	X(FLOAT, float) \
 	X(BOOL, bool) \
+	X(NULL, null) \
 
 typedef enum {
 	TYPE_UNKNOWN = 0,
@@ -15,16 +16,19 @@ typedef enum {
 	TYPE_KINDS
 #undef X
 	TYPE_ARRAY,
+	TYPE_OPTION,
 } TypeKind;
 
 typedef struct Type {
 	TypeKind kind;
-	bool nullable;
 	union {
 		struct {
-			size_t size;
 			struct Type *underlying;
+			size_t size;
 		} array;
+		struct {
+			struct Type *underlying;
+		} option;
 	};
 } Type;
 
@@ -33,6 +37,8 @@ extern Type TYPE_UINT_OBJ;
 extern Type TYPE_FLOAT_OBJ;
 extern Type TYPE_BOOL_OBJ;
 extern Type TYPE_VOID_OBJ;
+extern Type TYPE_NULL_OBJ;
 
 const char *Type_toString(const Type *);
 bool Type_areCompatible(const Type *, const Type *);
+Type *Type_copy(const Type *);
