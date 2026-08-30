@@ -53,7 +53,8 @@ static const PrefixBindingPower PREFIX_POWERS[] = {
 	{ TOKEN_SUB, 8.0f },
 };
 static const float CAST_BINDING_POWER = 15.0f;
-static const float SIZEOF_BINDING_POWER = 11.0f;
+static const float SIZEOF_BINDING_POWER = 11.1f;
+static const float UNWRAP_BINDING_POWER = 11.0f;
 static const TokenType TAIL_TOKENS[] = {
 	TOKEN_SEMICOLON, TOKEN_RPAREN, TOKEN_ELSE, TOKEN_RBRACKET, TOKEN_COMMA, TOKEN_RBRACE
 };
@@ -175,6 +176,11 @@ static Node *parseAtom(TokenStream *tokens)
 			node->type = NODE_FALSE_;
 			return node;
 		}
+		case TOKEN_NULL: {
+			Node *node = Node_make(consumed.pos);
+			node->type = NODE_NULL;
+			return node;
+		 }
 		default: {
 			TokenPosition tp = consumed.pos;
 			comptimeMessage(MESSAGE_ERROR, tp, "Unexpected token");
@@ -226,18 +232,25 @@ static Type *parseType(TokenStream *tokens)
 {
 	Token typeTok = TokenStream_consume(tokens);
 	Type *result = tokenToType(typeTok);
-	while (TokenStream_peek(tokens)->type == TOKEN_LBRACKET)
-	{
-		TokenStream_consume(tokens);
-		size_t arrSize = 0;
-		if (TokenStream_peek(tokens)->type == TOKEN_NUMBER)
-			arrSize = (size_t)parseNumber(TokenStream_consume(tokens));
-		TokenStream_consumeExpect(tokens, TOKEN_RBRACKET);
-		Type *newResult = Bank_alloc(sizeof *result);
-		newResult->kind = TYPE_ARRAY;
-		newResult->array.size = arrSize;
-		newResult->array.underlying = result;
-		result = newResult;
+	while (
+		TokenStream_peek(tokens)->type == TOKEN_LBRACKET ||
+		TokenStream_peek(tokens)->type == TOKEN_QUESTION
+	) {
+		Token consumed = TokenStream_consume(tokens);
+		if (consumed.type == TOKEN_LBRACKET)
+		{
+			size_t arrSize = 0;
+			if (TokenStream_peek(tokens)->type == TOKEN_NUMBER)
+				arrSize = (size_t)parseNumber(TokenStream_consume(tokens));
+			TokenStream_consumeExpect(tokens, TOKEN_RBRACKET);
+			Type *newResult = Bank_alloc(sizeof *result);
+			newResult->kind = TYPE_ARRAY;
+			newResult->array.size = arrSize;
+			newResult->array.underlying = result;
+			result = newResult;
+		}
+		else if (consumed.type == TOKEN_QUESTION)
+			result->nullable = true;
 	}
 	return result;
 }
@@ -458,6 +471,15 @@ static Node *parseExprTail(TokenStream *tokens, float parentBind, Node *left)
 			newLeft->subscript.value = left;
 			newLeft->subscript.index = parseExpr(tokens, 0);
 			TokenStream_consumeExpect(tokens, TOKEN_RBRACKET);
+			left = newLeft;
+			continue;
+		}
+		else if (op->type == TOKEN_EXCLAMATION)
+		{
+			Token token = TokenStream_consume(tokens);
+			Node *newLeft = Node_make(token.pos);
+			newLeft->type = NODE_UNWRAP;
+			newLeft->unwrap.value = left;
 			left = newLeft;
 			continue;
 		}

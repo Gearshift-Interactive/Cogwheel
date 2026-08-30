@@ -19,6 +19,7 @@ typedef enum {
 
 typedef struct Type {
 	TypeKind kind;
+	bool nullable;
 	union {
 		struct {
 			size_t size;

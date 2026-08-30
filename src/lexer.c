@@ -30,6 +30,8 @@ static const SymbolInfo PUNCTUATION[] = {
 	{ "]", TOKEN_RBRACKET },
 	{ ";", TOKEN_SEMICOLON },
 	{ ",", TOKEN_COMMA },
+	{ "?", TOKEN_QUESTION },
+	{ "!", TOKEN_EXCLAMATION },
 };
 static const SymbolInfo KEYWORDS[] = {
 	{ "int", TOKEN_INT_T },
@@ -52,6 +54,7 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "new", TOKEN_NEW },
 	{ "var", TOKEN_VAR },
 	{ "sizeof", TOKEN_SIZEOF },
+	{ "null", TOKEN_NULL },
 };
 static const char LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char LETTERS_AND_NUMBERS[] =

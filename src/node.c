@@ -86,6 +86,9 @@ static void Node_printImpl(const Node *node, const size_t indent)
 		else
 			printf(")");
 		break;
+	case NODE_UNWRAP:
+		printf("(unwrap\n");
+		goto single;
 	case NODE_YIELD:
 		printf("(yield\n");
 single:
@@ -196,7 +199,7 @@ single:
 		printf(")");
 		break;
 	case NODE_SUBSCRIPT:
-		printf("($index\n");
+		printf("(index\n");
 		printIndent(indent + 1);
 		Node_printImpl(node->subscript.value, indent + 1);
 		printf("\n");
@@ -213,6 +216,9 @@ single:
 		printf("\n");
 		printIndent(indent);
 		printf(")");
+		break;
+	case NODE_NULL:
+		printf("null");
 		break;
 	}
 	if (node->retType)
@@ -234,6 +240,7 @@ void Node_free(const Node *node)
 	case NODE_VAR_DECL:
 	case NODE_NOT:
 	case NODE_SIZEOF:
+	case NODE_UNWRAP:
 		Node_free(node->exit.value);
 		break;
 	case NODE_INFIX:
@@ -275,6 +282,7 @@ void Node_free(const Node *node)
 	case NODE_SYMBOL:
 	case NODE_TRUE_:
 	case NODE_FALSE_:
+	case NODE_NULL:
 		{}
 	}
 	free((void*)node);

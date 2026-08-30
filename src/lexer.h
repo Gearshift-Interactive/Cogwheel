@@ -37,6 +37,8 @@
 	X(RBRACKET) \
 	X(SEMICOLON) \
 	X(COMMA) \
+	X(QUESTION) \
+	X(EXCLAMATION) \
 	/* atomic types */ \
 	X(INT_T) \
 	X(UINT_T) \
@@ -54,6 +56,7 @@
 	X(NEW) \
 	X(VAR) \
 	X(SIZEOF) \
+	X(NULL) \
 
 
 typedef enum {
