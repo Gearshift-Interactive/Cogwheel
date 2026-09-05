@@ -212,7 +212,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					(*arg)->funcParam.type,
 					(*arg)->funcParam.isMutable
 				);
-			node->infix.right = markScopeExt(node->infix.right, scope, context);
+			node->infix.right = markScopeExt(node->infix.right, scope, &childContext);
 			ScopeInfo_free(scope);
 			free(scope);
 			node->retType = calloc(1, sizeof *node->retType);

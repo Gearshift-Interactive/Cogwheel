@@ -354,13 +354,13 @@ static Node *parseWhile(TokenStream *tokens)
 	return result;
 }
 static Node *parseTuple
-	(TokenStream *tokens, TokenPosition pos, bool allowEmpty, bool allowCompaction)
+	(TokenStream *tokens, TokenPosition pos)
 {
 	struct {
 		Node **items;
 		size_t count, capacity;
 	} exprs = {0};
-	if (isTailToken(TokenStream_peek(tokens)->type) && allowEmpty)
+	if (isTailToken(TokenStream_peek(tokens)->type))
 	{
 		Node *result = Node_make(pos);
 		result->type = NODE_TUPLE;
@@ -372,18 +372,23 @@ static Node *parseTuple
 		if (TokenStream_peek(tokens)->type == TOKEN_COMMA)
 			TokenStream_consume(tokens);
 	} while (!isTailToken(TokenStream_peek(tokens)->type));
-	if (exprs.count == 1 && allowCompaction)
-	{
-		Node *result = exprs.items[0];
-		free(exprs.items);
-		return result;
-	}
 	Node *result = Node_make((pos.origin) ? pos : exprs.items[0]->pos);
 	result->type = NODE_TUPLE;
 	result->tuple.items = exprs.items;
 	result->tuple.count = exprs.count;
 	result->tuple.capacity = exprs.capacity;
 	return result;
+}
+static void compactTuple(Node **node)
+{
+	if ((*node)->tuple.count == 0)
+		comptimeMessage(MESSAGE_ERROR, (*node)->pos,
+			"Empty tuple in an illegal context");
+	if ((*node)->tuple.count != 1)
+		return;
+	Node *old = *node;
+	*node = (*node)->tuple.items[0];
+	free(old->tuple.items);
 }
 static Node *parseExprHead(TokenStream *tokens)
 {
@@ -396,7 +401,7 @@ static Node *parseExprHead(TokenStream *tokens)
 		Node *result = NULL;
 		if (
 			TokenType_isAtomicType(peek->type) &&
-			TokenStream_peekForward(tokens, 2)->type == TOKEN_RPAREN
+			TokenStream_peekForward(tokens, 1)->type == TOKEN_RPAREN
 		) /* cast */ {
 			TokenStream_consume(tokens);
 			TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
@@ -408,7 +413,7 @@ static Node *parseExprHead(TokenStream *tokens)
 			result->cast.target = tokenToType(*peek);
 		}
 		else {
-			result = parseTuple(tokens, consumedParen.pos, false, true);
+			result = parseTuple(tokens, consumedParen.pos);
 			TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
 		}
 		return result;
@@ -514,6 +519,8 @@ static Node *parseExprTail(TokenStream *tokens, float parentBind, Node *left)
 	{
 		Token *op = TokenStream_peek(tokens);
 		if (isTailToken(op->type)) break;
+		if (left->type == NODE_TUPLE && op->type != TOKEN_ARROW)
+			compactTuple(&left);
 		if (op->type == TOKEN_LBRACKET)
 		{
 			Token token = TokenStream_consume(tokens);
@@ -549,7 +556,7 @@ static Node *parseExprTail(TokenStream *tokens, float parentBind, Node *left)
 			Node *newLeft = Node_make(token.pos);
 			newLeft->type = NODE_CALL;
 			newLeft->call.function = left;
-			newLeft->call.args = parseTuple(tokens, token.pos, true, false);
+			newLeft->call.args = parseTuple(tokens, token.pos);
 			left = newLeft;
 			TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
 			continue;
