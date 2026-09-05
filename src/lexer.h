@@ -39,6 +39,7 @@
 	X(COMMA) \
 	X(QUESTION) \
 	X(EXCLAMATION) \
+	X(ARROW) \
 	/* atomic types */ \
 	X(INT_T) \
 	X(UINT_T) \

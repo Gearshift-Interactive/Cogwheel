@@ -18,6 +18,7 @@
 	X(EGT, >=) \
 	X(ELT, <=) \
 	X(NEQ, !=) \
+	X(FUNC, ->) \
 
 typedef enum {
 #define X(name, op) INFIX_##name,
@@ -50,6 +51,9 @@ typedef enum {
 	X(NULL) \
 	X(UNWRAP) \
 	X(CHECK) \
+	X(TUPLE) \
+	X(PARAMETER) \
+	X(CALL) \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
@@ -123,6 +127,18 @@ typedef struct Node {
 		struct {
 			struct Node *value, *index;
 		} subscript;
+		struct {
+			struct Node **items;
+			size_t count, capacity;
+		} tuple;
+		struct {
+			Type *type;
+			Token name;
+			bool isMutable;
+		} funcParam;
+		struct {
+			struct Node *function, *args;
+		} call;
 	};
 	Type *retType;
 	bool unreachable;

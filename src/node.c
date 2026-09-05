@@ -223,6 +223,40 @@ single:
 	case NODE_NULL:
 		printf("null");
 		break;
+	case NODE_TUPLE:
+		if (!node->tuple.items)
+		{
+			printf("()");
+			break;
+		}
+		printf("(\n");
+		da_foreach(Node*, child, &node->tuple) {
+			printIndent(indent + 1);
+			Node_printImpl(*child, indent + 1);
+			printf("\n");
+		}
+		printIndent(indent);
+		printf(")");
+		break;
+	case NODE_PARAMETER:
+		printf("(param ");
+		if (node->funcParam.isMutable)
+			printf(":mut ");
+		printf(":type %s ", Type_toString(node->funcParam.type));
+		TokenPosition_print(node->funcParam.name.pos);
+		printf(")");
+		break;
+	case NODE_CALL:
+		printf("(call\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->call.function, indent + 1);
+		printf("\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->call.args, indent + 1);
+		printf("\n");
+		printIndent(indent);
+		printf(")");
+		break;
 	}
 	if (node->retType)
 		printf(" -> %s", Type_toString(node->retType));
@@ -249,10 +283,12 @@ void Node_free(const Node *node)
 		break;
 	case NODE_INFIX:
 	case NODE_SUBSCRIPT:
+	case NODE_CALL:
 		Node_free(node->infix.left);
 		Node_free(node->infix.right);
 		break;
 	case NODE_BLOCK:
+	case NODE_TUPLE:
 		da_foreach(Node*, child, &node->block)
 			Node_free(*child);
 		free(node->block.items);
@@ -287,6 +323,7 @@ void Node_free(const Node *node)
 	case NODE_TRUE_:
 	case NODE_FALSE_:
 	case NODE_NULL:
+	case NODE_PARAMETER:
 		{}
 	}
 	free((void*)node);

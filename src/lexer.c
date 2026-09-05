@@ -10,6 +10,7 @@ typedef struct {
 
 // longer first
 static const SymbolInfo PUNCTUATION[] = {
+	{ "->", TOKEN_ARROW },
 	{ "==", TOKEN_EQ },
 	{ "!=", TOKEN_NEQ },
 	{ ">=", TOKEN_EGT },
