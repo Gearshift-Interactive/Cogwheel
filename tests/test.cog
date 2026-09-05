@@ -1,3 +1,0 @@
-var some = 0;
-int(int, int) add = (int a, int b) -> a + b;
-exit add(1, 2) + add(1, 2);

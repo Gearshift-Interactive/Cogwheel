@@ -187,6 +187,10 @@ And then it can be called:
 exit addFunc(3, 51);
 ```
 Functions are fist-class-sitizens, so they can be passed around like every other value.
+To annotate function type you can use this syntax:
+```
+int(int, int) addFunc = (int a, int b) -> a + b;
+```
 
 ### Keywords
 
