@@ -114,6 +114,16 @@ static Node *markScopeExt(Node *node, ScopeInfo *scope, Context *context)
 	result->retType = result->scope.child->retType;
 	return result;
 }
+static Node *markScopeFunc(Node *node, ScopeInfo *scope, Context *context)
+{
+	Node *result = Node_make(node->pos);
+	result->type = NODE_SCOPE;
+	result->scope.child = node;
+	mark(&result->scope.child, scope, context);
+	result->scope.size = scope->count;
+	result->retType = result->scope.child->retType;
+	return result;
+}
 static Node *markScope(Node *node, ScopeInfo *parent, Context *context)
 {
 	ScopeInfo *scope = ScopeInfo_make();
@@ -212,7 +222,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					(*arg)->funcParam.type,
 					(*arg)->funcParam.isMutable
 				);
-			node->infix.right = markScopeExt(node->infix.right, scope, &childContext);
+			node->infix.right = markScopeFunc(node->infix.right, scope, &childContext);
 			ScopeInfo_free(scope);
 			free(scope);
 			node->retType = calloc(1, sizeof *node->retType);
@@ -251,7 +261,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					InfixType_toString(&node->infix.type),
 					Type_toString(left->retType),
 					Type_toString(right->retType));
-				node->retType = &left->retType;
+				node->retType = left->retType;
 				break;
 			}
 			node->retType = &TYPE_BOOL_OBJ;
@@ -268,7 +278,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 				InfixType_toString(&node->infix.type),
 				Type_toString(left->retType),
 				Type_toString(right->retType));
-			node->retType = &left->retType;
+			node->retType = left->retType;
 		}
 		break;
 	case NODE_EXIT:

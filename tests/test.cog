@@ -1,0 +1,3 @@
+int b = 10;
+var func = (int a) -> a + b;
+exit func(1);
