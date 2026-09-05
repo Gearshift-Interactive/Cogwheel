@@ -176,6 +176,18 @@ exit while (i < 100) {
 ```
 `else` block evaluates when the loop was executed without `break`s, or wasn't executed at all.
 
+### Functions
+
+Functions can be created with **function literals** like this:
+```
+var addFunc = (int a, int b) -> a + b;
+```
+And then it can be called:
+```
+exit addFunc(3, 51);
+```
+Functions are fist-class-sitizens, so they can be passed around like every other value.
+
 ### Keywords
 
 #### `exit`
