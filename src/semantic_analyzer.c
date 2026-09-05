@@ -221,8 +221,8 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			node->retType->function.retType = right->retType;
 			da_foreach(Node*, arg, &left->tuple)
 				da_append(&node->retType->function.args, (*arg)->funcParam.type);
-			printf("%s\n", Type_toString(node->retType));
-			fflush(stdout);
+			// printf("%s\n", Type_toString(node->retType));
+			// fflush(stdout);
 		}
 		else if (node->infix.type == INFIX_OR || node->infix.type == INFIX_AND)
 		{
@@ -479,6 +479,13 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 	case NODE_CALL:
 		mark(&node->call.function, scope, context);
 		mark(&node->call.args, scope, context);
+		if (node->call.function->retType->kind != TYPE_FUNCTION)
+		{
+			comptimeMessage(MESSAGE_ERRORN, node->call.function->pos,
+				"This variable is not a function");
+			node->retType = &TYPE_VOID_OBJ;
+			break;
+		}
 		node->retType = node->call.function->retType->function.retType;
 		break;
 	}
@@ -694,6 +701,23 @@ static void analyze(Node *node)
 	case NODE_CALL:
 		analyze(node->call.function);
 		analyze(node->call.args);
+		if (node->call.function->retType->kind != TYPE_FUNCTION)
+			break;
+		if (node->call.function->retType->function.args.count != node->call.args->tuple.count)
+			comptimeMessage(MESSAGE_ERRORN, node->call.args->pos,
+				"Expected %zu parameters, %zu given",
+				node->call.function->retType->function.args.count,
+				node->call.args->tuple.count);
+		for (size_t i = 0; i < node->call.args->tuple.count; i++)
+		{
+			Type *expected = node->call.function->retType->function.args.items[i];
+			Type *got = node->call.args->tuple.items[i]->retType;
+			if (!Type_areCompatible(expected, got))
+				comptimeMessage(MESSAGE_ERRORN, node->call.args->tuple.items[i]->pos,
+					"Incompatible type for argument %zu: expected %s, got %s",
+					i + 1, Type_toString(expected), Type_toString(got)
+				);
+		}
 		break;
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:
