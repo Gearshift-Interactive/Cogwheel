@@ -389,6 +389,7 @@ static void compactTuple(Node **node)
 	Node *old = *node;
 	*node = (*node)->tuple.items[0];
 	free(old->tuple.items);
+	free(old);
 }
 static Node *parseExprHead(TokenStream *tokens)
 {

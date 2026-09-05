@@ -14,6 +14,7 @@
 	X(CLOAD_TRUE, 0) \
 	X(CLOAD_FALSE, 0) \
 	X(CLOAD_NULL, 0) \
+	X(CLOAD_FUNC, sizeof(size_t)) \
 	/* add */ \
 	X(ADD_INT, 0) \
 	X(ADD_UINT, 0) \
@@ -92,6 +93,9 @@
 	/* options */ \
 	X(OPT_UNWRAP, 0) \
 	X(OPT_CHECK, 0) \
+	/* functions */ \
+	X(CALL, sizeof(size_t)) \
+	X(RETURN, 0) \
 
 typedef enum {
 	OP_NOOP = 0,
@@ -103,10 +107,11 @@ typedef enum {
 
 #define CONST_ARRAY(T) struct { size_t count, capacity; T *items; }
 
-typedef struct {
+typedef struct Chunk {
 	CONST_ARRAY(int64_t) intConsts;
 	CONST_ARRAY(uint64_t) uintConsts;
 	CONST_ARRAY(double) floatConsts;
+	CONST_ARRAY(struct Chunk) functions;
 	struct {
 		union { size_t count, length; };
 		size_t capacity;

@@ -283,7 +283,6 @@ void Node_free(const Node *node)
 		break;
 	case NODE_INFIX:
 	case NODE_SUBSCRIPT:
-	case NODE_CALL:
 		Node_free(node->infix.left);
 		Node_free(node->infix.right);
 		break;
@@ -315,6 +314,10 @@ void Node_free(const Node *node)
 		da_foreach(Node*, child, &node->new.builderArgs)
 			Node_free(*child);
 		free(node->new.builderArgs.items);
+		break;
+	case NODE_CALL:
+		Node_free(node->call.function);
+		Node_free(node->call.args);
 		break;
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:

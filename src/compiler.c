@@ -70,6 +70,7 @@ __attribute__((unused)) static void *Chunk_acquireData(Chunk *this, size_t size)
 	return result;
 }
 
+static Chunk compileImpl(const Node *tree, bool shouldFree);
 static size_t compileNode(Chunk *this, const Node *node, Context *context);
 
 static size_t compileCast(Chunk *this, const Node *node, __attribute__((unused)) Context *context)
@@ -151,13 +152,21 @@ static size_t compileAssignment(Chunk *this, const Node *node, Context *context)
 static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 {
 	size_t resultSize = 0;
-	if (node->infix.type != INFIX_ASSIGN)
+	if (node->infix.type != INFIX_ASSIGN && node->infix.type != INFIX_FUNC)
 	{
 		compileNode(this, node->infix.left, context);
 		compileNode(this, node->infix.right, context);
 	}
 	switch (node->infix.type)
 	{
+	case INFIX_FUNC: {
+		Chunk funcChunk = compileImpl(node->infix.right->scope.child, false);
+		if (node->infix.right->retType != &TYPE_VOID_OBJ)
+			da_append(&funcChunk.instr, (uint8_t)OP_RETURN);
+		da_append(&this->functions, funcChunk);
+		PUSH_OP(OP_CLOAD_FUNC);
+		PUSH_DATA(size_t, this->functions.count - 1);
+	} break;
 	case INFIX_ASSIGN:
 		compileAssignment(this, node, context);
 		break;
@@ -571,15 +580,31 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		compileNode(this, node->check.value, context);
 		PUSH_OP(OP_OPT_CHECK);
 		break;
+	case NODE_PARAMETER:
+		PANIC("Illegal parameter");
+	case NODE_TUPLE:
+		PANIC("Illegal tuple");
+	case NODE_CALL:
+		da_foreach(Node*, arg, &node->call.args->tuple)
+			compileNode(this, *arg, context);
+		compileNode(this, node->call.function, context);
+		PUSH_OP(OP_CALL);
+		PUSH_DATA(size_t, node->call.args->tuple.count);
+		break;
 	}
 	return resultSize;
 }
 
-Chunk compile(const Node *tree)
+static Chunk compileImpl(const Node *tree, bool shouldFree)
 {
 	Chunk result = {0};
 	Context context = {0};
 	compileNode(&result, tree, &context);
-	Node_free(tree);
+	if (shouldFree)
+		Node_free(tree);
 	return result;
+}
+Chunk compile(const Node *tree)
+{
+	return compileImpl(tree, true);
 }

@@ -46,21 +46,54 @@ void Chunk_free(const Chunk *this)
 	FREE_IF_PRESENT(this->floatConsts.items);
 	FREE_IF_PRESENT(this->instr.code);
 #undef FREE_IF_PRESENT
+	if (this->functions.items)
+	{
+		da_foreach(Chunk, chunk, &this->functions)
+			Chunk_free(chunk);
+		free(this->functions.items);
+	}
 }
-void Chunk_print(const Chunk *this)
+static void printLevel(size_t level)
+{
+	for (size_t i = 0; i < level; i++)
+		printf("    ");
+}
+static void Chunk_printImpl(const Chunk *this, size_t level)
 {
 #define da_enumerate(I, ARR) for (size_t I = 0; I < (ARR)->count; I++)
+	printLevel(level);
 	printf("INT_CONSTANTS:\n");
 	da_enumerate(ii, &this->intConsts)
+	{
+		printLevel(level);
 		printf("  %ld - %"PRIi64",\n", ii, this->intConsts.items[ii]);
+	}
+	printLevel(level);
 	printf("UINT_CONSTANTS:\n");
 	da_enumerate(ui, &this->uintConsts)
+	{
+		printLevel(level);
 		printf("  %ld - %"PRIu64",\n", ui, this->uintConsts.items[ui]);
+	}
+	printLevel(level);
 	printf("FLOAT_CONSTANTS:\n");
 	da_enumerate(fi, &this->floatConsts)
+	{
+		printLevel(level);
 		printf("  %ld - %f,\n", fi, this->floatConsts.items[fi]);
+	}
+	printLevel(level);
+	printf("FUNCTIONS:\n");
+	da_enumerate(fni, &this->functions)
+	{
+		printLevel(level);
+		Chunk_printImpl(&this->functions.items[fni], level + 1);
+	}
+	printLevel(level);
 	printf("CODE:\n");
 	da_enumerate(ini, &this->instr)
+	{
+		printLevel(level);
 		switch (this->instr.code[ini])
 		{
 #define X(NAME, ARGL) \
@@ -80,7 +113,12 @@ void Chunk_print(const Chunk *this)
 	OPCODE_TYPE
 #undef X
 		}
+	}
 #undef da_enumerate
+}
+void Chunk_print(const Chunk *this)
+{
+	Chunk_printImpl(this, 0);
 }
 #ifdef DEBUG
 static void Stack_print(const Stack *this)
