@@ -17,6 +17,7 @@ typedef enum {
 #undef X
 	TYPE_ARRAY,
 	TYPE_OPTION,
+	TYPE_FUNCTION,
 } TypeKind;
 
 typedef struct Type {
@@ -29,6 +30,13 @@ typedef struct Type {
 		struct {
 			struct Type *underlying;
 		} option;
+		struct {
+			struct Type *retType;
+			struct {
+				struct Type **items;
+				size_t count, capacity;
+			} args;
+		} function;
 	};
 } Type;
 

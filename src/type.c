@@ -30,6 +30,7 @@ static const char *TypeKind_toString(const TypeKind tk)
 #undef X
 		case TYPE_ARRAY: return "[]";
 		case TYPE_OPTION: return "?";
+		case TYPE_FUNCTION: return "()";
 	}
 	return "INVALID";
 }
@@ -37,7 +38,7 @@ const char *Type_toString(const Type *t)
 {
 	if (!t)
 		return "INVALID";
-	if (t->kind != TYPE_OPTION && t->kind != TYPE_ARRAY)
+	if (t->kind != TYPE_OPTION && t->kind != TYPE_ARRAY && t->kind != TYPE_FUNCTION)
 		return (char*)TypeKind_toString(t->kind);
 	String_Builder sb = {0};
 	if (t->kind == TYPE_ARRAY)
@@ -52,6 +53,17 @@ const char *Type_toString(const Type *t)
 	{
 		sb_append_cstr(&sb, Type_toString(t->option.underlying));
 		da_append(&sb, '?');
+	}
+	else if (t->kind == TYPE_FUNCTION)
+	{
+		sb_append_cstr(&sb, Type_toString(t->function.retType));
+		da_append(&sb, '(');
+		da_foreach(Type*, param, &t->function.args)
+		{
+			sb_append_cstr(&sb, Type_toString(*param));
+			da_append(&sb, ',');
+		}
+		da_append(&sb, ')');
 	}
 	nob_sb_append_null(&sb);
 	Bank_handOff(sb.items);
@@ -70,6 +82,18 @@ bool Type_areCompatible(const Type *a, const Type *b)
 		if (b->kind == TYPE_OPTION)
 			return Type_areCompatible(a->option.underlying, b->option.underlying);
 		return Type_areCompatible(a->option.underlying, b);
+	}
+	else if (a->kind == TYPE_FUNCTION)
+	{
+		if (b->kind != TYPE_FUNCTION)
+			return false;
+		if (a->function.args.count != b->function.args.count)
+			return false;
+		if (!Type_areCompatible(a->function.retType, b->function.retType))
+			return false;
+		for (size_t i = 0; i < a->function.args.count; i++)
+			if (!Type_areCompatible(a->function.args.items[i], b->function.args.items[i]))
+				return false;
 	}
 	if (a->kind != b->kind)
 		return false;

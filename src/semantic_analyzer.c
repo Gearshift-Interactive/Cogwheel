@@ -1,6 +1,7 @@
 #include "semantic_analyzer.h"
 #include "lexer.h"
 #include "error.h"
+#include "bank.h"
 
 typedef enum {
 	CONT_NULL = 0,
@@ -103,16 +104,21 @@ static void ScopeInfo_free(const ScopeInfo *this)
 }
 static void mark(Node **node, ScopeInfo *scope, Context *context);
 static void markImpl(Node *node, ScopeInfo *scope, Context *context);
-static Node *markScope(Node *node, ScopeInfo *parent, Context *context)
+static Node *markScopeExt(Node *node, ScopeInfo *scope, Context *context)
 {
-	ScopeInfo *scope = ScopeInfo_make();
-	scope->parent = parent;
 	Node *result = Node_make(node->pos);
 	result->type = NODE_SCOPE;
 	result->scope.child = node;
 	markImpl(result->scope.child, scope, context);
 	result->scope.size = scope->count;
 	result->retType = result->scope.child->retType;
+	return result;
+}
+static Node *markScope(Node *node, ScopeInfo *parent, Context *context)
+{
+	ScopeInfo *scope = ScopeInfo_make();
+	scope->parent = parent;
+	Node *result = markScopeExt(node, scope, context);
 	ScopeInfo_free(scope);
 	free(scope);
 	return result;
@@ -173,7 +179,8 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		break;
 	case NODE_INFIX:
 		mark(&node->infix.left, scope, context);
-		mark(&node->infix.right, scope, context);
+		if (node->infix.type != INFIX_FUNC)
+			mark(&node->infix.right, scope, context);
 		left = node->infix.left;
 		right = node->infix.right;
 		if (node->infix.type == INFIX_ASSIGN)
@@ -187,6 +194,35 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					Type_toString(right->retType),
 					Type_toString(left->retType)
 				);
+		}
+		else if (node->infix.type == INFIX_FUNC)
+		{
+			if (left->type != NODE_TUPLE)
+			{
+				comptimeMessage(MESSAGE_ERRORN, left->pos,
+					"Can't create a function with non-tuple args list");
+				break;
+			}
+			Context childContext = {0};
+			ScopeInfo *scope = ScopeInfo_make();
+			da_foreach(Node*, arg, &left->tuple)
+				// da_append(&node->retType->function.args, (*arg)->funcParam.type);
+				ScopeInfo_declare(scope,
+					&(*arg)->funcParam.name.pos,
+					(*arg)->funcParam.type,
+					(*arg)->funcParam.isMutable
+				);
+			node->infix.right = markScopeExt(node->infix.right, scope, context);
+			ScopeInfo_free(scope);
+			free(scope);
+			node->retType = calloc(1, sizeof *node->retType);
+			Bank_handOff(node->retType);
+			node->retType->kind = TYPE_FUNCTION;
+			node->retType->function.retType = right->retType;
+			da_foreach(Node*, arg, &left->tuple)
+				da_append(&node->retType->function.args, (*arg)->funcParam.type);
+			printf("%s\n", Type_toString(node->retType));
+			fflush(stdout);
 		}
 		else if (node->infix.type == INFIX_OR || node->infix.type == INFIX_AND)
 		{
@@ -432,6 +468,19 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 				"Can't check non-option value");
 		node->retType = &TYPE_BOOL_OBJ;
 		break;
+	case NODE_TUPLE:
+		node->retType = &TYPE_VOID_OBJ;
+		da_foreach(Node*, child, &node->tuple)
+			mark(child, scope, context);
+		break;
+	case NODE_PARAMETER:
+		node->retType = &TYPE_VOID_OBJ;
+		break;
+	case NODE_CALL:
+		mark(&node->call.function, scope, context);
+		mark(&node->call.args, scope, context);
+		node->retType = node->call.function->retType->function.retType;
+		break;
 	}
 }
 static void mark(Node **node, ScopeInfo *scope, Context *context)
@@ -463,6 +512,9 @@ static bool isNodeFinal(Node *node)
 	case NODE_NULL:
 	case NODE_UNWRAP:
 	case NODE_CHECK:
+	case NODE_TUPLE:
+	case NODE_PARAMETER:
+	case NODE_CALL:
 		return false;
 	case NODE_EXIT:
 	case NODE_YIELD:
@@ -635,6 +687,14 @@ static void analyze(Node *node)
 			break;
 		}
 		break;
+	case NODE_TUPLE:
+		da_foreach(Node*, child, &node->tuple)
+			analyze(*child);
+		break;
+	case NODE_CALL:
+		analyze(node->call.function);
+		analyze(node->call.args);
+		break;
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:
 	case NODE_FNUMBER_LIT:
@@ -642,6 +702,7 @@ static void analyze(Node *node)
 	case NODE_TRUE_:
 	case NODE_FALSE_:
 	case NODE_NULL:
+	case NODE_PARAMETER:
 	{}
 	}
 }
