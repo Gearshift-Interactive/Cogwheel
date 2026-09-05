@@ -1,5 +1,7 @@
 #pragma once
 
+#include "vm.h"
+
 #include "stdint.h"
 #include "stdbool.h"
 
@@ -12,7 +14,8 @@
 		X(FLOAT) \
 		X(BOOL) \
 		X(HEAP) \
-		X(NULL)
+		X(NULL) \
+		X(FUNC) \
 
 typedef enum {
 	VALUE_UNKNOWN = 0,
@@ -30,6 +33,7 @@ typedef struct {
 		double v_float;
 		bool v_bool;
 		void *v_heap;
+		Chunk *v_func;
 	};
 #ifdef DEBUG
 	ValueType type;

@@ -192,6 +192,33 @@ static size_t readSizeT(VM *vm, const Chunk *chunk)
     vm->pc += sizeof(value);
     return value;
 }
+static void call(VM *vm, const Chunk *chunk, size_t argc);
+static void scopeEnter(VM *vm, size_t varCount)
+{
+	Scope *scope = vm->scope;
+	vm->scope = calloc(1, sizeof(*(vm->scope)) + sizeof(Value[varCount]));
+	vm->scope->parent = scope;
+}
+static void scopeExit(VM *vm)
+{
+	Scope *scope = vm->scope;
+	vm->scope = scope->parent;
+	free(scope);
+}
+static Value scopeRead(VM *vm, size_t depth, size_t id)
+{
+	Scope *scope = vm->scope;
+	for (size_t i = 0; i < depth; i++)
+		scope = scope->parent;
+	return scope->values[id];
+}
+static void scopeWrite(VM *vm, size_t depth, size_t id, Value value)
+{
+	Scope *scope = vm->scope;
+	for (size_t i = 0; i < depth; i++)
+		scope = scope->parent;
+	scope->values[id] = value;
+}
 static void runInstruction(VM *vm, const Chunk *chunk)
 {
 #ifdef DEBUG
@@ -218,7 +245,6 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 #endif
 	Opcode current = (Opcode)chunk->instr.code[vm->pc];
 	size_t arg1, arg2;
-	Scope *scope;
 	vm->pc++;
 	Value *curValue;
 	switch (current)
@@ -431,30 +457,20 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		break;
 	case OP_SCOPE_ENTER:
 		arg1 = readSizeT(vm, chunk);
-		scope = vm->scope;
-		vm->scope = calloc(1, sizeof(*(vm->scope)) + sizeof(Value[arg1]));
-		vm->scope->parent = scope;
+		scopeEnter(vm, arg1);
 		break;
 	case OP_SCOPE_EXIT:
-		scope = vm->scope;
-		vm->scope = scope->parent;
-		free(scope);
+		scopeExit(vm);
 		break;
 	case OP_SCOPE_READ:
 		arg1 = readSizeT(vm, chunk);  // depth
 		arg2 = readSizeT(vm, chunk);  // id
-		scope = vm->scope;
-		for (size_t i = 0; i < arg1; i++)
-			scope = scope->parent;
-		Stack_push(&vm->stack, scope->values[arg2]);
+		Stack_push(&vm->stack, scopeRead(vm, arg1, arg2));
 		break;
 	case OP_SCOPE_WRITE:
 		arg1 = readSizeT(vm, chunk);  // depth
 		arg2 = readSizeT(vm, chunk);  // id
-		scope = vm->scope;
-		for (size_t i = 0; i < arg1; i++)
-			scope = scope->parent;
-		scope->values[arg2] = Stack_current(&vm->stack);
+		scopeWrite(vm, arg1, arg2, Stack_current(&vm->stack));
 		break;
 	case OP_CLOAD_TRUE:
 		Stack_push(&vm->stack, (Value){
@@ -652,6 +668,20 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			.v_bool = !value->isNull,
 		};
 	} break;
+	case OP_CLOAD_FUNC:
+		arg1 = readSizeT(vm, chunk);
+		Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
+			.type = VALUE_FUNC,
+#endif
+			.v_func = &chunk->functions.items[arg1],
+		});
+		break;
+	case OP_CALL: {
+		size_t argc = readSizeT(vm, chunk);
+		Value function = Stack_pop(&vm->stack);
+		call(vm, function.v_func, argc);
+	} break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;
@@ -659,16 +689,32 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 #undef INFIX
 #undef INFIX_LOG
 }
+
+static void execute(VM *vm, const Chunk *chunk)
+{
+	while (!vm->done && vm->pc < chunk->instr.count)
+	{
+#ifdef DEBUG
+		Stack_print(&vm->stack);
+#endif
+		runInstruction(vm, chunk);
+	}
+}
+static void call(VM *vm, const Chunk *chunk, size_t argc)
+{
+	scopeEnter(vm, argc);
+	for (int i = argc - 1; i >= 0; i--)
+		scopeWrite(vm, 0, i, Stack_pop(&vm->stack));
+	size_t oldPc = vm->pc;
+	vm->pc = 0;
+	execute(vm, chunk);
+	vm->pc = oldPc;
+	scopeExit(vm);
+}
 int run(const Chunk *chunk)
 {
 	VM vm = {0};
-	while (!vm.done && vm.pc < chunk->instr.count)
-	{
-#ifdef DEBUG
-		Stack_print(&vm.stack);
-#endif
-		runInstruction(&vm, chunk);
-	}
+	execute(&vm, chunk);
 	Stack_free(&vm.stack);
 	GC_freeAll(&vm.gc);
 	Chunk_free(chunk);

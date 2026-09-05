@@ -42,6 +42,7 @@ void Value_print(const Value *this) {
 			printf("(%s)\n", this->v_bool ? "true" : "false");
 			break;
 		case VALUE_HEAP:
+		case VALUE_FUNC:
 			printf("(%p)\n", this->v_heap);
 			break;
 		case VALUE_UNKNOWN:

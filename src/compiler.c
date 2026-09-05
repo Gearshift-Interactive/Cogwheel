@@ -161,8 +161,6 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 	{
 	case INFIX_FUNC: {
 		Chunk funcChunk = compileImpl(node->infix.right->scope.child, false);
-		if (node->infix.right->retType != &TYPE_VOID_OBJ)
-			da_append(&funcChunk.instr, (uint8_t)OP_RETURN);
 		da_append(&this->functions, funcChunk);
 		PUSH_OP(OP_CLOAD_FUNC);
 		PUSH_DATA(size_t, this->functions.count - 1);

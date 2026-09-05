@@ -287,7 +287,6 @@ void Node_free(const Node *node)
 		Node_free(node->infix.right);
 		break;
 	case NODE_BLOCK:
-	case NODE_TUPLE:
 		da_foreach(Node*, child, &node->block)
 			Node_free(*child);
 		free(node->block.items);
@@ -318,6 +317,11 @@ void Node_free(const Node *node)
 	case NODE_CALL:
 		Node_free(node->call.function);
 		Node_free(node->call.args);
+		break;
+	case NODE_TUPLE:
+		da_foreach(Node*, child, &node->tuple)
+			Node_free(*child);
+		free(node->tuple.items);
 		break;
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:

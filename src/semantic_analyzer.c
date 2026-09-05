@@ -221,6 +221,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			node->retType->function.retType = right->retType;
 			da_foreach(Node*, arg, &left->tuple)
 				da_append(&node->retType->function.args, (*arg)->funcParam.type);
+			Bank_handOff(node->retType->function.args.items);
 			// printf("%s\n", Type_toString(node->retType));
 			// fflush(stdout);
 		}

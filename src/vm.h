@@ -95,7 +95,6 @@
 	X(OPT_CHECK, 0) \
 	/* functions */ \
 	X(CALL, sizeof(size_t)) \
-	X(RETURN, 0) \
 
 typedef enum {
 	OP_NOOP = 0,
