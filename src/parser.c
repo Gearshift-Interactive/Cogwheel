@@ -235,9 +235,9 @@ static Type *parseType(TokenStream *tokens)
 {
 	Token typeTok = TokenStream_consume(tokens);
 	Type *result = tokenToType(typeTok);
+	TokenType peek = TokenStream_peek(tokens)->type;
 	while (
-		TokenStream_peek(tokens)->type == TOKEN_LBRACKET ||
-		TokenStream_peek(tokens)->type == TOKEN_QUESTION
+		peek == TOKEN_LBRACKET || peek == TOKEN_QUESTION || peek == TOKEN_LPAREN
 	) {
 		Token consumed = TokenStream_consume(tokens);
 		if (consumed.type == TOKEN_LBRACKET)
@@ -259,6 +259,24 @@ static Type *parseType(TokenStream *tokens)
 			newResult->option.underlying = result;
 			result = newResult;
 		}
+		else if (consumed.type == TOKEN_LPAREN)
+		{
+			Type *newResult = Bank_alloc(sizeof *result);
+			newResult->kind = TYPE_FUNCTION;
+			newResult->function.retType = result;
+			result = newResult;
+			while (TokenStream_peek(tokens)->type != TOKEN_RPAREN)
+			{
+				Type *arg = parseType(tokens);
+				da_append(&result->function.args, arg);
+				if (TokenStream_peek(tokens)->type == TOKEN_COMMA)
+					TokenStream_consume(tokens);
+			}
+			if (result->function.args.items)
+				Bank_handOff(result->function.args.items);
+			TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
+		}
+		peek = TokenStream_peek(tokens)->type;
 	}
 	return result;
 }

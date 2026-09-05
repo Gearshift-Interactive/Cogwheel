@@ -251,6 +251,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					InfixType_toString(&node->infix.type),
 					Type_toString(left->retType),
 					Type_toString(right->retType));
+				node->retType = &left->retType;
 				break;
 			}
 			node->retType = &TYPE_BOOL_OBJ;
@@ -267,6 +268,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 				InfixType_toString(&node->infix.type),
 				Type_toString(left->retType),
 				Type_toString(right->retType));
+			node->retType = &left->retType;
 		}
 		break;
 	case NODE_EXIT:

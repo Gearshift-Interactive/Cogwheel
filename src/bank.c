@@ -15,7 +15,7 @@ void Bank_init(void)
 }
 void *Bank_alloc(size_t size)
 {
-	void *result = malloc(size);
+	void *result = calloc(1, size);
 	da_append(&bank, result);
 	// printf("alloc: %zu\n", size);
 	// fflush(stdout);
