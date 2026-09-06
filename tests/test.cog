@@ -1,3 +1,8 @@
-int b = 10;
-var func = (int a) -> a + b;
-exit func(1);
+mut var some = new int[]{ 1, 2, 3 };
+int index = 1;
+var sort = (mut int[] arr, mut int i) -> {
+    arr[0u] = arr[0u] + 1;
+};
+// TODO: error here
+sort(some, index);
+exit some[0u];

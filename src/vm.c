@@ -695,7 +695,7 @@ static void execute(VM *vm, const Chunk *chunk)
 	while (!vm->done && vm->pc < chunk->instr.count)
 	{
 #ifdef DEBUG
-		printf("%d ", vm->pc);
+		printf("%zu ", vm->pc);
 		Stack_print(&vm->stack);
 		fflush(stdout);
 #endif

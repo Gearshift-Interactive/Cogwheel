@@ -20,6 +20,13 @@ typedef enum {
 	TYPE_FUNCTION,
 } TypeKind;
 
+struct Type;
+
+typedef struct {
+	struct Type *type;
+	bool isMutable;
+} ArgInfo;
+
 typedef struct Type {
 	TypeKind kind;
 	union {
@@ -33,7 +40,7 @@ typedef struct Type {
 		struct {
 			struct Type *retType;
 			struct {
-				struct Type **items;
+				ArgInfo *items;
 				size_t count, capacity;
 			} args;
 		} function;
@@ -50,3 +57,4 @@ extern Type TYPE_NULL_OBJ;
 const char *Type_toString(const Type *);
 bool Type_areCompatible(const Type *, const Type *);
 Type *Type_copy(const Type *);
+bool Type_isRef(const Type *);

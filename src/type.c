@@ -58,9 +58,11 @@ const char *Type_toString(const Type *t)
 	{
 		sb_append_cstr(&sb, Type_toString(t->function.retType));
 		da_append(&sb, '(');
-		da_foreach(Type*, param, &t->function.args)
+		da_foreach(ArgInfo, param, &t->function.args)
 		{
-			sb_append_cstr(&sb, Type_toString(*param));
+			if (param->isMutable)
+				sb_append_cstr(&sb, "mut ");
+			sb_append_cstr(&sb, Type_toString(param->type));
 			da_append(&sb, ',');
 		}
 		da_append(&sb, ')');
@@ -92,7 +94,7 @@ bool Type_areCompatible(const Type *a, const Type *b)
 		if (!Type_areCompatible(a->function.retType, b->function.retType))
 			return false;
 		for (size_t i = 0; i < a->function.args.count; i++)
-			if (!Type_areCompatible(a->function.args.items[i], b->function.args.items[i]))
+			if (!Type_areCompatible(a->function.args.items[i].type, b->function.args.items[i].type))
 				return false;
 	}
 	if (a->kind != b->kind)
@@ -116,4 +118,20 @@ Type *Type_copy(const Type *src)
 	*result = *src;
 	Bank_handOff(result);
 	return result;
+}
+bool Type_isRef(const Type *t)
+{
+	switch (t->kind)
+	{
+		case TYPE_UNKNOWN:
+#define X(NAME, LITERAL) case TYPE_##NAME:
+	TYPE_KINDS
+#undef X
+		case TYPE_OPTION:
+		case TYPE_FUNCTION:
+			return false;
+		case TYPE_ARRAY:
+			return true;
+	}
+	return false;
 }

@@ -267,7 +267,18 @@ static Type *parseType(TokenStream *tokens)
 			result = newResult;
 			while (TokenStream_peek(tokens)->type != TOKEN_RPAREN)
 			{
-				Type *arg = parseType(tokens);
+				bool isMutable;
+				if (TokenStream_peek(tokens)->type == TOKEN_MUT)
+				{
+					TokenStream_consume(tokens);
+					isMutable = true;
+				}
+				else
+					isMutable = false;
+				ArgInfo arg = {
+					.type = parseType(tokens),
+					.isMutable = isMutable,
+				};
 				da_append(&result->function.args, arg);
 				if (TokenStream_peek(tokens)->type == TOKEN_COMMA)
 					TokenStream_consume(tokens);

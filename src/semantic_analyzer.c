@@ -230,7 +230,13 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			node->retType->kind = TYPE_FUNCTION;
 			node->retType->function.retType = right->retType;
 			da_foreach(Node*, arg, &left->tuple)
-				da_append(&node->retType->function.args, (*arg)->funcParam.type);
+			{
+				ArgInfo info = {
+					.type = (*arg)->funcParam.type,
+					.isMutable = (*arg)->funcParam.isMutable,
+				};
+				da_append(&node->retType->function.args, info);
+			}
 			Bank_handOff(node->retType->function.args.items);
 			// printf("%s\n", Type_toString(node->retType));
 			// fflush(stdout);
@@ -723,12 +729,20 @@ static void analyze(Node *node)
 				node->call.args->tuple.count);
 		for (size_t i = 0; i < node->call.args->tuple.count; i++)
 		{
-			Type *expected = node->call.function->retType->function.args.items[i];
+			Type *expected = node->call.function->retType->function.args.items[i].type;
 			Type *got = node->call.args->tuple.items[i]->retType;
 			if (!Type_areCompatible(expected, got))
 				comptimeMessage(MESSAGE_ERRORN, node->call.args->tuple.items[i]->pos,
 					"Incompatible type for argument %zu: expected %s, got %s",
 					i + 1, Type_toString(expected), Type_toString(got)
+				);
+			bool expectedMut = node->call.function->retType->function.args.items[i].isMutable;
+			bool gotMut = checkMutable(node->call.args->tuple.items[i]);
+			if (expectedMut && !gotMut && Type_isRef(got))
+				comptimeMessage(MESSAGE_ERRORN, node->call.args->tuple.items[i]->pos,
+					"Incompatible mutability for argument %zu: can't pass an"
+					" immutable refference to a mutable function argument",
+					i + 1
 				);
 		}
 		break;
