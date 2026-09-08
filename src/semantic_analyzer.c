@@ -138,6 +138,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 	struct Node *left, *right;
 	Context childContext;
 	Context *operatingContext;
+	node->retType = &TYPE_VOID_OBJ;
 	switch (node->type)
 	{
 	case NODE_NUMBER_LIT:
@@ -200,7 +201,8 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			// VarInfo *info = ScopeInfo_getInfo(scope, left->symbol.scopeIndex, left->symbol.scopeDepth);
 			if (!Type_areCompatible(left->retType, right->retType))
 				comptimeMessage(MESSAGE_ERRORN, right->pos,
-					"Can't assign a value of type \"%s\" to a variable of type \"%s\"",
+					"Can't assign a value of type \"%s\""
+					" to a variable of type \"%s\"",
 					Type_toString(right->retType),
 					Type_toString(left->retType)
 				);
@@ -223,7 +225,8 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					(*arg)->funcParam.type,
 					(*arg)->funcParam.isMutable
 				);
-			node->infix.right = markScopeExt(node->infix.right, childScope, &childContext);
+			node->infix.right =
+				markScopeFunc(node->infix.right, childScope, &childContext);
 			ScopeInfo_free(childScope);
 			free(childScope);
 			node->retType = calloc(1, sizeof *node->retType);
@@ -244,6 +247,14 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		}
 		else if (node->infix.type == INFIX_OR || node->infix.type == INFIX_AND)
 		{
+			if (left->retType != &TYPE_BOOL_OBJ)
+				comptimeMessage(MESSAGE_ERRORN, left->pos,
+					"Can't perform %s on non-boolean",
+					InfixType_toString(&node->infix.type));
+			if (right->retType != &TYPE_BOOL_OBJ)
+				comptimeMessage(MESSAGE_ERRORN, right->pos,
+					"Can't perform %s on non-boolean",
+					InfixType_toString(&node->infix.type));
 			if (left->retType == &TYPE_BOOL_OBJ && right->retType == &TYPE_BOOL_OBJ)
 				node->retType = &TYPE_BOOL_OBJ;
 		}
@@ -620,7 +631,8 @@ static void analyze(Node *node)
 		break;
 	case NODE_CAST:
 		if (node->retType->kind == node->cast.value->retType->kind)
-			nob_log(WARNING, "Casting %s to %s is not necessary",
+			comptimeMessage(MESSAGE_WARN, node->cast.value->pos,
+				"Casting %s to %s is not necessary",
 				Type_toString(node->retType),
 				Type_toString(node->cast.value->retType));
 		analyze(node->cast.value);

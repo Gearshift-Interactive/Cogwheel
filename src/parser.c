@@ -411,6 +411,8 @@ static Node *parseTuple
 }
 static void compactTuple(Node **node)
 {
+	if ((*node)->type != NODE_TUPLE)
+		return;
 	if ((*node)->tuple.count == 0)
 		comptimeMessage(MESSAGE_ERROR, (*node)->pos,
 			"Empty tuple in an illegal context");
@@ -437,6 +439,7 @@ static Node *parseExprHead(TokenStream *tokens)
 			TokenStream_consume(tokens);
 			TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
 			Node *value = parseExpr(tokens, CAST_BINDING_POWER);
+			compactTuple(&value);
 			result = Node_make(peekOld->pos);
 			result->pos.length += peek->pos.length + 1;
 			result->type = NODE_CAST;
@@ -456,6 +459,7 @@ static Node *parseExprHead(TokenStream *tokens)
 		Node *result = Node_make(token.pos);
 		result->type = NODE_NEGATION;
 		result->negation.value = parseExpr(tokens, bind);
+		compactTuple(&result->negation.value);
 		// TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
 		return result;
 	}
@@ -469,6 +473,7 @@ static Node *parseExprHead(TokenStream *tokens)
 		Node *result = Node_make(TokenStream_consume(tokens).pos);
 		result->type = NODE_EXIT;
 		result->exit.value = parseExpr(tokens, 0);
+		compactTuple(&result->exit.value);
 		return result;
 	}
 	else if (peek->type == TOKEN_YIELD) // yield keyword
@@ -476,6 +481,7 @@ static Node *parseExprHead(TokenStream *tokens)
 		Node *result = Node_make(TokenStream_consume(tokens).pos);
 		result->type = NODE_YIELD;
 		result->exit.value = parseExpr(tokens, 0);
+		compactTuple(&result->exit.value);
 		return result;
 	}
 	else if (peek->type == TOKEN_LBRACE) // block
@@ -491,6 +497,7 @@ static Node *parseExprHead(TokenStream *tokens)
 		Node *result = Node_make(token.pos);
 		result->type = NODE_NOT;
 		result->not.value = parseExpr(tokens, bind);
+		compactTuple(&result->not.value);
 		// TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
 		return result;
 	}
@@ -499,7 +506,10 @@ static Node *parseExprHead(TokenStream *tokens)
 		Node *result = Node_make(TokenStream_consume(tokens).pos);
 		result->type = NODE_BREAK;
 		if (!isTailToken(TokenStream_peek(tokens)->type))
+		{
 			result->loopBreak.value = parseExpr(tokens, 0);
+			compactTuple(&result->loopBreak.value);
+		}
 		return result;
 	}
 	else if (peek->type == TOKEN_NEW) // new
@@ -512,6 +522,7 @@ static Node *parseExprHead(TokenStream *tokens)
 		{
 			TokenStream_consume(tokens);
 			Node *value = parseExpr(tokens, 0);
+			compactTuple(&value);
 			da_append(&result->new.builderArgs, value);
 			result->new.kind = NEW_OBJ;
 			TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
@@ -523,6 +534,7 @@ static Node *parseExprHead(TokenStream *tokens)
 			while (TokenStream_peek(tokens)->type != TOKEN_RBRACE)
 			{
 				Node *value = parseExpr(tokens, 0);
+				compactTuple(&value);
 				da_append(&result->new.arrayItems, value);
 				if (TokenStream_peek(tokens)->type == TOKEN_COMMA)
 					TokenStream_consume(tokens);
@@ -540,6 +552,7 @@ static Node *parseExprHead(TokenStream *tokens)
 		Node *result = Node_make(TokenStream_consume(tokens).pos);
 		result->type = NODE_SIZEOF;
 		result->sizeOf.value = parseExpr(tokens, SIZEOF_BINDING_POWER);
+		compactTuple(&result->sizeOf.value);
 		return result;
 	}
 	return parseAtom(tokens);
@@ -609,7 +622,8 @@ static Node *parseExprTail(TokenStream *tokens, float parentBind, Node *left)
 static Node *parseExpr(TokenStream *tokens, float parentBind)
 {
 	Node *left = parseExprHead(tokens);
-	return parseExprTail(tokens, parentBind, left);
+	Node *result = parseExprTail(tokens, parentBind, left);
+	return result;
 }
 Node *parse(TokenStream tokens)
 {

@@ -76,7 +76,7 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context);
 static size_t compileCast(Chunk *this, const Node *node, __attribute__((unused)) Context *context)
 {
 	size_t resultSize = 0;
-	Opcode op = OP_NOOP;
+	Opcode op = 0;
 	switch (node->cast.target->kind)
 	{
 	case TYPE_INT:
@@ -123,7 +123,8 @@ static size_t compileCast(Chunk *this, const Node *node, __attribute__((unused))
 		comptimeMessage(MESSAGE_ERROR, node->pos, "Invalid cast target");
 		break;
 	}
-	da_append(&this->instr, op);
+	if (op)
+		da_append(&this->instr, op);
 	return resultSize;
 }
 
