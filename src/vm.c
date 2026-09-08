@@ -1,7 +1,6 @@
 #include "vm.h"
 #include "error.h"
 #include "value.h"
-#include "gc.h"
 
 #include <math.h>
 #include <inttypes.h>
@@ -16,6 +15,11 @@ typedef struct Scope {
 	size_t refCount;
 	Value values[];
 } Scope;
+
+typedef struct Closure {
+	Chunk *chunk;
+	Scope *env;
+} Closure;
 
 
 static void Scope_retain(Scope *this)
@@ -32,6 +36,66 @@ static void Scope_release(Scope *this)
 		free(this);
 	}
 }
+
+typedef struct {
+	bool marked;
+	size_t count;
+	Value items[];
+} HeapObject;
+
+typedef struct {
+	struct {
+		HeapObject **items;
+		size_t count, capacity;
+	} allObjects;
+	struct {
+		Closure **items;
+		size_t count, capacity;
+	} closures;
+} GC;
+
+static Value GC_alloc(GC *this, size_t valueCount)
+{
+	HeapObject *obj = calloc(1, sizeof(*obj) + sizeof(Value) * valueCount);
+	obj->count = valueCount;
+	da_append(&this->allObjects, obj);
+	return (Value){
+#ifdef DEBUG
+		.type = VALUE_HEAP,
+#endif
+		.isHeap = true,
+		.v_heap = obj,
+	};
+}
+static Value GC_allocClosure(GC *this, Chunk *chunk, Scope *env)
+{
+	Closure *closure = calloc(1, sizeof *closure);
+	closure->chunk = chunk;
+	closure->env = env;
+	da_append(&this->closures, closure);
+	return (Value) {
+#ifdef DEBUG
+		.type = VALUE_FUNC,
+#endif
+		.isHeap = true,
+		.v_func = closure,
+	};
+}
+static void GC_freeAll(GC *this)
+{
+	da_foreach(HeapObject*, obj, &this->allObjects)
+		free(*obj);
+	if (this->allObjects.items)
+		free(this->allObjects.items);
+	da_foreach(Closure*, obj, &this->closures)
+	{
+		Scope_release((*obj)->env);
+		free(*obj);
+	}
+	if (this->closures.items)
+		free(this->closures.items);
+}
+
 
 typedef struct {
 	Value *values;
@@ -201,7 +265,7 @@ static size_t readSizeT(VM *vm, const Chunk *chunk)
     vm->pc += sizeof(value);
     return value;
 }
-static void call(VM *vm, const Chunk *chunk, size_t argc);
+static void call(VM *, const Closure *, size_t);
 static void Scope_enter(VM *vm, size_t varCount)
 {
 	Scope *parent = vm->scope;
@@ -683,16 +747,11 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_CLOAD_FUNC: {
 		size_t chunkIndex = readSizeT(vm, chunk);
 		Chunk *funcChunk = &chunk->functions.items[chunkIndex];
-		Scope_release(funcChunk->vmData);
-		funcChunk->vmData = vm->scope;
+		// Scope_release(funcChunk->vmData);
+		// funcChunk->vmData = vm->scope;
 		if (vm->scope)
 			Scope_retain(vm->scope);
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_FUNC,
-#endif
-			.v_func = funcChunk,
-		});
+		Stack_push(&vm->stack, GC_allocClosure(&vm->gc, funcChunk, vm->scope));
 	} break;
 	case OP_CALL: {
 		size_t argc = readSizeT(vm, chunk);
@@ -729,18 +788,18 @@ static void execute(VM *vm, const Chunk *chunk)
 		runInstruction(vm, chunk);
 	}
 }
-static void call(VM *vm, const Chunk *chunk, size_t argc)
+static void call(VM *vm, const Closure *closure, size_t argc)
 {
 	size_t oldPc    = vm->pc;
 	Scope *oldScope = vm->scope;
 
 	vm->pc    = 0;
-	vm->scope = chunk->vmData;
+	vm->scope = closure->env;
 
 	Scope_enter(vm, argc);
 	for (int i = argc - 1; i >= 0; i--)
 		scopeWrite(vm, 0, i, Stack_pop(&vm->stack));
-	execute(vm, chunk);
+	execute(vm, closure->chunk);
 	Scope_exit(vm);
 
 	vm->pc    = oldPc;

@@ -122,6 +122,8 @@ typedef struct Chunk {
 	void *vmData;
 } Chunk;
 
+typedef struct Closure Closure;
+
 #undef CONST_ARRAY
 
 void Chunk_free(const Chunk *);

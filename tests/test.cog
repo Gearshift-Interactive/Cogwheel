@@ -1,1 +1,4 @@
-exit while (true) 12 else -1;
+var make = (int base) -> (int x) -> base + x;
+var a = make(10);
+var b = make(20);
+exit a(1) + b(1);

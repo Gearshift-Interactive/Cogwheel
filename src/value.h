@@ -33,7 +33,7 @@ typedef struct {
 		double v_float;
 		bool v_bool;
 		void *v_heap;
-		Chunk *v_func;
+		Closure *v_func;
 	};
 #ifdef DEBUG
 	ValueType type;
