@@ -414,10 +414,17 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		node->retType = &TYPE_VOID_OBJ;
 		if (node->whileLoop.elseBlock)
 		{
-			if (node->whileLoop.elseBlock->retType != childContext.loop.retType)
-				comptimeMessage(MESSAGE_ERRORN, node->whileLoop.elseBlock->pos,
+			if (!Type_areCompatible(node->whileLoop.elseBlock->retType, childContext.loop.retType))
+			{
+				comptimeMessage(MESSAGE_ERRORN, node->pos,
 					"\"while\" can't return values of multiple data types");
-			node->retType = childContext.loop.retType;
+			}
+			if (node->whileLoop.elseBlock->retType)
+				node->retType = node->whileLoop.elseBlock->retType;
+			else if (childContext.loop.retType)
+				node->retType = childContext.loop.retType;
+			else
+				node->retType = &TYPE_VOID_OBJ;
 		}
 		else
 		{
