@@ -581,7 +581,7 @@ static bool checkMutable(Node *node)
 	{
 		case NODE_SYMBOL:    return node->symbol.isMutable;
 		case NODE_SUBSCRIPT: return checkMutable(node->subscript.value);
-		default:             PANIC("ts isn't assignable");
+		default:             return false;
 	}
 }
 static void analyze(Node *node)

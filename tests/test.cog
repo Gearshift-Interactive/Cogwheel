@@ -1,8 +1,24 @@
-mut var some = new int[]{ 1, 2, 3 };
-int index = 1;
-var sort = (mut int[] arr, mut int i) -> {
-    arr[0u] = arr[0u] + 1;
+var sort = (mut int[] arr, boolean(int, int) predicate) -> {
+    mut var i = 0u;
+    var maxIndex = sizeof arr - 1u;
+    while (i < maxIndex)
+    {
+        mut uint j = 0u;
+        while (j < maxIndex - i)
+        {
+            if (predicate(arr[j], arr[j + 1u]))
+            {
+                int temp = arr[j];
+                arr[j] = arr[j + 1u];
+                arr[j + 1u] = temp;
+            };
+            j = j + 1u;
+        };
+        i = i + 1u;
+    };
 };
-// TODO: error here
-sort(some, index);
-exit some[0u];
+
+mut var array = new int[]{ 2, 1, 6, 12, 8 };
+sort(array, (int a, int b) -> a > b);
+
+exit array[0u];
