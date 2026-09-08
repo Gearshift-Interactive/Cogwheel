@@ -193,7 +193,7 @@ int(int, int) addFunc = (int a, int b) -> a + b;
 ```
 It is important to note, that function arguments also can be mutable or immutable.
 ```
-var sort = (mut int[] array, bool(int, int) condition) -> { ... };
+var sort = (mut int[] array, boolean(int, int) condition) -> { ... };
 //          ^^^
 mut int[] array1 = new int[]{ ... };
     int[] array2 = new int[]{ ... };
