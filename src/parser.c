@@ -22,6 +22,7 @@ static const struct {
 	{ TOKEN_UINT_T, &TYPE_UINT_OBJ },
 	{ TOKEN_FLOAT_T, &TYPE_FLOAT_OBJ },
 	{ TOKEN_BOOL_T, &TYPE_BOOL_OBJ },
+	{ TOKEN_VOID, &TYPE_VOID_OBJ },
 	// { TOKEN_STRING_T, ATOM_STRING },
 };
 static const BindingPower BINDING_POWERS[] = {
@@ -61,7 +62,7 @@ static const TokenType TAIL_TOKENS[] = {
 	TOKEN_SEMICOLON, TOKEN_RPAREN, TOKEN_ELSE, TOKEN_RBRACKET, TOKEN_COMMA, TOKEN_RBRACE
 };
 static const TokenType ATOMIC_TYPE_TOKENS[] = {
-	TOKEN_INT_T, TOKEN_UINT_T, TOKEN_FLOAT_T, TOKEN_BOOL_T, TOKEN_STRING_T
+	TOKEN_INT_T, TOKEN_UINT_T, TOKEN_FLOAT_T, TOKEN_BOOL_T, TOKEN_STRING_T, TOKEN_VOID,
 };
 
 static Type *tokenToType(Token t)
@@ -93,7 +94,7 @@ static BindingPower getBindingFor(Token t)
 	for (size_t i = 0; i < ARRAY_LEN(BINDING_POWERS); i++)
 		if (BINDING_POWERS[i].op == t.type)
 			return BINDING_POWERS[i];
-	comptimeMessage(MESSAGE_ERROR, t.pos, "Unexpected Token");
+	comptimeMessage(MESSAGE_ERROR, t.pos, "Unexpected infix operator");
 	return (BindingPower){0};
 }
 static PrefixBindingPower getPrefixBindingFor(Token t)
@@ -101,7 +102,7 @@ static PrefixBindingPower getPrefixBindingFor(Token t)
 	for (size_t i = 0; i < ARRAY_LEN(PREFIX_POWERS); i++)
 		if (PREFIX_POWERS[i].op == t.type)
 			return PREFIX_POWERS[i];
-	comptimeMessage(MESSAGE_ERROR, t.pos, "Unexpected Token");
+	comptimeMessage(MESSAGE_ERROR, t.pos, "Unexpected infix operator");
 	return (PrefixBindingPower){0};
 }
 static int64_t parseNumber(Token token)

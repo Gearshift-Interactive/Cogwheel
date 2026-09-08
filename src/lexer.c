@@ -56,6 +56,7 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "var", TOKEN_VAR },
 	{ "sizeof", TOKEN_SIZEOF },
 	{ "null", TOKEN_NULL },
+	{ "void", TOKEN_VOID },
 };
 static const char LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char LETTERS_AND_NUMBERS[] =

@@ -46,6 +46,7 @@
 	X(FLOAT_T) \
 	X(BOOL_T) \
 	X(STRING_T) \
+	X(VOID) \
 	/* keywords */ \
 	X(EXIT) \
 	X(MUT) \

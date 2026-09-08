@@ -1,4 +1,4 @@
-var sort = (mut int[] arr, boolean(int, int) predicate) -> {
+void(mut int[], boolean(int, int)) sort = (mut int[] arr, boolean(int, int) predicate) -> {
     mut var i = 0u;
     var maxIndex = sizeof arr - 1u;
     while (i < maxIndex)
