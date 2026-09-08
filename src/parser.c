@@ -28,7 +28,7 @@ static const struct {
 static const BindingPower BINDING_POWERS[] = {
 	{ TOKEN_ARROW,  0.5f,  0.6f  },
 
-	{ TOKEN_ASSIGN, 1.1f,  1.0f  },
+	{ TOKEN_ASSIGN, 1.0f,  1.1f  },
 
 	{ TOKEN_OR,     2.0f,  2.1f  },
 

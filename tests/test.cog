@@ -1,4 +1,4 @@
-var make = (int base) -> (int x) -> base + x;
-var a = make(10);
-var b = make(20);
-exit a(1) + b(1);
+mut uint variable2 = 10u;
+uint variable3 = 0u;
+variable2 = variable3 = variable2 + 8u;
+exit (int)variable2;
