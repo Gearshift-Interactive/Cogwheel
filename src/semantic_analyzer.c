@@ -754,7 +754,7 @@ static void analyze(Node *node)
 			if (expectedMut && !gotMut && Type_isRef(got))
 				comptimeMessage(MESSAGE_ERRORN, node->call.args->tuple.items[i]->pos,
 					"Incompatible mutability for argument %zu: can't pass an"
-					" immutable refference to a mutable function argument",
+					" immutable reference to a mutable function argument",
 					i + 1
 				);
 		}

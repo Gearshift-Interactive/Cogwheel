@@ -315,7 +315,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			Value rhs = Stack_pop(&vm->stack);
 			Value lhs = Stack_pop(&vm->stack);
 			if (rhs.v_int == 0)
-				PANIC("Devision by zero");
+				PANIC("Division by zero");
 			Value result = {
 #ifdef DEBUG
 				.type = VALUE_INT,
