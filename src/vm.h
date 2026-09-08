@@ -119,7 +119,6 @@ typedef struct Chunk {
 		union { uint8_t *code, *items; };
 	} instr;
 	size_t refCount;
-	void *vmData;
 } Chunk;
 
 typedef struct Closure Closure;
