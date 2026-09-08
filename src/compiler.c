@@ -535,8 +535,6 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		// TODO
 		if (node->retType->kind != TYPE_ARRAY)
 			PANIC("Compiling non-array \"new\"");
-		PUSH_OP(OP_GC_ALLOC);
-		PUSH_DATA(size_t, node->retType->array.size);
 		// switch (node->new.kind)
 		// {
 		// case NEW_OBJ: {
@@ -562,6 +560,8 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		switch (node->new.kind)
 		{
 		case NEW_ARRAY: {
+			PUSH_OP(OP_GC_ALLOC);
+			PUSH_DATA(size_t, node->retType->array.size);
 			size_t i = 0;
 			da_foreach(Node*, item, &node->new.arrayItems)
 			{
@@ -570,6 +570,12 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 				PUSH_DATA(size_t, i);
 				i++;
 			}
+		} break;
+		case NEW_ARRAY_PLACEHOLDER: {
+			compileNode(this, node->new.arrayPlaceholder.itemCount, context);
+			PUSH_OP(OP_GC_ALLOC_FROMSTACK);
+			compileNode(this, node->new.arrayPlaceholder.placeholderValue, context);
+			PUSH_OP(OP_GC_FILL);
 		} break;
 		}
 		break;

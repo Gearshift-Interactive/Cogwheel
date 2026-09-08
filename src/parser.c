@@ -545,11 +545,17 @@ static Node *parseExprHead(TokenStream *tokens)
 			result->new.arrayPlaceholder.placeholderValue = parseExpr(tokens, 0);
 			compactTuple(&result->new.arrayPlaceholder.placeholderValue);
 			result->new.arrayPlaceholder.itemCount = itemCount;
+			TokenStream_consumeExpect(tokens, TOKEN_RBRACKET);
 		}
 		else comptimeMessage(MESSAGE_ERROR, consumed.pos,
 			"Unexpected token of type %s, expected SEMICOLON, COMMA or RBRACKET",
 			TokenType_toString(consumed.type)
 		);
+		if (TokenStream_peek(tokens)->type == TOKEN_WITH)
+		{
+			TokenStream_consume(tokens);
+			result->new.type = parseType(tokens);
+		}
 		// result->new.type = parseType(tokens);
 		// peek = TokenStream_peek(tokens);
 		// if (peek->type == TOKEN_LPAREN)

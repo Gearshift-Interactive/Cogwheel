@@ -699,6 +699,16 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		Value function = Stack_pop(&vm->stack);
 		call(vm, function.v_func, argc);
 	} break;
+	case OP_GC_ALLOC_FROMSTACK: {
+		Value size = Stack_pop(&vm->stack);
+		Stack_push(&vm->stack, GC_alloc(&vm->gc, size.v_uint));
+	} break;
+	case OP_GC_FILL: {
+		Value value = Stack_pop(&vm->stack);
+		HeapObject *obj = Stack_currentPtr(&vm->stack)->v_heap;
+		for (size_t i; i < obj->count; i++)
+			obj->items[i] = value;
+	} break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;

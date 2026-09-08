@@ -457,7 +457,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		switch (node->new.kind)
 		{
 		case NEW_ARRAY: {
-			Type *activeType = NULL;
+			Type *activeType = node->new.type;
 			da_foreach(Node*, item, &node->new.arrayItems)
 			{
 				mark(item, scope, context);
@@ -472,13 +472,35 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 				else
 					activeType = (*item)->retType;
 			}
-			node->retType = calloc(1, sizeof *node->retType);
-			Bank_handOff(node->retType);
-			node->retType->kind = TYPE_ARRAY;
-			node->retType->array.underlying = activeType;
-			node->retType->array.size = node->new.arrayItems.count;
+			if (!node->new.type)
+				node->new.type = activeType;
+		} break;
+		case NEW_ARRAY_PLACEHOLDER: {
+			mark(&node->new.arrayPlaceholder.itemCount, scope, context);
+			mark(&node->new.arrayPlaceholder.placeholderValue, scope, context);
+			if (node->new.type)
+			{
+				if (!Type_areCompatible(
+					node->new.type,
+					node->new.arrayPlaceholder.placeholderValue->retType
+				)) comptimeMessage(MESSAGE_ERRORN,
+					node->new.arrayPlaceholder.placeholderValue->pos,
+					"Incompatible type %s for %s",
+					Type_toString(node->new.arrayPlaceholder.placeholderValue->retType),
+					Type_toString(node->new.type)
+				);
+			}
+			else
+				node->new.type =
+					node->new.arrayPlaceholder.placeholderValue->retType;
 		} break;
 		}
+		node->retType = calloc(1, sizeof *node->retType);
+		Bank_handOff(node->retType);
+		node->retType->kind = TYPE_ARRAY;
+		node->retType->array.underlying = node->new.type;
+		if (node->new.kind == NEW_ARRAY)
+			node->retType->array.size = node->new.arrayItems.count;
 		break;
 	case NODE_SUBSCRIPT:
 		mark(&node->subscript.value, scope, context);
@@ -752,6 +774,13 @@ static void analyze(Node *node)
 		// 		);
 		// 	break;
 		// }
+		if (node->new.kind == NEW_ARRAY_PLACEHOLDER)
+			if (node->new.arrayPlaceholder.itemCount->retType != &TYPE_UINT_OBJ)
+				comptimeMessage(
+					MESSAGE_ERRORN,
+					node->new.arrayPlaceholder.itemCount->pos,
+					"Array size can only be of type uint"
+				);
 		break;
 	case NODE_TUPLE:
 		da_foreach(Node*, child, &node->tuple)

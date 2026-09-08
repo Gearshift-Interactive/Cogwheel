@@ -116,6 +116,7 @@ typedef struct Node {
 		} whileLoop;
 		struct {
 			enum { NEW_ARRAY_PLACEHOLDER, NEW_ARRAY } kind;
+			Type *type;
 			union {
 				struct {
 					struct Node **items;

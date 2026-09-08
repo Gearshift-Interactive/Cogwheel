@@ -1,25 +1,25 @@
-var sort = (mut int[] arr, boolean(int, int) predicate) -> {
-    mut var i = 0u;
-    var maxIndex = sizeof arr - 1u;
-    while (i < maxIndex)
-    {
-        mut var j = 0u;
-        while (j < maxIndex - i)
-        {
-            if (predicate(arr[j], arr[j + 1u]))
-            {
-                var temp = arr[j];
-                arr[j] = arr[j + 1u];
-                arr[j + 1u] = temp;
-            };
-            j = j + 1u;
-        };
-        i = i + 1u;
-    };
-};
-
-mut
-var array = new [ 2, 1, 6, 12, 8 ];
-sort(array, (int a, int b) -> a > b);
-
-exit (array[0u] + 2);
+// var sort = (mut int[] arr, boolean(int, int) predicate) -> {
+//     mut var i = 0u;
+//     var maxIndex = sizeof arr - 1u;
+//     while (i < maxIndex)
+//     {
+//         mut var j = 0u;
+//         while (j < maxIndex - i)
+//         {
+//             if (predicate(arr[j], arr[j + 1u]))
+//             {
+//                 var temp = arr[j];
+//                 arr[j] = arr[j + 1u];
+//                 arr[j + 1u] = temp;
+//             };
+//             j = j + 1u;
+//         };
+//         i = i + 1u;
+//     };
+// };
+//
+// mut
+var array = new [ 5u; 2 ];
+// sort(array, (int a, int b) -> a > b);
+//
+exit array[0u] + 2;

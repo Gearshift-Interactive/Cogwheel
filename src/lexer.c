@@ -58,6 +58,7 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "var", TOKEN_VAR },
 	{ "sizeof", TOKEN_SIZEOF },
 	{ "null", TOKEN_NULL },
+	{ "with", TOKEN_WITH },
 };
 static const char LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char LETTERS_AND_NUMBERS[] =
@@ -278,7 +279,7 @@ static void Tokenizer_handleComment(Tokenizer *this)
 	if (*(this->text.data + this->offset) == '/')
 	{
 		Tokenizer_advance(this);
-		Tokenizer_advance(this);
+		// Tokenizer_advance(this);
 		while (*(this->text.data + this->offset) != '\n')
 			Tokenizer_advance(this);
 		Tokenizer_advance(this);
