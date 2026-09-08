@@ -74,7 +74,7 @@ variable2 = variable3 = variable2 + 8;
 You can also declare a variable with `var` keyword without specifying it's type.
 ```
 var something = 10; // int
-var somethingTheSequel = new uint[10](0u); // uint[]
+var somethingTheSequel = new [10u; 0u]; // uint[]
 ```
 
 #### Arrays
@@ -194,8 +194,8 @@ It is important to note, that function arguments also can be mutable or immutabl
 ```
 var sort = (mut int[] array, boolean(int, int) condition) -> { ... };
 //          ^^^
-mut int[] array1 = new int[]{ ... };
-    int[] array2 = new int[]{ ... };
+mut int[] array1 = new [ ... ];
+    int[] array2 = new [ ... ];
 var basicConditon = (int a, int b) -> a > b;
 
 sort(array1, basicConditon); // OK
