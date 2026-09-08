@@ -1,9 +1,3 @@
-mut var globalValue = 0;
+var add = (int a) -> (int b) -> a + b;
 
-var increment = () -> globalValue = globalValue + 1;
-
-increment();
-increment();
-increment();
-
-exit globalValue;
+exit add(2)(4);

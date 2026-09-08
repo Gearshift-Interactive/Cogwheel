@@ -18,11 +18,19 @@ typedef struct Scope {
 } Scope;
 
 
-static void Scope_free(Scope *this)
+static void Scope_retain(Scope *this)
 {
-	if (this->parent)
-		Scope_free(this->parent);
-	free(this);
+	this->refCount++;
+}
+static void Scope_release(Scope *this)
+{
+	if (!this) return;
+	if (--this->refCount == 0)
+	{
+		if (this->parent)
+			Scope_release(this->parent);
+		free(this);
+	}
 }
 
 typedef struct {
@@ -196,17 +204,18 @@ static size_t readSizeT(VM *vm, const Chunk *chunk)
 static void call(VM *vm, const Chunk *chunk, size_t argc);
 static void Scope_enter(VM *vm, size_t varCount)
 {
-	Scope *scope = vm->scope;
+	Scope *parent = vm->scope;
 	vm->scope = calloc(1, sizeof(*(vm->scope)) + sizeof(Value[varCount]));
-	vm->scope->refCount++;
-	vm->scope->parent = scope;
+	Scope_retain(vm->scope);
+	if (parent)
+		Scope_retain(parent);
+	vm->scope->parent = parent;
 }
 static void Scope_exit(VM *vm)
 {
 	Scope *scope = vm->scope;
 	vm->scope = scope->parent;
-	scope->refCount--;
-	if (scope->refCount == 0) free(scope);
+	Scope_release(scope);
 }
 static Value scopeRead(VM *vm, size_t depth, size_t id)
 {
@@ -674,8 +683,10 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_CLOAD_FUNC: {
 		size_t chunkIndex = readSizeT(vm, chunk);
 		Chunk *funcChunk = &chunk->functions.items[chunkIndex];
+		Scope_release(funcChunk->vmData);
 		funcChunk->vmData = vm->scope;
-		vm->scope->refCount++;
+		if (vm->scope)
+			Scope_retain(vm->scope);
 		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
 			.type = VALUE_FUNC,
@@ -725,13 +736,21 @@ static void call(VM *vm, const Chunk *chunk, size_t argc)
 	vm->pc    = oldPc;
 	vm->scope = oldScope;
 }
+void Chunk_freeVmData(const Chunk *chunk)
+{
+	if (chunk->vmData)
+		Scope_release(chunk->vmData);
+	da_foreach(Chunk, function, &chunk->functions)
+		Chunk_freeVmData(function);
+}
 int run(const Chunk *chunk)
 {
 	VM vm = {0};
 	execute(&vm, chunk);
 	Stack_free(&vm.stack);
 	GC_freeAll(&vm.gc);
+	Chunk_freeVmData(chunk);
 	Chunk_free(chunk);
-	if (vm.scope) Scope_free(vm.scope);
+	if (vm.scope) Scope_release(vm.scope);
 	return vm.retCode;
 }
