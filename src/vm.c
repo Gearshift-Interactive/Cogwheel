@@ -765,7 +765,7 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 	case OP_GC_FILL: {
 		Value value = Stack_pop(&vm->stack);
 		HeapObject *obj = Stack_currentPtr(&vm->stack)->v_heap;
-		for (size_t i; i < obj->count; i++)
+		for (size_t i = 0; i < obj->count; i++)
 			obj->items[i] = value;
 	} break;
 	default:

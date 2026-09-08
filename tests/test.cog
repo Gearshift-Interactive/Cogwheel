@@ -1,3 +1,2 @@
-int? r = null;
-boolean b = (r?);
-exit if (b) 1 else 0;
+var testArray = new [ 5u; 12 ];
+exit testArray[2u];
