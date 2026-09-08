@@ -1,4 +1,3 @@
-mut uint variable2 = 10u;
-uint variable3 = 0u;
-variable2 = variable3 = variable2 + 8u;
-exit (int)variable2;
+int? r = null;
+boolean b = (r?);
+exit if (b) 1 else 0;

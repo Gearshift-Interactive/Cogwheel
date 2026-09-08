@@ -292,6 +292,20 @@ static Type *parseType(TokenStream *tokens)
 	}
 	return result;
 }
+static void compactTuple(Node **node)
+{
+	if ((*node)->type != NODE_TUPLE)
+		return;
+	if ((*node)->tuple.count == 0)
+		comptimeMessage(MESSAGE_ERROR, (*node)->pos,
+			"Empty tuple in an illegal context");
+	if ((*node)->tuple.count != 1)
+		return;
+	Node *old = *node;
+	*node = (*node)->tuple.items[0];
+	free(old->tuple.items);
+	free(old);
+}
 static Node *parseVarDecl(TokenStream *tokens)
 {
 	bool mut = false;
@@ -324,6 +338,7 @@ static Node *parseVarDecl(TokenStream *tokens)
 	TokenStream_consumeExpect(tokens, TOKEN_ASSIGN);
 	result->var_decl.type = type;
 	result->var_decl.value = parseExpr(tokens, 0);
+	compactTuple(&result->var_decl.value);
 	result->var_decl.isMutable = mut;
 	return result;
 }
@@ -408,20 +423,6 @@ static Node *parseTuple
 	result->tuple.count = exprs.count;
 	result->tuple.capacity = exprs.capacity;
 	return result;
-}
-static void compactTuple(Node **node)
-{
-	if ((*node)->type != NODE_TUPLE)
-		return;
-	if ((*node)->tuple.count == 0)
-		comptimeMessage(MESSAGE_ERROR, (*node)->pos,
-			"Empty tuple in an illegal context");
-	if ((*node)->tuple.count != 1)
-		return;
-	Node *old = *node;
-	*node = (*node)->tuple.items[0];
-	free(old->tuple.items);
-	free(old);
 }
 static Node *parseExprHead(TokenStream *tokens)
 {
