@@ -805,20 +805,12 @@ static void call(VM *vm, const Closure *closure, size_t argc)
 	vm->pc    = oldPc;
 	vm->scope = oldScope;
 }
-void Chunk_freeVmData(const Chunk *chunk)
-{
-	if (chunk->vmData)
-		Scope_release(chunk->vmData);
-	da_foreach(Chunk, function, &chunk->functions)
-		Chunk_freeVmData(function);
-}
 int run(const Chunk *chunk)
 {
 	VM vm = {0};
 	execute(&vm, chunk);
 	Stack_free(&vm.stack);
 	GC_freeAll(&vm.gc);
-	Chunk_freeVmData(chunk);
 	Chunk_free(chunk);
 	if (vm.scope) Scope_release(vm.scope);
 	return vm.retCode;
