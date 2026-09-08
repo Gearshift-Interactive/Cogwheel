@@ -532,21 +532,35 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		PUSH_DATA(size_t, 0);
 		break;
 	case NODE_NEW:
-		if (node->new.type->kind != TYPE_ARRAY)
+		// TODO
+		if (node->retType->kind != TYPE_ARRAY)
 			PANIC("Compiling non-array \"new\"");
 		PUSH_OP(OP_GC_ALLOC);
-		PUSH_DATA(size_t, node->new.type->array.size);
+		PUSH_DATA(size_t, node->retType->array.size);
+		// switch (node->new.kind)
+		// {
+		// case NEW_OBJ: {
+		// 	compileNode(this, node->new.builderArgs.items[0], context);
+		// 	for(size_t i = 0; i < node->new.type->array.size; i++)
+		// 	{
+		// 		PUSH_OP(OP_GC_ASSIGNCOPY);
+		// 		PUSH_DATA(size_t, i);
+		// 	}
+		// 	PUSH_OP(OP_POP);
+		// } break;
+		// case NEW_ARRAY: {
+		// 	size_t i = 0;
+		// 	da_foreach(Node*, item, &node->new.arrayItems)
+		// 	{
+		// 		compileNode(this, *item, context);
+		// 		PUSH_OP(OP_GC_ASSIGN);
+		// 		PUSH_DATA(size_t, i);
+		// 		i++;
+		// 	}
+		// } break;
+		// }
 		switch (node->new.kind)
 		{
-		case NEW_OBJ: {
-			compileNode(this, node->new.builderArgs.items[0], context);
-			for(size_t i = 0; i < node->new.type->array.size; i++)
-			{
-				PUSH_OP(OP_GC_ASSIGNCOPY);
-				PUSH_DATA(size_t, i);
-			}
-			PUSH_OP(OP_POP);
-		} break;
 		case NEW_ARRAY: {
 			size_t i = 0;
 			da_foreach(Node*, item, &node->new.arrayItems)

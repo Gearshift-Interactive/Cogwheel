@@ -185,18 +185,27 @@ single:
 		printf(")");
 		break;
 	case NODE_NEW:
-		printf("(new %s :", Type_toString(node->new.type));
+		printf("(new :");
 		switch (node->new.kind)
 		{
-		case NEW_OBJ:   printf("object"); break;
-		case NEW_ARRAY: printf("array");  break;
-		}
-		printf("\n");
-		da_foreach(Node*, child, &node->new.builderArgs)
-		{
+		case NEW_ARRAY_PLACEHOLDER:
+			printf("withDefault\n");
 			printIndent(indent + 1);
-			Node_printImpl(*child, indent + 1);
+			Node_printImpl(node->new.arrayPlaceholder.itemCount, indent + 1);
 			printf("\n");
+			printIndent(indent + 1);
+			Node_printImpl(node->new.arrayPlaceholder.placeholderValue, indent + 1);
+			printf("\n");
+			break;
+		case NEW_ARRAY:
+			printf("array\n");
+			da_foreach(Node*, child, &node->new.arrayItems)
+			{
+				printIndent(indent + 1);
+				Node_printImpl(*child, indent + 1);
+				printf("\n");
+			}
+			break;
 		}
 		printIndent(indent);
 		printf(")");
@@ -308,11 +317,20 @@ void Node_free(const Node *node)
 			Node_free(node->loopBreak.value);
 		break;
 	case NODE_NEW:
-		if (!node->new.builderArgs.items)
+		switch (node->new.kind)
+		{
+		case NEW_ARRAY:
+			if (!node->new.arrayItems.items)
+				break;
+			da_foreach(Node*, child, &node->new.arrayItems)
+				Node_free(*child);
+			free(node->new.arrayItems.items);
 			break;
-		da_foreach(Node*, child, &node->new.builderArgs)
-			Node_free(*child);
-		free(node->new.builderArgs.items);
+		case NEW_ARRAY_PLACEHOLDER:
+			Node_free(node->new.arrayPlaceholder.itemCount);
+			Node_free(node->new.arrayPlaceholder.placeholderValue);
+			break;
+		}
 		break;
 	case NODE_CALL:
 		Node_free(node->call.function);

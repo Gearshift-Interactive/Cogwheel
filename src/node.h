@@ -115,13 +115,15 @@ typedef struct Node {
 			struct Node *cond, *body, *elseBlock;
 		} whileLoop;
 		struct {
-			Type *type;
-			enum { NEW_OBJ, NEW_ARRAY } kind;
+			enum { NEW_ARRAY_PLACEHOLDER, NEW_ARRAY } kind;
 			union {
 				struct {
 					struct Node **items;
 					size_t count, capacity;
-				} builderArgs, arrayItems;
+				} arrayItems;
+				struct {
+					struct Node *itemCount, *placeholderValue;
+				} arrayPlaceholder;
 			};
 		} new;
 		struct {

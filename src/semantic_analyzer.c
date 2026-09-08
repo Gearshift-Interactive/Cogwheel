@@ -450,9 +450,35 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		}
 		break;
 	case NODE_NEW:
-		node->retType = node->new.type;
-		da_foreach(Node*, child, &node->new.builderArgs)
-			mark(child, scope, context);
+		// TODO
+		// node->retType = node->new.type;
+		// da_foreach(Node*, child, &node->new.builderArgs)
+		// 	mark(child, scope, context);
+		switch (node->new.kind)
+		{
+		case NEW_ARRAY: {
+			Type *activeType = NULL;
+			da_foreach(Node*, item, &node->new.arrayItems)
+			{
+				mark(item, scope, context);
+				if (activeType)
+				{
+					if (!Type_areCompatible(activeType, (*item)->retType))
+						comptimeMessage(MESSAGE_ERRORN, (*item)->pos,
+							"Incompatible type %s for %s",
+							Type_toString((*item)->retType),
+							Type_toString(activeType));
+				}
+				else
+					activeType = (*item)->retType;
+			}
+			node->retType = calloc(1, sizeof *node->retType);
+			Bank_handOff(node->retType);
+			node->retType->kind = TYPE_ARRAY;
+			node->retType->array.underlying = activeType;
+			node->retType->array.size = node->new.arrayItems.count;
+		} break;
+		}
 		break;
 	case NODE_SUBSCRIPT:
 		mark(&node->subscript.value, scope, context);
@@ -674,57 +700,58 @@ static void analyze(Node *node)
 		analyze(node->subscript.index);
 		break;
 	case NODE_NEW:
-		if (node->new.type->kind != TYPE_ARRAY)
-		{
-			comptimeMessage(MESSAGE_ERRORN, node->pos,
-				"You can't use \"new\" on atomic types");
-			break;
-		}
-		switch (node->new.kind)
-		{
-		case NEW_OBJ:
-			if (node->new.builderArgs.count != 1)
-			{
-				comptimeMessage(MESSAGE_ERRORN, node->pos,
-					"%s's builder recieves %zu arguments, %d given",
-					Type_toString(node->new.type),
-					1,
-					node->new.builderArgs.count
-				);
-				break;
-			}
-			if (!Type_areCompatible(
-				node->new.type->array.underlying,
-				node->new.builderArgs.items[0]->retType
-			)) comptimeMessage(MESSAGE_ERRORN, node->new.builderArgs.items[0]->pos,
-				"Can't assign a value of type \"%s\""
-				" to a variable of type \"%s\"",
-				Type_toString(node->new.builderArgs.items[0]->retType),
-				Type_toString(node->new.type->array.underlying)
-			);
-			break;
-		case NEW_ARRAY:
-			da_foreach(Node*, child, &node->new.arrayItems)
-			{
-				analyze(*child);
-				if (!Type_areCompatible(
-					node->new.type->array.underlying,
-					(*child)->retType
-				)) comptimeMessage(MESSAGE_ERRORN, (*child)->pos,
-					"Can't assign a value of type \"%s\""
-					" to a variable of type \"%s\"",
-					Type_toString((*child)->retType),
-					Type_toString(node->new.type->array.underlying)
-				);
-			}
-			if (node->new.type->array.size != node->new.arrayItems.count)
-				comptimeMessage(MESSAGE_ERRORN, node->pos,
-					"Expected %zu items in an array, got %zu",
-					node->new.type->array.size,
-					node->new.arrayItems.count
-				);
-			break;
-		}
+		// TODO
+		// if (node->new.type->kind != TYPE_ARRAY)
+		// {
+		// 	comptimeMessage(MESSAGE_ERRORN, node->pos,
+		// 		"You can't use \"new\" on atomic types");
+		// 	break;
+		// }
+		// switch (node->new.kind)
+		// {
+		// case NEW_OBJ:
+		// 	if (node->new.builderArgs.count != 1)
+		// 	{
+		// 		comptimeMessage(MESSAGE_ERRORN, node->pos,
+		// 			"%s's builder recieves %zu arguments, %d given",
+		// 			Type_toString(node->new.type),
+		// 			1,
+		// 			node->new.builderArgs.count
+		// 		);
+		// 		break;
+		// 	}
+		// 	if (!Type_areCompatible(
+		// 		node->new.type->array.underlying,
+		// 		node->new.builderArgs.items[0]->retType
+		// 	)) comptimeMessage(MESSAGE_ERRORN, node->new.builderArgs.items[0]->pos,
+		// 		"Can't assign a value of type \"%s\""
+		// 		" to a variable of type \"%s\"",
+		// 		Type_toString(node->new.builderArgs.items[0]->retType),
+		// 		Type_toString(node->new.type->array.underlying)
+		// 	);
+		// 	break;
+		// case NEW_ARRAY:
+		// 	da_foreach(Node*, child, &node->new.arrayItems)
+		// 	{
+		// 		analyze(*child);
+		// 		if (!Type_areCompatible(
+		// 			node->new.type->array.underlying,
+		// 			(*child)->retType
+		// 		)) comptimeMessage(MESSAGE_ERRORN, (*child)->pos,
+		// 			"Can't assign a value of type \"%s\""
+		// 			" to a variable of type \"%s\"",
+		// 			Type_toString((*child)->retType),
+		// 			Type_toString(node->new.type->array.underlying)
+		// 		);
+		// 	}
+		// 	if (node->new.type->array.size != node->new.arrayItems.count)
+		// 		comptimeMessage(MESSAGE_ERRORN, node->pos,
+		// 			"Expected %zu items in an array, got %zu",
+		// 			node->new.type->array.size,
+		// 			node->new.arrayItems.count
+		// 		);
+		// 	break;
+		// }
 		break;
 	case NODE_TUPLE:
 		da_foreach(Node*, child, &node->tuple)

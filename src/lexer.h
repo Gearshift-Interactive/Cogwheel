@@ -59,6 +59,7 @@
 	X(VAR) \
 	X(SIZEOF) \
 	X(NULL) \
+	X(AS) \
 
 
 typedef enum {

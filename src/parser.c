@@ -516,22 +516,18 @@ static Node *parseExprHead(TokenStream *tokens)
 	{
 		Node *result = Node_make(TokenStream_consume(tokens).pos);
 		result->type = NODE_NEW;
-		result->new.type = parseType(tokens);
-		peek = TokenStream_peek(tokens);
-		if (peek->type == TOKEN_LPAREN)
+		TokenStream_consumeExpect(tokens, TOKEN_LBRACKET);
+		if (TokenStream_peek(tokens)->type == TOKEN_RBRACKET)
+			comptimeMessage(MESSAGE_ERROR, TokenStream_peek(tokens)->pos,
+				"Empty array initializers are not allowed");
+		Node *itemCount = parseExpr(tokens, 0);
+		compactTuple(&itemCount);
+		Token consumed = TokenStream_consume(tokens);
+		if (consumed.type == TOKEN_COMMA || consumed.type == TOKEN_RBRACKET)
 		{
-			TokenStream_consume(tokens);
-			Node *value = parseExpr(tokens, 0);
-			compactTuple(&value);
-			da_append(&result->new.builderArgs, value);
-			result->new.kind = NEW_OBJ;
-			TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
-		}
-		else if (peek->type == TOKEN_LBRACE)
-		{
-			TokenStream_consume(tokens);
 			result->new.kind = NEW_ARRAY;
-			while (TokenStream_peek(tokens)->type != TOKEN_RBRACE)
+			da_append(&result->new.arrayItems, itemCount);
+			while (TokenStream_peek(tokens)->type != TOKEN_RBRACKET)
 			{
 				Node *value = parseExpr(tokens, 0);
 				compactTuple(&value);
@@ -539,12 +535,50 @@ static Node *parseExprHead(TokenStream *tokens)
 				if (TokenStream_peek(tokens)->type == TOKEN_COMMA)
 					TokenStream_consume(tokens);
 			}
-			TokenStream_consumeExpect(tokens, TOKEN_RBRACE);
-			if (result->new.type->array.size == 0)
-				result->new.type->array.size = result->new.arrayItems.count;
+			TokenStream_consumeExpect(tokens, TOKEN_RBRACKET);
+			// if (result->new.type->array.size == 0)
+			// 	result->new.type->array.size = result->new.arrayItems.count;
 		}
-		else
-			comptimeMessage(MESSAGE_ERROR, peek->pos, "Expected \"{\" or \"(\"");
+		else if (consumed.type == TOKEN_SEMICOLON)
+		{
+			result->new.kind = NEW_ARRAY_PLACEHOLDER;
+			result->new.arrayPlaceholder.placeholderValue = parseExpr(tokens, 0);
+			compactTuple(&result->new.arrayPlaceholder.placeholderValue);
+			result->new.arrayPlaceholder.itemCount = itemCount;
+		}
+		else comptimeMessage(MESSAGE_ERROR, consumed.pos,
+			"Unexpected token of type %s, expected SEMICOLON, COMMA or RBRACKET",
+			TokenType_toString(consumed.type)
+		);
+		// result->new.type = parseType(tokens);
+		// peek = TokenStream_peek(tokens);
+		// if (peek->type == TOKEN_LPAREN)
+		// {
+		// 	TokenStream_consume(tokens);
+		// 	Node *value = parseExpr(tokens, 0);
+		// 	compactTuple(&value);
+		// 	da_append(&result->new.builderArgs, value);
+		// 	result->new.kind = NEW_OBJ;
+		// 	TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
+		// }
+		// else if (peek->type == TOKEN_LBRACE)
+		// {
+		// 	TokenStream_consume(tokens);
+		// 	result->new.kind = NEW_ARRAY;
+		// 	while (TokenStream_peek(tokens)->type != TOKEN_RBRACE)
+		// 	{
+		// 		Node *value = parseExpr(tokens, 0);
+		// 		compactTuple(&value);
+		// 		da_append(&result->new.arrayItems, value);
+		// 		if (TokenStream_peek(tokens)->type == TOKEN_COMMA)
+		// 			TokenStream_consume(tokens);
+		// 	}
+		// 	TokenStream_consumeExpect(tokens, TOKEN_RBRACE);
+		// 	if (result->new.type->array.size == 0)
+		// 		result->new.type->array.size = result->new.arrayItems.count;
+		// }
+		// else
+		// 	comptimeMessage(MESSAGE_ERROR, peek->pos, "Expected \"{\" or \"(\"");
 		return result;
 	}
 	else if (peek->type == TOKEN_SIZEOF)  // sizeof

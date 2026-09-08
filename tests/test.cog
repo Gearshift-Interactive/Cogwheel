@@ -18,7 +18,8 @@ var sort = (mut int[] arr, boolean(int, int) predicate) -> {
     };
 };
 
-mut var array = new int[]{ 2, 1, 6, 12, 8 };
+mut
+var array = new [ 2, 1, 6, 12, 8 ];
 sort(array, (int a, int b) -> a > b);
 
 exit (array[0u] + 2);

@@ -54,8 +54,10 @@ int main(int argc, char **argv)
 	printf("//// EXECUTION ////\n");
 #	endif
 	free(sb.items);
+
 	// Chunk_free(&code);
 	// return 0;
+
 	int result = run(&code);
 	Bank_freeAll();
 	printf("RESULT: %d\n", result);
