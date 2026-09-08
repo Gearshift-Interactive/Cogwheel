@@ -81,7 +81,7 @@ var somethingTheSequel = new uint[10](0u); // uint[]
 
 Arrays are a sequence of values with fixed size.
 ```
-var testArray = new [5u; 12];
+var testArray = new [ 5u; 12 ];
 exit testArray[2u];
 ```
 In this case all 5 elements of the array will be initialized with value of 12.
@@ -93,7 +93,6 @@ If you need to explicitly specify the type of array item, you can use `with` key
 ```
 var someArray = new [ 2u, null, 8u ] with uint?;
 ```
-
 You can use `sizeof` operator to get the amount of elements in the given array.
 
 Array indexes and sizes can only be of type `uint`

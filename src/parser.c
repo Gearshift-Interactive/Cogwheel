@@ -650,6 +650,7 @@ static Node *parseExprTail(TokenStream *tokens, float parentBind, Node *left)
 		if (bind.right == parentBind && bind.left < bind.right) break;
 		Token token = TokenStream_consume(tokens);
 		Node *right = parseExpr(tokens, bind.left);
+		compactTuple(&right);
 		Node *newLeft = Node_make(token.pos);
 		newLeft->type = NODE_INFIX;
 		newLeft->infix.type = getInfixType(*op);
