@@ -26,9 +26,9 @@ static const struct {
 	// { TOKEN_STRING_T, ATOM_STRING },
 };
 static const BindingPower BINDING_POWERS[] = {
-	{ TOKEN_ASSIGN, 0.5f,  0.6f  },
+	{ TOKEN_ARROW,  0.5f,  0.6f  },
 
-	{ TOKEN_ARROW,  1.1f,  1.0f  },
+	{ TOKEN_ASSIGN, 1.1f,  1.0f  },
 
 	{ TOKEN_OR,     2.0f,  2.1f  },
 

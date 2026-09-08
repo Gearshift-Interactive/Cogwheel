@@ -10,12 +10,13 @@
 #	include "parser.h"
 #endif
 
-
 typedef struct Scope {
 	struct Scope *parent;
 	size_t size;
+	size_t refCount;
 	Value values[];
 } Scope;
+
 
 static void Scope_free(Scope *this)
 {
@@ -193,17 +194,19 @@ static size_t readSizeT(VM *vm, const Chunk *chunk)
     return value;
 }
 static void call(VM *vm, const Chunk *chunk, size_t argc);
-static void scopeEnter(VM *vm, size_t varCount)
+static void Scope_enter(VM *vm, size_t varCount)
 {
 	Scope *scope = vm->scope;
 	vm->scope = calloc(1, sizeof(*(vm->scope)) + sizeof(Value[varCount]));
+	vm->scope->refCount++;
 	vm->scope->parent = scope;
 }
-static void scopeExit(VM *vm)
+static void Scope_exit(VM *vm)
 {
 	Scope *scope = vm->scope;
 	vm->scope = scope->parent;
-	free(scope);
+	scope->refCount--;
+	if (scope->refCount == 0) free(scope);
 }
 static Value scopeRead(VM *vm, size_t depth, size_t id)
 {
@@ -457,10 +460,10 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		break;
 	case OP_SCOPE_ENTER:
 		arg1 = readSizeT(vm, chunk);
-		scopeEnter(vm, arg1);
+		Scope_enter(vm, arg1);
 		break;
 	case OP_SCOPE_EXIT:
-		scopeExit(vm);
+		Scope_exit(vm);
 		break;
 	case OP_SCOPE_READ:
 		arg1 = readSizeT(vm, chunk);  // depth
@@ -668,15 +671,18 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			.v_bool = !value->isNull,
 		};
 	} break;
-	case OP_CLOAD_FUNC:
-		arg1 = readSizeT(vm, chunk);
+	case OP_CLOAD_FUNC: {
+		size_t chunkIndex = readSizeT(vm, chunk);
+		Chunk *funcChunk = &chunk->functions.items[chunkIndex];
+		funcChunk->vmData = vm->scope;
+		vm->scope->refCount++;
 		Stack_push(&vm->stack, (Value){
 #ifdef DEBUG
 			.type = VALUE_FUNC,
 #endif
-			.v_func = &chunk->functions.items[arg1],
+			.v_func = funcChunk,
 		});
-		break;
+	} break;
 	case OP_CALL: {
 		size_t argc = readSizeT(vm, chunk);
 		Value function = Stack_pop(&vm->stack);
@@ -704,14 +710,20 @@ static void execute(VM *vm, const Chunk *chunk)
 }
 static void call(VM *vm, const Chunk *chunk, size_t argc)
 {
-	scopeEnter(vm, argc);
+	size_t oldPc    = vm->pc;
+	Scope *oldScope = vm->scope;
+
+	vm->pc    = 0;
+	vm->scope = chunk->vmData;
+
+	Scope_enter(vm, argc);
 	for (int i = argc - 1; i >= 0; i--)
 		scopeWrite(vm, 0, i, Stack_pop(&vm->stack));
-	size_t oldPc = vm->pc;
-	vm->pc = 0;
 	execute(vm, chunk);
-	vm->pc = oldPc;
-	scopeExit(vm);
+	Scope_exit(vm);
+
+	vm->pc    = oldPc;
+	vm->scope = oldScope;
 }
 int run(const Chunk *chunk)
 {

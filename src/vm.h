@@ -116,6 +116,8 @@ typedef struct Chunk {
 		size_t capacity;
 		union { uint8_t *code, *items; };
 	} instr;
+	size_t refCount;
+	void *vmData;
 } Chunk;
 
 #undef CONST_ARRAY

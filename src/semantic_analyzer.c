@@ -214,17 +214,18 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 				break;
 			}
 			Context childContext = {0};
-			ScopeInfo *scope = ScopeInfo_make();
+			ScopeInfo *childScope = ScopeInfo_make();
+			childScope->parent = scope;
 			da_foreach(Node*, arg, &left->tuple)
 				// da_append(&node->retType->function.args, (*arg)->funcParam.type);
-				ScopeInfo_declare(scope,
+				ScopeInfo_declare(childScope,
 					&(*arg)->funcParam.name.pos,
 					(*arg)->funcParam.type,
 					(*arg)->funcParam.isMutable
 				);
-			node->infix.right = markScopeFunc(node->infix.right, scope, &childContext);
-			ScopeInfo_free(scope);
-			free(scope);
+			node->infix.right = markScopeExt(node->infix.right, childScope, &childContext);
+			ScopeInfo_free(childScope);
+			free(childScope);
 			node->retType = calloc(1, sizeof *node->retType);
 			Bank_handOff(node->retType);
 			node->retType->kind = TYPE_FUNCTION;

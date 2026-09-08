@@ -40,6 +40,8 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "float", TOKEN_FLOAT_T },
 	{ "string", TOKEN_STRING_T },
 	{ "boolean", TOKEN_BOOL_T },
+	{ "void", TOKEN_VOID },
+
 	{ "exit", TOKEN_EXIT },
 	{ "mut", TOKEN_MUT },
 	{ "true", TOKEN_TRUE_ },
@@ -56,7 +58,6 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "var", TOKEN_VAR },
 	{ "sizeof", TOKEN_SIZEOF },
 	{ "null", TOKEN_NULL },
-	{ "void", TOKEN_VOID },
 };
 static const char LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char LETTERS_AND_NUMBERS[] =
