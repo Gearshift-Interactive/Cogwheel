@@ -203,6 +203,18 @@ sort(array1, basicConditon); // OK
 sort(array2, basicConditon); // ERR
 ```
 You cannot pass immutable refference variables as a mutable function argument.
+Functions are also clojures. That means that you can use variables declared outside of function body:
+```
+mut var globalValue = 0;
+
+var increment = () -> globalValue = globalValue + 1;
+
+increment();
+increment();
+increment();
+
+exit globalValue; // 3
+```
 
 ### Keywords
 
