@@ -800,6 +800,7 @@ static void call(VM *vm, const Closure *closure, size_t argc)
 	for (int i = argc - 1; i >= 0; i--)
 		scopeWrite(vm, 0, i, Stack_pop(&vm->stack));
 	execute(vm, closure->chunk);
+	if (vm->done) return;
 	Scope_exit(vm);
 
 	vm->pc    = oldPc;
@@ -812,6 +813,6 @@ int run(const Chunk *chunk)
 	Stack_free(&vm.stack);
 	GC_freeAll(&vm.gc);
 	Chunk_free(chunk);
-	if (vm.scope) Scope_release(vm.scope);
+	while (vm.scope) Scope_exit(&vm);
 	return vm.retCode;
 }
