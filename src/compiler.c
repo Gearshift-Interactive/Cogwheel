@@ -604,11 +604,29 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 	case NODE_TUPLE:
 		PANIC("Illegal tuple");
 	case NODE_CALL:
-		da_foreach(Node*, arg, &node->call.args->tuple)
-			compileNode(this, *arg, context);
+		for (size_t i = 0; i < node->call.args->tuple.count; i++)
+		{
+			if (i == node->call.function->retType->function.args.count)
+			{
+				PUSH_OP(OP_GC_ALLOC);
+				PUSH_DATA(size_t, node->call.args->tuple.count - node->call.function->retType->function.args.count);
+			}
+			Node *arg = node->call.args->tuple.items[i];
+			compileNode(this, arg, context);
+			if (i >= node->call.function->retType->function.args.count)
+			{
+				size_t difference =
+					i - node->call.function->retType->function.args.count;
+				PUSH_OP(OP_GC_ASSIGN);
+				PUSH_DATA(size_t, difference);
+			}
+		}
 		compileNode(this, node->call.function, context);
 		PUSH_OP(OP_CALL);
-		PUSH_DATA(size_t, node->call.args->tuple.count);
+		if (node->call.args->tuple.count >= node->call.function->retType->function.args.count)
+			PUSH_DATA(size_t, node->call.function->retType->function.args.count + 1);
+		else
+			PUSH_DATA(size_t, node->call.args->tuple.count);
 		break;
 	}
 	return resultSize;

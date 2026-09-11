@@ -138,6 +138,7 @@ typedef struct Node {
 			Type *type;
 			Token name;
 			bool isMutable;
+			bool isVarArg;
 		} funcParam;
 		struct {
 			struct Node *function, *args;

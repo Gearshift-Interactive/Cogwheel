@@ -65,6 +65,13 @@ const char *Type_toString(const Type *t)
 			sb_append_cstr(&sb, Type_toString(param->type));
 			da_append(&sb, ',');
 		}
+		if (t->function.varArgItem)
+		{
+			if (t->function.varArgItem->isMutable)
+				sb_append_cstr(&sb, "mut ");
+			sb_append_cstr(&sb, Type_toString(t->function.varArgItem->type));
+			sb_append_cstr(&sb, "...");
+		}
 		da_append(&sb, ')');
 	}
 	nob_sb_append_null(&sb);
@@ -91,6 +98,13 @@ bool Type_areCompatible(const Type *a, const Type *b)
 			return false;
 		if (a->function.args.count != b->function.args.count)
 			return false;
+		if (a->function.varArgItem->type && b->function.varArgItem->type)
+			if (!Type_areCompatible(a->function.varArgItem->type, b->function.varArgItem->type))
+				return false;
+		if (
+			(!a->function.varArgItem && b->function.varArgItem) ||
+			(a->function.varArgItem && !b->function.varArgItem)
+		) return false;
 		if (!Type_areCompatible(a->function.retType, b->function.retType))
 			return false;
 		for (size_t i = 0; i < a->function.args.count; i++)

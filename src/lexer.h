@@ -40,6 +40,7 @@
 	X(QUESTION) \
 	X(EXCLAMATION) \
 	X(ARROW) \
+	X(ELIPSIS) \
 	/* atomic types */ \
 	X(INT_T) \
 	X(UINT_T) \

@@ -220,11 +220,24 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			childScope->parent = scope;
 			da_foreach(Node*, arg, &left->tuple)
 				// da_append(&node->retType->function.args, (*arg)->funcParam.type);
-				ScopeInfo_declare(childScope,
-					&(*arg)->funcParam.name.pos,
-					(*arg)->funcParam.type,
-					(*arg)->funcParam.isMutable
-				);
+				if ((*arg)->funcParam.isVarArg)
+				{
+					Type *type = calloc(1, sizeof *type);
+					type->kind = TYPE_ARRAY;
+					type->array.underlying = (*arg)->funcParam.type;
+					Bank_handOff(type);
+					ScopeInfo_declare(childScope,
+						&(*arg)->funcParam.name.pos,
+						type,
+						(*arg)->funcParam.isMutable
+					);
+				}
+				else
+					ScopeInfo_declare(childScope,
+						&(*arg)->funcParam.name.pos,
+						(*arg)->funcParam.type,
+						(*arg)->funcParam.isMutable
+					);
 			node->infix.right =
 				markScopeFunc(node->infix.right, childScope, &childContext);
 			ScopeInfo_free(childScope);
@@ -235,6 +248,15 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			node->retType->function.retType = right->retType;
 			da_foreach(Node*, arg, &left->tuple)
 			{
+				if ((*arg)->funcParam.isVarArg)
+				{
+					ArgInfo *info = calloc(1, sizeof *info);
+					info->type = (*arg)->funcParam.type,
+					info->isMutable = (*arg)->funcParam.isMutable,
+					Bank_handOff(info);
+					node->retType->function.varArgItem = info;
+					continue;
+				}
 				ArgInfo info = {
 					.type = (*arg)->funcParam.type,
 					.isMutable = (*arg)->funcParam.isMutable,
@@ -798,21 +820,38 @@ static void analyze(Node *node)
 		analyze(node->call.args);
 		if (node->call.function->retType->kind != TYPE_FUNCTION)
 			break;
-		if (node->call.function->retType->function.args.count != node->call.args->tuple.count)
+		if (node->call.function->retType->function.args.count != node->call.args->tuple.count && !node->call.function->retType->function.varArgItem)
+		{
 			comptimeMessage(MESSAGE_ERRORN, node->call.args->pos,
 				"Expected %zu parameters, %zu given",
 				node->call.function->retType->function.args.count,
 				node->call.args->tuple.count);
+			break;
+		}
 		for (size_t i = 0; i < node->call.args->tuple.count; i++)
 		{
-			Type *expected = node->call.function->retType->function.args.items[i].type;
+			bool currentlyVarArg = i >= node->call.function->retType->function.args.count;
+				// printf("currentlyVarArg = %d i = %d argc = %d\n", currentlyVarArg, i, node->call.function->retType->function.args.count);
+			Type *expected = currentlyVarArg
+				? node->call.function->retType->function.varArgItem->type
+				: node->call.function->retType->function.args.items[i].type;
 			Type *got = node->call.args->tuple.items[i]->retType;
 			if (!Type_areCompatible(expected, got))
-				comptimeMessage(MESSAGE_ERRORN, node->call.args->tuple.items[i]->pos,
-					"Incompatible type for argument %zu: expected %s, got %s",
-					i + 1, Type_toString(expected), Type_toString(got)
-				);
-			bool expectedMut = node->call.function->retType->function.args.items[i].isMutable;
+			{
+				if (currentlyVarArg)
+					comptimeMessage(MESSAGE_ERRORN, node->call.args->tuple.items[i]->pos,
+						"Incompatible type for variadic argument: expected %s, got %s",
+						Type_toString(expected), Type_toString(got)
+					);
+				else
+					comptimeMessage(MESSAGE_ERRORN, node->call.args->tuple.items[i]->pos,
+						"Incompatible type for argument %zu: expected %s, got %s",
+						i + 1, Type_toString(expected), Type_toString(got)
+					);
+			}
+			bool expectedMut = currentlyVarArg
+				? node->call.function->retType->function.varArgItem->isMutable
+				: node->call.function->retType->function.args.items[i].isMutable;
 			bool gotMut = checkMutable(node->call.args->tuple.items[i]);
 			if (expectedMut && !gotMut && Type_isRef(got))
 				comptimeMessage(MESSAGE_ERRORN, node->call.args->tuple.items[i]->pos,

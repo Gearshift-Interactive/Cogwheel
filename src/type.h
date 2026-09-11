@@ -43,6 +43,7 @@ typedef struct Type {
 				ArgInfo *items;
 				size_t count, capacity;
 			} args;
+			ArgInfo *varArgItem;
 		} function;
 	};
 } Type;

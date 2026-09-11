@@ -251,6 +251,8 @@ single:
 		printf("(param ");
 		if (node->funcParam.isMutable)
 			printf(":mut ");
+		if (node->funcParam.isVarArg)
+			printf(":varArg ");
 		printf(":type %s ", Type_toString(node->funcParam.type));
 		TokenPosition_print(node->funcParam.name.pos);
 		printf(")");

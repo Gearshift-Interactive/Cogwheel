@@ -309,12 +309,14 @@ static void compactTuple(Node **node)
 static Node *parseVarDecl(TokenStream *tokens)
 {
 	bool mut = false;
+	bool varArg = false;
 	if (TokenStream_peek(tokens)->type == TOKEN_MUT)
 	{
 		TokenStream_consume(tokens);
 		mut = true;
 	}
 	Token *typeTok = TokenStream_peek(tokens);
+	Token varArgToken;
 	Type *type;
 	if (TokenStream_peek(tokens)->type == TOKEN_VAR)
 	{
@@ -324,6 +326,11 @@ static Node *parseVarDecl(TokenStream *tokens)
 	else
 		type = parseType(tokens);
 	Node *result = Node_make(typeTok->pos);
+	if (TokenStream_peek(tokens)->type == TOKEN_ELIPSIS)
+	{
+		varArgToken = TokenStream_consume(tokens);
+		varArg = true;
+	}
 	Token varName = TokenStream_consumeExpect(tokens, TOKEN_SYMBOL);
 	if (isTailToken(TokenStream_peek(tokens)->type))
 	{
@@ -331,8 +338,12 @@ static Node *parseVarDecl(TokenStream *tokens)
 		result->funcParam.name = varName;
 		result->funcParam.type = type;
 		result->funcParam.isMutable = mut;
+		result->funcParam.isVarArg = varArg;
 		return result;
 	}
+	else if (varArg)
+		comptimeMessage(MESSAGE_ERROR, varArgToken.pos,
+			"Unexpected elipsis in variable definition");
 	result->type = NODE_VAR_DECL;
 	result->var_decl.name = varName;
 	TokenStream_consumeExpect(tokens, TOKEN_ASSIGN);
