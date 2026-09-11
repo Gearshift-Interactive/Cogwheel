@@ -1,7 +1,7 @@
-var vector2d = (float x, float y) -> new [x, y];
-var vector3d = (float x, float y, float z) -> new [x, y, z];
-var vector4d = (float x, float y, float z, float w) -> new [x, y, z, w];
-var vectorElenentwise = (float(float, float) action) -> (float[] a, float[] b) -> {
+var Vector2d = (float x, float y) -> new [x, y];
+var Vector3d = (float x, float y, float z) -> new [x, y, z];
+var Vector4d = (float x, float y, float z, float w) -> new [x, y, z, w];
+var Vector_elenentwise = (float(float, float) action) -> (float[] a, float[] b) -> {
     if (sizeof a != sizeof b)
         exit 1;
     mut var result = new [sizeof a; 0f];
@@ -13,17 +13,17 @@ var vectorElenentwise = (float(float, float) action) -> (float[] a, float[] b) -
     };
     yield result;
 };
-var vectorAdd = vectorElenentwise((float a, float b) -> a + b);
-var vectorSub = vectorElenentwise((float a, float b) -> a - b);
-var vectorMul = vectorElenentwise((float a, float b) -> a * b);
-var vectorDiv = vectorElenentwise((float a, float b) -> a / b);
+var Vector_Add = Vector_elenentwise((float a, float b) -> a + b);
+var Vector_Sub = Vector_elenentwise((float a, float b) -> a - b);
+var Vector_Mul = Vector_elenentwise((float a, float b) -> a * b);
+var Vector_Div = Vector_elenentwise((float a, float b) -> a / b);
 
-var vector1 = vector2d(1.0, 0.5);
-var vector2 = vector3d(0.5, 1.0,  0.75);
-var vector3 = vector3d(1.0, 0.25, 0.75);
-var vector4 = vectorAdd(vector2, vector3);
-var vector5 = vector2d(vector4[0u], vector4[1u]);
-var vector6 = vectorAdd(vector1, vector5);
+var vector1 = Vector2d(1.0, 0.5);
+var vector2 = Vector3d(0.5, 1.0,  0.75);
+var vector3 = Vector3d(1.0, 0.25, 0.75);
+var vector4 = Vector_add(vector2, vector3);
+var vector5 = Vector2d(vector4[0u], vector4[1u]);
+var vector6 = Vector_add(vector1, vector5);
 
 var round = (float i) -> if(i >= 0.5) (int)i + 1 else (int)i;
 
