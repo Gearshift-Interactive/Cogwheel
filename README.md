@@ -219,6 +219,26 @@ var add = (int a) -> (int b) -> a + b;
 exit add(2)(4);
 ```
 
+#### Variadic arguments
+You can define a variadic argument using elipsis:
+```
+var sum = (int... values) -> { /* * */ };
+```
+This will create a regular array, containing all the variadics.
+Here is an example of a basic variadic function:
+```
+var sum = (int a, int... values) -> {
+    mut var result = a;
+    mut var i = 0u;
+    while (i < sizeof values)
+    {
+        result = result + values[i];
+        i = i + 1u;
+    };
+    yield result;
+};
+```
+
 ### Keywords
 
 #### `exit`
