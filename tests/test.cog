@@ -1,8 +1,5 @@
-var some = new [1, 2, 3, 4];
-var sum = (int... values) -> {
-    if (sizeof values < 1u)
-        exit 0;
-    mut var result = 0;
+var sum = (int a, int... values) -> {
+    mut var result = a;
     mut var i = 0u;
     while (i < sizeof values)
     {
@@ -11,7 +8,7 @@ var sum = (int... values) -> {
     };
     yield result;
 };
-exit sum(1, 2, 3);
+exit sum(1, 2);
 // var vector2d = (float x, float y) -> new [x, y];
 // var vector3d = (float x, float y, float z) -> new [x, y, z];
 // var vector4d = (float x, float y, float z, float w) -> new [x, y, z, w];
