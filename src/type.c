@@ -98,9 +98,12 @@ bool Type_areCompatible(const Type *a, const Type *b)
 			return false;
 		if (a->function.args.count != b->function.args.count)
 			return false;
-		if (a->function.varArgItem->type && b->function.varArgItem->type)
-			if (!Type_areCompatible(a->function.varArgItem->type, b->function.varArgItem->type))
-				return false;
+		if (a->function.varArgItem && b->function.varArgItem)
+		{
+			if (a->function.varArgItem->type && b->function.varArgItem->type)
+				if (!Type_areCompatible(a->function.varArgItem->type, b->function.varArgItem->type))
+					return false;
+		}
 		if (
 			(!a->function.varArgItem && b->function.varArgItem) ||
 			(a->function.varArgItem && !b->function.varArgItem)

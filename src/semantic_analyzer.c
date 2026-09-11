@@ -820,6 +820,20 @@ static void analyze(Node *node)
 		analyze(node->call.args);
 		if (node->call.function->retType->kind != TYPE_FUNCTION)
 			break;
+		if (node->call.function->retType->function.args.count > node->call.args->tuple.count)
+		{
+			if (node->call.function->retType->function.varArgItem)
+				comptimeMessage(MESSAGE_ERRORN, node->call.args->pos,
+					"Expected at minimum %zu parameters, %zu given",
+					node->call.function->retType->function.args.count,
+					node->call.args->tuple.count);
+			else
+				comptimeMessage(MESSAGE_ERRORN, node->call.args->pos,
+					"Expected %zu parameters, %zu given",
+					node->call.function->retType->function.args.count,
+					node->call.args->tuple.count);
+			break;
+		}
 		if (node->call.function->retType->function.args.count != node->call.args->tuple.count && !node->call.function->retType->function.varArgItem)
 		{
 			comptimeMessage(MESSAGE_ERRORN, node->call.args->pos,
