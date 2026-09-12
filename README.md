@@ -3,7 +3,7 @@ Cogwheel is a programming language that is currently WIP
 
 ## Usage
 
-The is also an example for [basic vector math](./tests/vector.cog).
+The is also a code example for [basic vector math](./tests/vector.cog).
 
 ### Statements
 
