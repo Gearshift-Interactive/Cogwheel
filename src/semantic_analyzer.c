@@ -723,6 +723,7 @@ static bool isNodeFinal(Node *node)
 	case NODE_TUPLE:
 	case NODE_PARAMETER:
 	case NODE_CALL:
+	case NODE_ALIAS:
 		return false;
 	case NODE_EXIT:
 	case NODE_YIELD:
@@ -976,6 +977,7 @@ static void analyze(Node *node)
 	case NODE_FALSE_:
 	case NODE_NULL:
 	case NODE_PARAMETER:
+	case NODE_ALIAS:
 	{}
 	}
 }

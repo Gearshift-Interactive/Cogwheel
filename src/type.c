@@ -156,6 +156,8 @@ bool Type_isRef(const Type *t)
 			return false;
 		case TYPE_ARRAY:
 			return true;
+		case TYPE_ALIAS:
+			PANIC("Can't know if an alias is a refference");
 	}
 	return false;
 }

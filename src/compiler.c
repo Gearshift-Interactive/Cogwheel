@@ -637,6 +637,8 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		else
 			PUSH_DATA(size_t, node->call.args->tuple.count);
 		break;
+	case NODE_ALIAS:
+		PANIC("Unexpected alias node in marked AST");
 	}
 	return resultSize;
 }
