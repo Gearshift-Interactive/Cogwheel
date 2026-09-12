@@ -1,6 +1,5 @@
-alias VectorItem = float;
-alias Vector = VectorItem[];
-alias VectorAction = VectorItem(VectorItem, VectorItem);
+alias Vector = float[];
+alias VectorAction = float(float, float);
 
 var Vector2d = (float x, float y) -> new [x, y];
 var Vector3d = (float x, float y, float z) -> new [x, y, z];
