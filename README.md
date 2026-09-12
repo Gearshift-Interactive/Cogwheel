@@ -130,6 +130,24 @@ int variable = {
 ```
 Block itself creates a new scope, and returns the yielded value.
 
+### Type aliases
+
+You can create type aliases to an existing types like this:
+```
+alias VectorItem = float;
+alias Vector = VectorItem[];
+alias Vector2d = VectorItem[2];
+alias Vector3d = VectorItem[3];
+alias VectorAction = VectorItem(VectorItem, VectorItem);
+```
+Then you can use them as any other type:
+```
+var Vector_elementwise = (VectorAction action) -> (Vector a, Vector... other) ->
+{
+	/* * */
+};
+```
+
 ### If statement
 
 If statement is an expression that evalueates to different branches depending on the tesult of the given condition.
