@@ -33,10 +33,21 @@ typedef struct {
 	bool mutable;
 } VarInfo;
 
+typedef struct {
+	const TokenPosition *name;
+	Type *type;
+} AliasInfo;
+
 typedef struct ScopeInfo {
 	struct ScopeInfo *parent;
-	union { VarInfo *items, *vars; };
-	size_t count, capacity;
+	struct {
+		VarInfo *items;
+		size_t count, capacity;
+	} vars;
+	struct {
+		AliasInfo *items;
+		size_t count, capacity;
+	} aliases;
 } ScopeInfo;
 
 static ScopeInfo *ScopeInfo_make()
@@ -47,14 +58,14 @@ static ScopeInfo *ScopeInfo_make()
 static bool ScopeInfo_isVarPresent(const ScopeInfo *this, const TokenPosition *name)
 {
 	for (const ScopeInfo *current = this; current; current = current->parent)
-		da_foreach(VarInfo, var, current)
+		da_foreach(VarInfo, var, &current->vars)
 			if (TokenPosition_eq(var->name, name))
 				return true;
 	return false;
 }
 static bool ScopeInfo_isVarPresentShallow(const ScopeInfo *this, const TokenPosition *name)
 {
-	da_foreach(VarInfo, var, this)
+	da_foreach(VarInfo, var, &this->vars)
 		if (TokenPosition_eq(var->name, name))
 			return true;
 	return false;
@@ -62,8 +73,8 @@ static bool ScopeInfo_isVarPresentShallow(const ScopeInfo *this, const TokenPosi
 static size_t ScopeInfo_getVarIndex(const ScopeInfo *this, const TokenPosition *name)
 {
 	for (const ScopeInfo *current = this; current; current = current->parent)
-		for (size_t i = 0; i < current->count; i++)
-			if (TokenPosition_eq((current->vars + i)->name, name))
+		for (size_t i = 0; i < current->vars.count; i++)
+			if (TokenPosition_eq((current->vars.items + i)->name, name))
 				return i;
 	// comptimeMessage(MESSAGE_ERRORN, *name, "Undefined variable");
 	return 0;
@@ -73,7 +84,7 @@ static size_t ScopeInfo_getVarDepth(const ScopeInfo *this, const TokenPosition *
 	size_t depth = 0;
 	for (const ScopeInfo *current = this; current; current = current->parent)
 	{
-		da_foreach(VarInfo, var, current)
+		da_foreach(VarInfo, var, &current->vars)
 			if (TokenPosition_eq(var->name, name))
 				return depth;
 		depth++;
@@ -86,7 +97,7 @@ static VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index, size_t de
 	const ScopeInfo *current = this;
 	for (size_t i = 0; i < depth; i++)
 		current = current->parent;
-	return current->vars + index;
+	return current->vars.items + index;
 }
 static void ScopeInfo_declare(
 	ScopeInfo *this, const TokenPosition *name, const Type *type, bool mutable
@@ -96,11 +107,40 @@ static void ScopeInfo_declare(
 		.type = type,
 		.mutable = mutable,
 	};
-	da_append(this, info);
+	da_append(&this->vars, info);
+}
+static void ScopeInfo_declareAlias(ScopeInfo *this, const TokenPosition *name, Type *type)
+{
+	AliasInfo info = {
+		.name = name,
+		.type = type,
+	};
+	da_append(&this->aliases, info);
+}
+static bool ScopeInfo_aliasExists(ScopeInfo *this, const TokenPosition *name)
+{
+	for (const ScopeInfo *current = this; current; current = current->parent)
+	{
+		da_foreach(AliasInfo, alias, &current->aliases)
+			if (TokenPosition_eq(alias->name, name))
+				return true;
+	}
+	return false;
+}
+static Type *ScopeInfo_getAliasType(ScopeInfo *this, const TokenPosition *name)
+{
+	for (const ScopeInfo *current = this; current; current = current->parent)
+	{
+		da_foreach(AliasInfo, alias, &current->aliases)
+			if (TokenPosition_eq(alias->name, name))
+				return alias->type;
+	}
+	return NULL;
 }
 static void ScopeInfo_free(const ScopeInfo *this)
 {
-	if (this->vars) free(this->vars);
+	if (this->vars.items) free(this->vars.items);
+	if (this->aliases.items) free(this->aliases.items);
 }
 static void mark(Node **node, ScopeInfo *scope, Context *context);
 static void markImpl(Node *node, ScopeInfo *scope, Context *context);
@@ -110,7 +150,7 @@ static Node *markScopeExt(Node *node, ScopeInfo *scope, Context *context)
 	result->type = NODE_SCOPE;
 	result->scope.child = node;
 	markImpl(result->scope.child, scope, context);
-	result->scope.size = scope->count;
+	result->scope.size = scope->vars.count;
 	result->retType = result->scope.child->retType;
 	return result;
 }
@@ -120,7 +160,7 @@ static Node *markScopeFunc(Node *node, ScopeInfo *scope, Context *context)
 	result->type = NODE_SCOPE;
 	result->scope.child = node;
 	mark(&result->scope.child, scope, context);
-	result->scope.size = scope->count;
+	result->scope.size = scope->vars.count;
 	result->retType = result->scope.child->retType;
 	return result;
 }
@@ -132,6 +172,39 @@ static Node *markScope(Node *node, ScopeInfo *parent, Context *context)
 	ScopeInfo_free(scope);
 	free(scope);
 	return result;
+}
+static void resolveAlias(ScopeInfo *scope, Type **type)
+{
+	switch ((*type)->kind)
+	{
+		case TYPE_ARRAY:
+			resolveAlias(scope, &(*type)->array.underlying);
+			break;
+		case TYPE_OPTION:
+			resolveAlias(scope, &(*type)->option.underlying);
+			break;
+		case TYPE_FUNCTION:
+			resolveAlias(scope, &(*type)->function.retType);
+			if ((*type)->function.varArgItem)
+				resolveAlias(scope, &(*type)->function.varArgItem->type);
+			da_foreach(ArgInfo, arg, &(*type)->function.args)
+				resolveAlias(scope, &arg->type);
+			break;
+		case TYPE_ALIAS:
+			if (!ScopeInfo_aliasExists(scope, &(*type)->alias.name.pos))
+			{
+				comptimeMessage(MESSAGE_ERRORN, (*type)->alias.name.pos,
+					"Unknown type");
+				break;
+			}
+			*type = ScopeInfo_getAliasType(scope, &(*type)->alias.name.pos);
+			break;
+		case TYPE_UNKNOWN:
+#define X(NAME, LITERAL) case TYPE_##NAME:
+	TYPE_KINDS
+#undef X
+			{}
+	}
 }
 static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 {
@@ -220,6 +293,8 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			childScope->parent = scope;
 			da_foreach(Node*, arg, &left->tuple)
 				// da_append(&node->retType->function.args, (*arg)->funcParam.type);
+			{
+				resolveAlias(scope, &(*arg)->funcParam.type);
 				if ((*arg)->funcParam.isVarArg)
 				{
 					Type *type = calloc(1, sizeof *type);
@@ -238,6 +313,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 						(*arg)->funcParam.type,
 						(*arg)->funcParam.isMutable
 					);
+			}
 			node->infix.right =
 				markScopeFunc(node->infix.right, childScope, &childContext);
 			ScopeInfo_free(childScope);
@@ -326,6 +402,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		node->retType = &TYPE_VOID_OBJ;
 		break;
 	case NODE_CAST:
+		resolveAlias(scope, &node->cast.target);
 		mark(&node->cast.value, scope, context);
 		if (
 			node->cast.value->retType != &TYPE_INT_OBJ &&
@@ -345,7 +422,9 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 	case NODE_VAR_DECL:
 		mark(&node->var_decl.value, scope, context);
 		node->retType = node->var_decl.value->retType;
-		if (!node->var_decl.type)
+		if (node->var_decl.type)
+			resolveAlias(scope, &node->var_decl.type);
+		else
 			node->var_decl.type = node->var_decl.value->retType;
 		if (!Type_areCompatible(node->var_decl.type, node->var_decl.value->retType))
 			comptimeMessage(MESSAGE_ERRORN, node->var_decl.value->pos,
@@ -483,6 +562,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		// node->retType = node->new.type;
 		// da_foreach(Node*, child, &node->new.builderArgs)
 		// 	mark(child, scope, context);
+		if (node->new.type) resolveAlias(scope, &node->new.type);
 		switch (node->new.kind)
 		{
 		case NEW_ARRAY: {
@@ -595,6 +675,19 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			break;
 		}
 		node->retType = node->call.function->retType->function.retType;
+		break;
+	case NODE_ALIAS:
+		if (ScopeInfo_aliasExists(scope, &node->alias.name.pos))
+		{
+			comptimeMessage(MESSAGE_ERRORN, node->alias.name.pos,
+				"Alias %s already exists",
+				TokenPosition_toString(&node->alias.name.pos));
+			break;
+		}
+		resolveAlias(scope, &node->alias.type);
+		ScopeInfo_declareAlias(scope, &node->alias.name.pos, node->alias.type);
+		node->unreachable = true;
+		node->retType = &TYPE_VOID_OBJ;
 		break;
 	}
 }
