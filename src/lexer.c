@@ -1,5 +1,6 @@
 #include "lexer.h"
 #include "error.h"
+#include "bank.h"
 
 #include "nob.h"
 
@@ -60,6 +61,7 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "sizeof", TOKEN_SIZEOF },
 	{ "null", TOKEN_NULL },
 	{ "with", TOKEN_WITH },
+	{ "alias", TOKEN_ALIAS },
 };
 static const char LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char LETTERS_AND_NUMBERS[] =
@@ -92,6 +94,13 @@ bool TokenPosition_eq(const TokenPosition *a, const TokenPosition *b)
 	if (a->length != b->length)
 		return false;
 	return !memcmp(a->origin + a->start, b->origin + b->start, a->length);
+}
+char *TokenPosition_toString(const TokenPosition *tp)
+{
+	char *result = calloc(tp->length + 1, sizeof *result);
+	Bank_handOff(result);
+	memcpy(result, (char*)tp->origin + tp->start, tp->length);
+	return result;
 }
 Token TokenStream_consume(TokenStream *this)
 {

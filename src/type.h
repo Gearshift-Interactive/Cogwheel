@@ -1,6 +1,7 @@
 #pragma once
 
 #include "nob.h"
+#include "lexer.h"
 
 #define TYPE_KINDS  \
 	X(VOID, void)   \
@@ -18,6 +19,7 @@ typedef enum {
 	TYPE_ARRAY,
 	TYPE_OPTION,
 	TYPE_FUNCTION,
+	TYPE_ALIAS,
 } TypeKind;
 
 struct Type;
@@ -45,6 +47,9 @@ typedef struct Type {
 			} args;
 			ArgInfo *varArgItem;
 		} function;
+		struct {
+			Token name;
+		} alias;
 	};
 } Type;
 

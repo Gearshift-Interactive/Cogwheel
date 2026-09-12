@@ -268,6 +268,16 @@ single:
 		printIndent(indent);
 		printf(")");
 		break;
+	case NODE_ALIAS:
+		printf("(alias\n");
+		printIndent(indent + 1);
+		TokenPosition_print(node->alias.name.pos);
+		printf("\n");
+		printIndent(indent + 1);
+		printf("%s\n", Type_toString(node->alias.type));
+		printIndent(indent);
+		printf(")");
+		break;
 	}
 	if (node->retType)
 		printf(" -> %s", Type_toString(node->retType));
@@ -351,6 +361,7 @@ void Node_free(const Node *node)
 	case NODE_FALSE_:
 	case NODE_NULL:
 	case NODE_PARAMETER:
+	case NODE_ALIAS:
 		{}
 	}
 	free((void*)node);

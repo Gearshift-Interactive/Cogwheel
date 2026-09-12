@@ -61,6 +61,7 @@
 	X(SIZEOF) \
 	X(NULL) \
 	X(WITH) \
+	X(ALIAS) \
 
 
 typedef enum {
@@ -92,6 +93,7 @@ const char *TokenType_toString(const TokenType);
 void TokenPosition_print(const TokenPosition);
 void Token_print(const Token);
 bool TokenPosition_eq(const TokenPosition *, const TokenPosition *);
+char *TokenPosition_toString(const TokenPosition *);
 Token TokenStream_consume(TokenStream *);
 Token *TokenStream_current(const TokenStream *);
 Token *TokenStream_peek(const TokenStream *);

@@ -54,6 +54,7 @@ typedef enum {
 	X(TUPLE) \
 	X(PARAMETER) \
 	X(CALL) \
+	X(ALIAS) \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
@@ -143,6 +144,10 @@ typedef struct Node {
 		struct {
 			struct Node *function, *args;
 		} call;
+		struct {
+			Token name;
+			Type *type;
+		} alias;
 	};
 	Type *retType;
 	bool unreachable;

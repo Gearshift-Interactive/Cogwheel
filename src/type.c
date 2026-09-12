@@ -1,6 +1,7 @@
 #include "type.h"
 
 #include "bank.h"
+#include "error.h"
 
 Type TYPE_INT_OBJ = {
 	.kind = TYPE_INT,
@@ -24,7 +25,9 @@ static const char *TypeKind_toString(const TypeKind tk)
 {
 	switch (tk)
 	{
-		case TYPE_UNKNOWN: return "UNKNOWN";
+		case TYPE_ALIAS:
+		case TYPE_UNKNOWN:
+			return "UNKNOWN";
 #define X(NAME, LITERAL) case TYPE_##NAME: return #LITERAL;
 	TYPE_KINDS
 #undef X
@@ -38,6 +41,8 @@ const char *Type_toString(const Type *t)
 {
 	if (!t)
 		return "INVALID";
+	if (t->kind == TYPE_ALIAS)
+		return TokenPosition_toString(&t->alias.name.pos);
 	if (t->kind != TYPE_OPTION && t->kind != TYPE_ARRAY && t->kind != TYPE_FUNCTION)
 		return (char*)TypeKind_toString(t->kind);
 	String_Builder sb = {0};
@@ -84,6 +89,8 @@ bool Type_areCompatible(const Type *a, const Type *b)
 	// fflush(stdout);
 	if (!a || !b)
 		return false;
+	if (a->kind == TYPE_ALIAS || b->kind == TYPE_ALIAS)
+		PANIC("Can't compare unresolved aliases");
 	if (a->kind == TYPE_OPTION)
 	{
 		if (b->kind == TYPE_NULL)

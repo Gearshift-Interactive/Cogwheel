@@ -67,6 +67,14 @@ static const TokenType ATOMIC_TYPE_TOKENS[] = {
 
 static Type *tokenToType(Token t)
 {
+	if (t.type == TOKEN_SYMBOL)
+	{
+		Type *result = calloc(1, sizeof *result);
+		result->kind = TYPE_ALIAS;
+		result->alias.name = t;
+		Bank_handOff(result);
+		return result;
+	}
 	for (size_t i = 0; i < ARRAY_LEN(TOKEN_TO_TYPE); i++)
 		if (TOKEN_TO_TYPE[i].tt == t.type)
 			return TOKEN_TO_TYPE[i].t;
@@ -292,6 +300,61 @@ static Type *parseType(TokenStream *tokens)
 	}
 	return result;
 }
+static size_t typeSize(TokenStream *tokens, size_t offset)
+{
+#define UPDATE_PEEK peek = TokenStream_peekForward(tokens, result + offset)->type
+	size_t result = 0;
+	TokenType peek = TokenStream_peek(tokens)->type;
+	if (!(TokenType_isAtomicType(peek) || peek == TOKEN_SYMBOL))
+		return result;
+	result++;
+	while (
+		peek == TOKEN_LBRACKET || peek == TOKEN_QUESTION || peek == TOKEN_LPAREN
+	) {
+		result++;
+		UPDATE_PEEK;
+		if (peek == TOKEN_LBRACKET)
+		{
+			result++;
+			UPDATE_PEEK;
+			if (peek == TOKEN_NUMBER)
+				result++;
+			if (peek == TOKEN_RBRACKET)
+				result++;
+			else
+				return 0;
+		}
+		else if (peek == TOKEN_QUESTION)
+			result++;
+		else if (peek == TOKEN_LPAREN)
+		{
+			result++;
+			UPDATE_PEEK;
+			while (peek != TOKEN_RPAREN)
+			{
+				if (peek == TOKEN_MUT)
+				{
+					result++;
+					UPDATE_PEEK;
+				}
+				size_t innerSize = typeSize(tokens, result + offset);
+				if (innerSize)
+					result += innerSize;
+				else
+					return 0;
+				UPDATE_PEEK;
+				if (peek == TOKEN_COMMA)
+					result++;
+			}
+			if (peek == TOKEN_RPAREN)
+				result++;
+			else return 0;
+		}
+		UPDATE_PEEK;
+	}
+	return result;
+#undef UPDATE_PEEK
+}
 static void compactTuple(Node **node)
 {
 	if ((*node)->type != NODE_TUPLE)
@@ -435,6 +498,26 @@ static Node *parseTuple
 	result->tuple.capacity = exprs.capacity;
 	return result;
 }
+static bool checkVarDecl(TokenStream *tokens)
+{
+	Token *peek = TokenStream_peek(tokens);
+	if (
+		TokenType_isAtomicType(peek->type) ||
+		peek->type == TOKEN_MUT ||
+		peek->type == TOKEN_VAR
+	) return true;
+	size_t sizeOfType = typeSize(tokens, 0);
+	if (!sizeOfType)
+		return false;
+	else if (
+		TokenStream_peekForward(tokens, sizeOfType)->type == TOKEN_SYMBOL ||
+		(
+			TokenStream_peekForward(tokens, sizeOfType)->type == TOKEN_ELIPSIS &&
+			TokenStream_peekForward(tokens, sizeOfType + 1)->type == TOKEN_SYMBOL
+		)
+	) return true;
+	return false;
+}
 static Node *parseExprHead(TokenStream *tokens)
 {
 	Token *peek = TokenStream_peek(tokens);
@@ -475,8 +558,7 @@ static Node *parseExprHead(TokenStream *tokens)
 		// TokenStream_consumeExpect(tokens, TOKEN_RPAREN);
 		return result;
 	}
-	else if (TokenType_isAtomicType(peek->type) || peek->type == TOKEN_MUT || peek->type == TOKEN_VAR)
-		// variable declaration
+	else if (checkVarDecl(tokens))
 	{
 		return parseVarDecl(tokens);
 	}
@@ -605,6 +687,15 @@ static Node *parseExprHead(TokenStream *tokens)
 		result->type = NODE_SIZEOF;
 		result->sizeOf.value = parseExpr(tokens, SIZEOF_BINDING_POWER);
 		compactTuple(&result->sizeOf.value);
+		return result;
+	}
+	else if (peek->type == TOKEN_ALIAS)
+	{
+		Node *result = Node_make(TokenStream_consume(tokens).pos);
+		result->type = NODE_ALIAS;
+		result->alias.name = TokenStream_consumeExpect(tokens, TOKEN_SYMBOL);
+		TokenStream_consumeExpect(tokens, TOKEN_ASSIGN);
+		result->alias.type = parseType(tokens);
 		return result;
 	}
 	return parseAtom(tokens);
