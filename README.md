@@ -1,5 +1,5 @@
 # Cogwheel
-Cogwheel is a programming language.
+Cogwheel is a programming language that is currently WIP
 
 ## Usage
 
