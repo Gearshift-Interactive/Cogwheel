@@ -15,6 +15,10 @@ void printInt_f(Stack *stack, __attribute__((unused)) size_t argc)
 {
 	printf("%ld\n", Stack_pop(stack).v_int);
 }
+void printFloat_f(Stack *stack, __attribute__((unused)) size_t argc)
+{
+	printf("%f\n", Stack_pop(stack).v_float);
+}
 
 void buildStd(Globals *globals)
 {
@@ -31,13 +35,46 @@ void buildStd(Globals *globals)
 	printInt.type->kind = TYPE_FUNCTION;
 	printInt.type->function.isNative = true;
 	printInt.type->function.retType = &TYPE_VOID_OBJ;
-	ArgInfo argInfo = {
+	ArgInfo argInfo_printInt = {
 		.type = &TYPE_INT_OBJ,
 	};
-	da_append(&printInt.type->function.args, argInfo);
+	da_append(&printInt.type->function.args, argInfo_printInt);
 	Bank_handOff(printInt.type);
 	Bank_handOff(printInt.type->function.args.items);
 	da_append(globals, printInt);
+
+	GlobalValue printFloat = {
+		.value = (Value) {
+			.v_nfunc = printFloat_f,
+#ifdef DEBUG
+			.type = VALUE_NFUNC,
+#endif
+		},
+		.type = calloc(1, sizeof(Type)),
+		.name = "printFloat",
+	};
+	printFloat.type->kind = TYPE_FUNCTION;
+	printFloat.type->function.isNative = true;
+	printFloat.type->function.retType = &TYPE_VOID_OBJ;
+	ArgInfo argInfo_printFloat = {
+		.type = &TYPE_FLOAT_OBJ,
+	};
+	da_append(&printFloat.type->function.args, argInfo_printFloat);
+	Bank_handOff(printFloat.type);
+	Bank_handOff(printFloat.type->function.args.items);
+	da_append(globals, printFloat);
+
+	GlobalValue PI = {
+		.value = (Value) {
+			.v_float = 3.1415926535897932384626433832795028841971693993751058209749445923078164062,
+#ifdef DEBUG
+			.type = VALUE_NFUNC,
+#endif
+		},
+		.type = &TYPE_FLOAT_OBJ,
+		.name = "PI",
+	};
+	da_append(globals, PI);
 }
 
 int main(int argc, char **argv)
