@@ -94,6 +94,7 @@ void TokenPosition_print(const TokenPosition);
 void Token_print(const Token);
 bool TokenPosition_eq(const TokenPosition *, const TokenPosition *);
 char *TokenPosition_toString(const TokenPosition *);
+TokenPosition TokenPosition_fromString(const char *);
 Token TokenStream_consume(TokenStream *);
 Token *TokenStream_current(const TokenStream *);
 Token *TokenStream_peek(const TokenStream *);

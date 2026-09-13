@@ -1,3 +1,5 @@
 mut var x = 5;
 var add = (int y) -> x + y;
-exit add(10);
+printInt(add(10));
+printInt(add(15));
+printInt(add(20));

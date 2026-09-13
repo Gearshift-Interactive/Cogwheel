@@ -46,6 +46,7 @@ typedef struct Type {
 				size_t count, capacity;
 			} args;
 			ArgInfo *varArgItem;
+			bool isNative;
 		} function;
 		struct {
 			Token name;

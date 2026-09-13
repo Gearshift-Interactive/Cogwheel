@@ -1,6 +1,6 @@
 #include "vm.h"
 #include "error.h"
-#include "value.h"
+#include "stack.h"
 
 #include <math.h>
 #include <inttypes.h>
@@ -96,12 +96,6 @@ static void GC_freeAll(GC *this)
 		free(this->closures.items);
 }
 
-
-typedef struct {
-	Value *values;
-	size_t count, capacity;
-} Stack;
-
 typedef struct {
 	Stack stack;
 	Scope *scope;
@@ -192,66 +186,6 @@ static void Chunk_printImpl(const Chunk *this, size_t level)
 void Chunk_print(const Chunk *this)
 {
 	Chunk_printImpl(this, 0);
-}
-#ifdef DEBUG
-static void Stack_print(const Stack *this)
-{
-	printf("--STACK--\n");
-	if (this->count)
-		for (size_t i = 0; i < this->count; i++)
-		{
-			printf("%zu - ", i);
-			Value_print(this->values + i);
-		}
-	else
-		printf("  *empty*\n");
-}
-#endif
-static void Stack_checkCapacity(Stack *this)
-{
-	if (!this->values)
-	{
-		this->values = malloc(sizeof(Value) * 64);
-		if (!this->values)
-			PANIC("Out of memory");
-		this->capacity = 64;
-		return;
-	}
-	if (this->count < this->capacity)
-		return;
-	this->values = realloc(this->values, sizeof(Value) * this->capacity * 2);
-	if (!this->values)
-		PANIC("Out of memory");
-	this->capacity *= 2;
-}
-static void Stack_push(Stack *this, Value value)
-{
-	Stack_checkCapacity(this);
-	this->values[this->count++] = value;
-}
-static Value Stack_pop(Stack *this)
-{
-	if (this->count < 1)
-		PANIC("Stack is empty");
-	return this->values[--this->count];
-}
-static Value Stack_current(Stack *this)
-{
-	if (this->count < 1)
-		PANIC("Stack is empty");
-	return this->values[this->count - 1];
-}
-static Value *Stack_currentPtr(Stack *this)
-{
-	if (this->count < 1)
-		PANIC("Stack is empty");
-	return this->values + (this->count - 1);
-}
-static Value *Stack_countBack(Stack *this, size_t count)
-{
-	if (this->count < 1)
-		PANIC("Stack is empty");
-	return this->values + (this->count - count);
 }
 static void Stack_free(const Stack *this)
 {
@@ -768,6 +702,10 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		for (size_t i = 0; i < obj->count; i++)
 			obj->items[i] = value;
 	} break;
+	case OP_CALLN: {
+		Value function = Stack_pop(&vm->stack);
+		function.v_nfunc(&vm->stack, readSizeT(vm, chunk));
+	} break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;
@@ -806,9 +744,12 @@ static void call(VM *vm, const Closure *closure, size_t argc)
 	vm->pc    = oldPc;
 	vm->scope = oldScope;
 }
-int run(const Chunk *chunk)
+int run(const Chunk *chunk, Globals *globals)
 {
 	VM vm = {0};
+	Scope_enter(&vm, globals->count);
+	for (size_t i = 0; i < globals->count; i++)
+		scopeWrite(&vm, 0, i, globals->items[i].value);
 	execute(&vm, chunk);
 	Stack_free(&vm.stack);
 	GC_freeAll(&vm.gc);

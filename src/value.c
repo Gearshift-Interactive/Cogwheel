@@ -43,6 +43,7 @@ void Value_print(const Value *this) {
 			break;
 		case VALUE_HEAP:
 		case VALUE_FUNC:
+		case VALUE_NFUNC:
 			printf("(%p)\n", this->v_heap);
 			break;
 		case VALUE_UNKNOWN:

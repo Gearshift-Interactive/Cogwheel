@@ -604,6 +604,15 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 	case NODE_TUPLE:
 		PANIC("Illegal tuple");
 	case NODE_CALL:
+		if (node->call.function->retType->function.isNative)
+		{
+			for (size_t i = 0; i < node->call.args->tuple.count; i++)
+				compileNode(this, node->call.args->tuple.items[i], context);
+			compileNode(this, node->call.function, context);
+			PUSH_OP(OP_CALLN);
+			PUSH_DATA(size_t, node->call.args->tuple.count);
+			break;
+		}
 		for (size_t i = 0; i < node->call.args->tuple.count; i++)
 		{
 			if (i == node->call.function->retType->function.args.count)

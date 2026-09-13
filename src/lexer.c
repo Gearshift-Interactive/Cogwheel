@@ -102,6 +102,15 @@ char *TokenPosition_toString(const TokenPosition *tp)
 	memcpy(result, (char*)tp->origin + tp->start, tp->length);
 	return result;
 }
+TokenPosition TokenPosition_fromString(const char *chars)
+{
+	return (TokenPosition) {
+		.origin = chars,
+		.start = 0,
+		.length = strlen(chars),
+		"src",
+	};
+}
 Token TokenStream_consume(TokenStream *this)
 {
 	assert(this);

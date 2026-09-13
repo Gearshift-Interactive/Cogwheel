@@ -1,5 +1,9 @@
 #pragma once
 
+#include "value.h"
+
+#include "globals.h"
+
 #include "nob.h"
 
 #define OPCODE_TYPE \
@@ -97,6 +101,7 @@
 	X(OPT_CHECK, 0) \
 	/* functions */ \
 	X(CALL, sizeof(size_t)) \
+	X(CALLN, sizeof(size_t)) \
 
 typedef enum {
 	OP_NOOP = 0,
@@ -127,4 +132,4 @@ typedef struct Closure Closure;
 
 void Chunk_free(const Chunk *);
 void Chunk_print(const Chunk *);
-int run(const Chunk *);
+int run(const Chunk *, Globals *);

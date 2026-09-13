@@ -28,7 +28,7 @@ static Context *Context_findParent(Context *this, ContextType type)
 }
 
 typedef struct {
-	const TokenPosition *name;
+	TokenPosition name;
 	const Type *type;
 	bool mutable;
 } VarInfo;
@@ -59,14 +59,14 @@ static bool ScopeInfo_isVarPresent(const ScopeInfo *this, const TokenPosition *n
 {
 	for (const ScopeInfo *current = this; current; current = current->parent)
 		da_foreach(VarInfo, var, &current->vars)
-			if (TokenPosition_eq(var->name, name))
+			if (TokenPosition_eq(&var->name, name))
 				return true;
 	return false;
 }
 static bool ScopeInfo_isVarPresentShallow(const ScopeInfo *this, const TokenPosition *name)
 {
 	da_foreach(VarInfo, var, &this->vars)
-		if (TokenPosition_eq(var->name, name))
+		if (TokenPosition_eq(&var->name, name))
 			return true;
 	return false;
 }
@@ -74,7 +74,7 @@ static size_t ScopeInfo_getVarIndex(const ScopeInfo *this, const TokenPosition *
 {
 	for (const ScopeInfo *current = this; current; current = current->parent)
 		for (size_t i = 0; i < current->vars.count; i++)
-			if (TokenPosition_eq((current->vars.items + i)->name, name))
+			if (TokenPosition_eq(&(current->vars.items + i)->name, name))
 				return i;
 	// comptimeMessage(MESSAGE_ERRORN, *name, "Undefined variable");
 	return 0;
@@ -85,7 +85,7 @@ static size_t ScopeInfo_getVarDepth(const ScopeInfo *this, const TokenPosition *
 	for (const ScopeInfo *current = this; current; current = current->parent)
 	{
 		da_foreach(VarInfo, var, &current->vars)
-			if (TokenPosition_eq(var->name, name))
+			if (TokenPosition_eq(&var->name, name))
 				return depth;
 		depth++;
 	}
@@ -100,7 +100,7 @@ static VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index, size_t de
 	return current->vars.items + index;
 }
 static void ScopeInfo_declare(
-	ScopeInfo *this, const TokenPosition *name, const Type *type, bool mutable
+	ScopeInfo *this, const TokenPosition name, const Type *type, bool mutable
 ) {
 	VarInfo info = {
 		.name = name,
@@ -302,14 +302,14 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					type->array.underlying = (*arg)->funcParam.type;
 					Bank_handOff(type);
 					ScopeInfo_declare(childScope,
-						&(*arg)->funcParam.name.pos,
+						(*arg)->funcParam.name.pos,
 						type,
 						(*arg)->funcParam.isMutable
 					);
 				}
 				else
 					ScopeInfo_declare(childScope,
-						&(*arg)->funcParam.name.pos,
+						(*arg)->funcParam.name.pos,
 						(*arg)->funcParam.type,
 						(*arg)->funcParam.isMutable
 					);
@@ -437,7 +437,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 				"Variable is already declared");
 		// printf("%s\n", Type_toString(node->var_decl.type));
 		ScopeInfo_declare(scope,
-			&node->var_decl.name.pos,
+			node->var_decl.name.pos,
 			node->var_decl.type,
 			node->var_decl.isMutable
 		);
@@ -981,9 +981,16 @@ static void analyze(Node *node)
 	{}
 	}
 }
-void analyzeAndMark(Node **node)
+void analyzeAndMark(Node **node, Globals *globals)
 {
 	Context context = {0};
-	*node = markScope(*node, NULL, &context);
+	ScopeInfo scope = {0};
+	da_foreach(GlobalValue, value, globals)
+		ScopeInfo_declare(
+			&scope, TokenPosition_fromString(value->name),
+			value->type, value->isMutable
+		);
+	*node = markScope(*node, &scope, &context);
 	analyze(*node);
+	free(scope.vars.items);
 }
