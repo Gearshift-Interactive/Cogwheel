@@ -11,9 +11,9 @@
 
 #ifdef COG_STANDALONE
 
-void printInt_f(Stack *stack, size_t argc)
+void printInt_f(Stack *stack, __attribute__((unused)) size_t argc)
 {
-	printf("%d\n", Stack_pop(stack).v_int);
+	printf("%ld\n", Stack_pop(stack).v_int);
 }
 
 void buildStd(Globals *globals)
