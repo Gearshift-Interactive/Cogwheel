@@ -32,4 +32,5 @@ typedef enum {
 
 extern bool errorOccured;
 
-void comptimeMessage(MessageLevel level, TokenPosition pos, const char *fmt, ...);
+#define comptimeMessage(level, pos, ...) comptimeMessage_impl(__FILE__, __LINE__, level, pos, __VA_ARGS__)
+void comptimeMessage_impl(const char *file, size_t ln, MessageLevel level, TokenPosition pos, const char *fmt, ...);

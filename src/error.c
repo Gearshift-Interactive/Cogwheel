@@ -87,12 +87,15 @@ static void TokenPosition_pprint(TokenPosition pos, size_t lineNumber, size_t li
 	for (size_t i = 0; i < pos.length - 1; i++)
 		putchar('~');
 }
-void comptimeMessage(MessageLevel level, TokenPosition pos, const char *fmt, ...)
+void comptimeMessage_impl(const char *file, size_t ln, MessageLevel level, TokenPosition pos, const char *fmt, ...)
 {
 	va_list args;
 	const size_t lineNumber = TokenPosition_countLineNumber(pos);
 	const size_t linePos = TokenPosition_countLinePos(pos);
 
+#ifdef DEBUG
+	printf("%s:%zu:\n", file, ln);
+#endif
 	printf("%s:%zu:%zu: %s: ",
 		pos.originName,
 		lineNumber,
