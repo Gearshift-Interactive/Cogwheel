@@ -332,6 +332,11 @@ Token Tokenizer_handleCharacter(Tokenizer *this)
 	Tokenizer_advance(this);
 	const size_t start = this->offset;
 	size_t length = 0;
+	if (*(this->text.data + this->offset) == '\\')
+	{
+		length++;
+		Tokenizer_advance(this);
+	}
 	size_t charLength = nob_bytes_for_utf8[(size_t)*(this->text.data + this->offset)];
 	for (size_t i = 0; i < charLength; i++)
 	{

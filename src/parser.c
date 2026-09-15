@@ -154,6 +154,24 @@ static wchar_t parseChar(Token token)
 {
 	wchar_t result = 0;
 	memcpy(&result, token.pos.origin + token.pos.start, token.pos.length);
+	if (!strncmp((char*)&result, "\\a", sizeof result))
+		result = '\a';
+	else if (!strncmp((char*)&result, "\\b", 2))
+		result = '\b';
+	else if (!strncmp((char*)&result, "\\f", 2))
+		result = '\f';
+	else if (!strncmp((char*)&result, "\\n", 2))
+		result = '\n';
+	else if (!strncmp((char*)&result, "\\r", 2))
+		result = '\r';
+	else if (!strncmp((char*)&result, "\\t", 2))
+		result = '\t';
+	else if (!strncmp((char*)&result, "\\v", 2))
+		result = '\v';
+	else if (!strncmp((char*)&result, "\\\\", 2))
+		result = '\\';
+	else if (!strncmp((char*)&result, "\\'", 2))
+		result = '\'';
 	return result;
 }
 static Node *parseAtom(TokenStream *tokens)

@@ -1,1 +1,2 @@
-char some = 'b';
+char some = '\n';
+putChar(some);
