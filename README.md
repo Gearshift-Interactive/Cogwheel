@@ -53,6 +53,23 @@ There are also these operators for numeric comparison that all always return boo
 - `>=`: Greater than or equal to
 - `<=`: Less than or equal to
 
+### Character
+
+Character value stores a single string character.
+```
+char some = 'w';
+```
+Characters support following escapse sequences:
+- `\a`: Alert
+- `\b`: Backspace
+- `\f`: Formfeed Page Break
+- `\n`: Newline
+- `\r`: Carriage Return
+- `\t`: Horizontal tab
+- `\v`: Vertical tab
+- `\\`: Backslash
+- `\'`: Apostrophe
+
 ### Variables
 
 You can declare a variable with it's type, followed by its name, an equal sign and a value:
