@@ -1,0 +1,15 @@
+alias String = char[];
+
+var print = (String str) -> {
+    mut var i = 0u;
+    while (i < sizeof str)
+    {
+        putChar(str[i]);
+        i = i + 1u;
+    };
+};
+var println = (String str) -> {
+    print(str);
+    putChar('\n');
+};
+println(new ['H', 'e', 'l', 'l', 'o', ',', ' ', 'W', 'o', 'r', 'l', 'd', '!']);
