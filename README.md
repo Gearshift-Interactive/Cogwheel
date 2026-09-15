@@ -1,6 +1,26 @@
 # Cogwheel
 Cogwheel is a programming language that is currently WIP
 
+## Hello World example
+
+```
+alias String = char[];
+
+var print = (String str) -> {
+    mut var i = 0u;
+    while (i < sizeof str)
+    {
+        putChar(str[i]);
+        i = i + 1u;
+    };
+};
+var println = (String str) -> {
+    print(str);
+    putChar('\n');
+};
+println(new ['H', 'e', 'l', 'l', 'o', ',', ' ', 'W', 'o', 'r', 'l', 'd', '!']);
+```
+
 ## Usage
 
 The is also a code example for [basic vector math](./tests/vector.cog).
