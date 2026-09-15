@@ -112,6 +112,7 @@ void Chunk_free(const Chunk *this)
 	FREE_IF_PRESENT(this->uintConsts.items);
 	FREE_IF_PRESENT(this->floatConsts.items);
 	FREE_IF_PRESENT(this->instr.code);
+	FREE_IF_PRESENT(this->charConsts.items);
 #undef FREE_IF_PRESENT
 	if (this->functions.items)
 	{
@@ -706,6 +707,15 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		Value function = Stack_pop(&vm->stack);
 		function.v_nfunc(&vm->stack, readSizeT(vm, chunk));
 	} break;
+	case OP_CLOAD_CHAR:
+		arg1 = readSizeT(vm, chunk);
+		Stack_push(&vm->stack, (Value){
+#ifdef DEBUG
+			.type = VALUE_CHAR,
+#endif
+			.v_char = chunk->charConsts.items[arg1],
+		});
+		break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;

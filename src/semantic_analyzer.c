@@ -689,6 +689,9 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		node->unreachable = true;
 		node->retType = &TYPE_VOID_OBJ;
 		break;
+	case NODE_CHAR:
+		node->retType = &TYPE_CHAR_OBJ;
+		break;
 	}
 }
 static void mark(Node **node, ScopeInfo *scope, Context *context)
@@ -724,6 +727,7 @@ static bool isNodeFinal(Node *node)
 	case NODE_PARAMETER:
 	case NODE_CALL:
 	case NODE_ALIAS:
+	case NODE_CHAR:
 		return false;
 	case NODE_EXIT:
 	case NODE_YIELD:
@@ -978,6 +982,7 @@ static void analyze(Node *node)
 	case NODE_NULL:
 	case NODE_PARAMETER:
 	case NODE_ALIAS:
+	case NODE_CHAR:
 	{}
 	}
 }

@@ -43,6 +43,7 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "string", TOKEN_STRING_T },
 	{ "boolean", TOKEN_BOOL_T },
 	{ "void", TOKEN_VOID },
+	{ "char", TOKEN_CHAR_T },
 
 	{ "exit", TOKEN_EXIT },
 	{ "mut", TOKEN_MUT },
@@ -322,6 +323,34 @@ static void Tokenizer_handleComment(Tokenizer *this)
 		}
 	}
 }
+bool Tokenizer_checkCharacter(Tokenizer *this)
+{
+	return *(this->text.data + this->offset) == '\'';
+}
+Token Tokenizer_handleCharacter(Tokenizer *this)
+{
+	Tokenizer_advance(this);
+	const size_t start = this->offset;
+	size_t length = 0;
+	size_t charLength = nob_bytes_for_utf8[(size_t)*(this->text.data + this->offset)];
+	for (size_t i = 0; i < charLength; i++)
+	{
+		length++;
+		Tokenizer_advance(this);
+	}
+	if (*(this->text.data + this->offset) != '\'')
+		PANIC("Expected \"'\", got %c", *(this->text.data + this->offset));
+	Tokenizer_advance(this);
+	return (Token){
+		.type = TOKEN_CHAR,
+		.pos = (TokenPosition){
+			.origin = this->origin,
+			.start = start,
+			.length = length,
+			.originName = this->originName,
+		},
+	};
+}
 TokenStream tokenize(String_View text, const char *filename)
 {
 	assert(text.data);
@@ -339,6 +368,8 @@ TokenStream tokenize(String_View text, const char *filename)
 			da_append(&tokens, Tokenizer_handleSymbol(&tokenizer));
 		else if (Tokenizer_checkNumber(&tokenizer))
 			da_append(&tokens, Tokenizer_handleNumber(&tokenizer));
+		else if (Tokenizer_checkCharacter(&tokenizer))
+			da_append(&tokens, Tokenizer_handleCharacter(&tokenizer));
 		else if (Tokenizer_checkComment(&tokenizer))
 			Tokenizer_handleComment(&tokenizer);
 		else if (Tokenizer_checkWhitespace(&tokenizer))

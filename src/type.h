@@ -10,6 +10,7 @@
 	X(FLOAT, float) \
 	X(BOOL, bool) \
 	X(NULL, null) \
+	X(CHAR, char) \
 
 typedef enum {
 	TYPE_UNKNOWN = 0,
@@ -60,6 +61,7 @@ extern Type TYPE_FLOAT_OBJ;
 extern Type TYPE_BOOL_OBJ;
 extern Type TYPE_VOID_OBJ;
 extern Type TYPE_NULL_OBJ;
+extern Type TYPE_CHAR_OBJ;
 
 const char *Type_toString(const Type *);
 bool Type_areCompatible(const Type *, const Type *);

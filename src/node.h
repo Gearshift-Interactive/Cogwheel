@@ -55,6 +55,7 @@ typedef enum {
 	X(PARAMETER) \
 	X(CALL) \
 	X(ALIAS) \
+	X(CHAR) \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
@@ -148,6 +149,7 @@ typedef struct Node {
 			Token name;
 			Type *type;
 		} alias;
+		struct { wchar_t value; } charLit;
 	};
 	Type *retType;
 	bool unreachable;

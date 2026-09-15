@@ -278,6 +278,9 @@ single:
 		printIndent(indent);
 		printf(")");
 		break;
+	case NODE_CHAR:
+		printf("'%lc'", node->charLit.value);
+		break;
 	}
 	if (node->retType)
 		printf(" -> %s", Type_toString(node->retType));
@@ -362,6 +365,7 @@ void Node_free(const Node *node)
 	case NODE_NULL:
 	case NODE_PARAMETER:
 	case NODE_ALIAS:
+	case NODE_CHAR:
 		{}
 	}
 	free((void*)node);

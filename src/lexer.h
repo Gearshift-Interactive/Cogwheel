@@ -12,6 +12,7 @@
 	X(SYMBOL) \
 	X(TRUE_) \
 	X(FALSE_) \
+	X(CHAR) \
 	/* infix */ \
 	X(ADD) \
 	X(SUB) \
@@ -48,6 +49,7 @@
 	X(BOOL_T) \
 	X(STRING_T) \
 	X(VOID) \
+	X(CHAR_T) \
 	/* keywords */ \
 	X(EXIT) \
 	X(MUT) \

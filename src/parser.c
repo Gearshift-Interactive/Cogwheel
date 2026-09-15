@@ -23,6 +23,7 @@ static const struct {
 	{ TOKEN_FLOAT_T, &TYPE_FLOAT_OBJ },
 	{ TOKEN_BOOL_T, &TYPE_BOOL_OBJ },
 	{ TOKEN_VOID, &TYPE_VOID_OBJ },
+	{ TOKEN_CHAR_T, &TYPE_CHAR_OBJ },
 	// { TOKEN_STRING_T, ATOM_STRING },
 };
 static const BindingPower BINDING_POWERS[] = {
@@ -63,6 +64,7 @@ static const TokenType TAIL_TOKENS[] = {
 };
 static const TokenType ATOMIC_TYPE_TOKENS[] = {
 	TOKEN_INT_T, TOKEN_UINT_T, TOKEN_FLOAT_T, TOKEN_BOOL_T, TOKEN_STRING_T, TOKEN_VOID,
+	TOKEN_CHAR_T
 };
 
 static Type *tokenToType(Token t)
@@ -148,6 +150,12 @@ static double parseFloat(Token token)
 	}
 	return result;
 }
+static wchar_t parseChar(Token token)
+{
+	wchar_t result = 0;
+	memcpy(&result, token.pos.origin + token.pos.start, token.pos.length);
+	return result;
+}
 static Node *parseAtom(TokenStream *tokens)
 {
 	Token consumed = TokenStream_consume(tokens);
@@ -191,7 +199,13 @@ static Node *parseAtom(TokenStream *tokens)
 			Node *node = Node_make(consumed.pos);
 			node->type = NODE_NULL;
 			return node;
-		 }
+		}
+		case TOKEN_CHAR: {
+			Node *node = Node_make(consumed.pos);
+			node->type = NODE_CHAR;
+			node->charLit.value = parseChar(consumed);
+			return node;
+		}
 		default: {
 			TokenPosition tp = consumed.pos;
 			comptimeMessage(MESSAGE_ERROR, tp, "Unexpected token");

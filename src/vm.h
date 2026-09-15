@@ -1,7 +1,6 @@
 #pragma once
 
 #include "value.h"
-
 #include "globals.h"
 
 #include "nob.h"
@@ -19,6 +18,7 @@
 	X(CLOAD_FALSE, 0) \
 	X(CLOAD_NULL, 0) \
 	X(CLOAD_FUNC, sizeof(size_t)) \
+	X(CLOAD_CHAR, sizeof(size_t)) \
 	/* add */ \
 	X(ADD_INT, 0) \
 	X(ADD_UINT, 0) \
@@ -118,6 +118,7 @@ typedef struct Chunk {
 	CONST_ARRAY(uint64_t) uintConsts;
 	CONST_ARRAY(double) floatConsts;
 	CONST_ARRAY(struct Chunk) functions;
+	CONST_ARRAY(wchar_t) charConsts;
 	struct {
 		union { size_t count, length; };
 		size_t capacity;

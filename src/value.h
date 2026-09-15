@@ -19,6 +19,7 @@ typedef struct Value Value;
 		X(NULL) \
 		X(FUNC) \
 		X(NFUNC) \
+		X(CHAR) \
 
 typedef enum {
 	VALUE_UNKNOWN = 0,
@@ -38,6 +39,7 @@ typedef struct Value {
 		void *v_heap;
 		void *v_func; // don't use ts for globals
 		void (*v_nfunc)(Stack *stack, size_t argc);
+		wchar_t v_char;
 	};
 #ifdef DEBUG
 	ValueType type;

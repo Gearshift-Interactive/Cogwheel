@@ -21,6 +21,9 @@ Type TYPE_VOID_OBJ = {
 Type TYPE_NULL_OBJ = {
 	.kind = TYPE_NULL,
 };
+Type TYPE_CHAR_OBJ = {
+	.kind = TYPE_CHAR,
+};
 static const char *TypeKind_toString(const TypeKind tk)
 {
 	switch (tk)
@@ -90,7 +93,13 @@ bool Type_areCompatible(const Type *a, const Type *b)
 	if (!a || !b)
 		return false;
 	if (a->kind == TYPE_ALIAS || b->kind == TYPE_ALIAS)
+	{
+#ifdef DEBUG
 		PANIC("Can't compare unresolved aliases");
+#else
+		exit(1);
+#endif
+	}
 	if (a->kind == TYPE_OPTION)
 	{
 		if (b->kind == TYPE_NULL)

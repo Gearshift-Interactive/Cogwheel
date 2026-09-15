@@ -648,6 +648,11 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		break;
 	case NODE_ALIAS:
 		PANIC("Unexpected alias node in marked AST");
+	case NODE_CHAR:
+		da_append(&this->charConsts, node->charLit.value);
+		PUSH_OP(OP_CLOAD_CHAR);
+		PUSH_DATA(size_t, this->charConsts.count - 1);
+		break;
 	}
 	return resultSize;
 }

@@ -53,6 +53,9 @@ void Value_print(const Value *this) {
 			PANIC("TS is void");
 		case VALUE_NULL:
 			PANIC("TS is null");
+		case VALUE_CHAR:
+			printf("(%lc)\n", this->v_char);
+			break;
 	}
 }
 #endif
