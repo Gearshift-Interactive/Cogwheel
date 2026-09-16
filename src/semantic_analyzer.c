@@ -731,11 +731,12 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		node->retType = &TYPE_CHAR_OBJ;
 		break;
 	case NODE_STRING:
-		node->retType = calloc(1, sizeof *node->retType);
-		node->retType->kind = TYPE_ARRAY;
-		node->retType->array.underlying = &TYPE_CHAR_OBJ;
-		node->retType->array.size = node->stringLit.count;
-		Bank_handOff(node->retType);
+		// node->retType = calloc(1, sizeof *node->retType);
+		// node->retType->kind = TYPE_ARRAY;
+		// node->retType->array.underlying = &TYPE_CHAR_OBJ;
+		// node->retType->array.size = node->stringLit.count;
+		// Bank_handOff(node->retType);
+		node->retType = &TYPE_STRING_OBJ;
 		break;
 	case NODE_REALLOC:
 		mark(&node->realloc.array, scope, context);
