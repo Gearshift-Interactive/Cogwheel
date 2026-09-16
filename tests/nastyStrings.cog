@@ -1,4 +1,3 @@
-
 alias String = char[];
 
 var print = (String str) -> {
@@ -9,8 +8,22 @@ var print = (String str) -> {
         i = i + 1u;
     };
 };
-var println = (String str) -> {
-    print(str);
+var println = (String... strs) -> {
+    mut var i = 0u;
+    while (i < sizeof strs)
+    {
+        print(strs[i]);
+        i = i + 1u;
+    };
     putChar('\n');
+};
+var printlns = (String... strs) -> {
+    mut var i = 0u;
+    while (i < sizeof strs)
+    {
+        print(strs[i]);
+        putChar('\n');
+        i = i + 1u;
+    };
 };
 println("Hello, Ворлд!");
