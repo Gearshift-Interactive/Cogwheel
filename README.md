@@ -149,6 +149,14 @@ where:
 
 Arrays can be resized up, resized down, or resized with the same amount of items.
 
+Arrays can also be concatenated:
+```
+var numbers1 = new [ 1, 2, 3 ];
+var numbers2 = new [ 4, 5, 6  ];
+var numbers = numbers1 + numbers2;
+// 1, 2, 3, 4, 5, 6
+```
+
 ### Strings
 
 Strings are basically nonexistent in this language at runtime. All the strings are is
