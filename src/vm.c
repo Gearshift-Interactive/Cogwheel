@@ -747,6 +747,17 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		for (size_t i = oldSize; i < obj->count; i++)
 			obj->items[i] = fillValue;
 	} break;
+	case OP_GC_CONCAT: {
+		HeapObject *obj2 = Stack_pop(&vm->stack).v_heap;
+		HeapObject *obj1 = Stack_pop(&vm->stack).v_heap;
+		Value result = GC_alloc(&vm->gc, obj1->count + obj2->count);
+		HeapObject *resultHeap = result.v_heap;
+		for (size_t i = 0; i < obj1->count; i++)
+			resultHeap->items[i] = obj1->items[i];
+		for (size_t i = 0; i < obj2->count; i++)
+			resultHeap->items[obj1->count + i] = obj2->items[i];
+		Stack_push(&vm->stack, result);
+	} break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;

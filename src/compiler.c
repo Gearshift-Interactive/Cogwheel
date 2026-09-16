@@ -181,6 +181,9 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 		case TYPE_FLOAT:
 			PUSH_OP(OP_ADD_FLOAT);
 			break;
+		case TYPE_ARRAY:
+			PUSH_OP(OP_GC_CONCAT);
+			break;
 		default:
 			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
 			break;

@@ -382,6 +382,31 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			}
 			node->retType = &TYPE_BOOL_OBJ;
 		}
+		else if (
+			node->infix.type == INFIX_ADD &&
+			left->retType->kind == TYPE_ARRAY &&
+			right->retType->kind == TYPE_ARRAY
+		) {
+			if (!Type_areCompatible(
+				left->retType->array.underlying, right->retType->array.underlying
+			)) {
+				comptimeMessage(MESSAGE_ERRORN, node->pos,
+					"Can't perform %s on %s and %s",
+					InfixType_toString(&node->infix.type),
+					Type_toString(left->retType),
+					Type_toString(right->retType));
+				node->retType = left->retType;
+			}
+			else
+			{
+				node->retType = Type_copy(left->retType);
+				if (left->retType->array.size && right->retType->array.size)
+					node->retType->array.size =
+						left->retType->array.size + right->retType->array.size;
+				else
+					node->retType->array.size = 0;
+			}
+		}
 		else if (left->retType == &TYPE_INT_OBJ && right->retType == &TYPE_INT_OBJ)
 			node->retType = &TYPE_INT_OBJ;
 		else if (left->retType == &TYPE_UINT_OBJ && right->retType == &TYPE_UINT_OBJ)
