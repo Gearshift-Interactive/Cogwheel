@@ -70,6 +70,7 @@ static void TokenPosition_pprint(TokenPosition pos, size_t lineNumber, size_t li
 			{
 				putchar('\n');
 				printLineNumber(curLine);
+				continuationBytesCount = 0;
 			}
 			// if (curLine == lineNumber)
 			// 	putchar('\n');
