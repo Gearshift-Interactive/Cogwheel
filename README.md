@@ -156,6 +156,13 @@ var numbers2 = new [ 4, 5, 6  ];
 var numbers = numbers1 + numbers2;
 // 1, 2, 3, 4, 5, 6
 ```
+and repeated:
+```
+var numbers1 = new [ 1, 2, 3 ];
+var numbers = numbers1 * 2u;
+// 1, 2, 3, 1, 2, 3
+```
+`numbers` is a new array, with values from old ones copied. Old arrays are not modified.
 
 ### Strings
 
