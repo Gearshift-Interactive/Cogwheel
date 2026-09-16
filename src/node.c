@@ -92,6 +92,9 @@ static void Node_printImpl(const Node *node, const size_t indent)
 	case NODE_CHECK:
 		printf("(check\n");
 		goto single;
+	case NODE_TOSTRING:
+		printf("(to-string\n");
+		goto single;
 	case NODE_YIELD:
 		printf("(yield\n");
 single:
@@ -328,6 +331,7 @@ void Node_free(const Node *node)
 	case NODE_SIZEOF:
 	case NODE_UNWRAP:
 	case NODE_CHECK:
+	case NODE_TOSTRING:
 		Node_free(node->exit.value);
 		break;
 	case NODE_INFIX:

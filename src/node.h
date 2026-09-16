@@ -58,6 +58,7 @@ typedef enum {
 	X(CHAR) \
 	X(STRING) \
 	X(REALLOC) \
+	X(TOSTRING) \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
@@ -96,7 +97,7 @@ typedef struct Node {
 		} let;
 		struct {
 			struct Node *value;
-		} exit, negation, yield, not, loopBreak, sizeOf, unwrap, check;
+		} exit, negation, yield, not, loopBreak, sizeOf, unwrap, check, toString;
 		struct {
 			struct Node *value;
 			Type *target;

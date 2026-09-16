@@ -35,6 +35,7 @@ static const SymbolInfo PUNCTUATION[] = {
 	{ ",", TOKEN_COMMA },
 	{ "?", TOKEN_QUESTION },
 	{ "!", TOKEN_EXCLAMATION },
+	{ "$", TOKEN_TOSTRING },
 };
 static const SymbolInfo KEYWORDS[] = {
 	{ "int", TOKEN_INT_T },

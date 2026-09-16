@@ -683,6 +683,18 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		compileNode(this, node->realloc.fillValue, context);
 		PUSH_OP(OP_GC_REALLOC);
 		break;
+	case NODE_TOSTRING:
+		compileNode(this, node->toString.value, context);
+		switch (node->toString.value->retType->kind)
+		{
+		case TYPE_INT:
+			PUSH_OP(OP_TOSTRING_INT);
+			break;
+		default:
+			PANIC("Unsupported type for stringification: %s",
+				Type_toString(node->toString.value->retType));
+			break;
+		}
 	}
 	return resultSize;
 }

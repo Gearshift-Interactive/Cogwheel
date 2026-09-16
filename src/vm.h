@@ -105,6 +105,12 @@
 	/* functions */ \
 	X(CALL, sizeof(size_t)) \
 	X(CALLN, sizeof(size_t)) \
+	/* stringification */ \
+	X(TOSTRING_INT, 0) \
+	X(TOSTRING_UINT, 0) \
+	X(TOSTRING_FLOAT, 0) \
+	X(TOSTRING_BOOL, 0) \
+	X(TOSTRING_ARR, 0) \
 
 typedef enum {
 	OP_NOOP = 0,

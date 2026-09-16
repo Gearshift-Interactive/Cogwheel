@@ -42,6 +42,7 @@
 	X(EXCLAMATION) \
 	X(ARROW) \
 	X(ELIPSIS) \
+	X(TOSTRING) \
 	/* atomic types */ \
 	X(INT_T) \
 	X(UINT_T) \

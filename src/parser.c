@@ -57,6 +57,7 @@ static const PrefixBindingPower PREFIX_POWERS[] = {
 };
 static const float CAST_BINDING_POWER = 15.0f;
 static const float SIZEOF_BINDING_POWER = 11.1f;
+static const float TOSTRING_BINDING_POWER = 11.2f;
 // static const float UNWRAP_BINDING_POWER = 11.0f;
 static const TokenType TAIL_TOKENS[] = {
 	TOKEN_SEMICOLON, TOKEN_RPAREN, TOKEN_ELSE, TOKEN_RBRACKET, TOKEN_COMMA, TOKEN_RBRACE,
@@ -788,6 +789,13 @@ static Node *parseExprHead(TokenStream *tokens)
 		result->realloc.newSize = parseExpr(tokens, 0);
 		TokenStream_consumeExpect(tokens, TOKEN_WITH);
 		result->realloc.fillValue = parseExpr(tokens, 0);
+		return result;
+	}
+	else if (peek->type == TOKEN_TOSTRING)
+	{
+		Node *result = Node_make(TokenStream_consume(tokens).pos);
+		result->type = NODE_TOSTRING;
+		result->toString.value = parseExpr(tokens, TOSTRING_BINDING_POWER);
 		return result;
 	}
 	return parseAtom(tokens);

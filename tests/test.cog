@@ -1,13 +1,29 @@
-var numbers1 = new [ 1, 2, 3, 4, 5, 6 ];
-// var numbers2 = new [ 7, 8, 9, 10, 11, 12 ];
-var numbers = numbers1 * 2u;
+alias String = char[];
 
-mut var i = 0u;
-while (i < sizeof numbers)
-{
-    putInt((int)i);
-    putChar('-');
-    putInt(numbers[i]);
-    putChar('\n');
-    i = i + 1u;
+var print = (String str) -> {
+    mut var i = 0u;
+    while (i < sizeof str)
+    {
+        putChar(str[i]);
+        i = i + 1u;
+    };
 };
+var println = (String... strs) -> {
+    mut var i = 0u;
+    while (i < sizeof strs)
+    {
+        print(strs[i]);
+        i = i + 1u;
+    };
+    putChar('\n');
+};
+var printlns = (String... strs) -> {
+    mut var i = 0u;
+    while (i < sizeof strs)
+    {
+        print(strs[i]);
+        putChar('\n');
+        i = i + 1u;
+    };
+};
+println("Hello, ", $256);

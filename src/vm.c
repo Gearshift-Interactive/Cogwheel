@@ -246,6 +246,33 @@ static void scopeWrite(VM *vm, size_t depth, size_t id, Value value)
 		scope = scope->parent;
 	scope->values[id] = value;
 }
+static Value cstrToCogstr(VM *vm, const char *cstr, size_t length)
+{
+	struct {
+		Value *items;
+		size_t count, capacity;
+	} resultb = {0};
+	for(size_t currentByte = 0; currentByte < length; currentByte++)
+	{
+		const uint8_t *s = (const uint8_t *)cstr + currentByte;
+		size_t charSize = nob_bytes_for_utf8[*s];
+		uint32_t resultData = 0;
+		for (size_t i = 0; i < charSize; ++i)
+			resultData |= (uint32_t)s[i] << (i * 8);
+		currentByte += charSize - 1;
+		Value character = {
+#ifdef DEBUG
+			.type = VALUE_CHAR,
+#endif
+			.v_char = resultData,
+		};
+		da_append(&resultb, character);
+	}
+	Value result = GC_alloc(&vm->gc, resultb.count);
+	memcpy(((HeapObject*)result.v_heap)->items, resultb.items, resultb.count * sizeof *resultb.items);
+	free(resultb.items);
+	return result;
+}
 static void runInstruction(VM *vm, const Chunk *chunk)
 {
 #ifdef DEBUG
@@ -765,6 +792,15 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		HeapObject *resultHeap = result.v_heap;
 		for (size_t i = 0; i < resultHeap->count; i++)
 			resultHeap->items[i] = obj->items[i % obj->count];
+		Stack_push(&vm->stack, result);
+	} break;
+	case OP_TOSTRING_INT: {
+		const int64_t value = Stack_pop(&vm->stack).v_int;
+		const size_t charCount = snprintf(NULL, 0, "%"PRId64, value) + 1;
+		char *const string = calloc(charCount, sizeof(char));
+		const size_t length = snprintf(string, charCount, "%"PRId64, value);
+		const Value result = cstrToCogstr(vm, string, length);
+		free(string);
 		Stack_push(&vm->stack, result);
 	} break;
 	default:

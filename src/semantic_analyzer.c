@@ -756,6 +756,10 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		)) comptimeMessage(MESSAGE_ERRORN, node->realloc.newSize->pos,
 			"Can't reallocate an array with incompatible fill items");
 		break;
+	case NODE_TOSTRING:
+		mark(&node->toString.value, scope, context);
+		node->retType = &TYPE_STRING_OBJ;
+		break;
 	}
 }
 static void mark(Node **node, ScopeInfo *scope, Context *context)
@@ -794,6 +798,7 @@ static bool isNodeFinal(Node *node)
 	case NODE_CHAR:
 	case NODE_STRING:
 	case NODE_REALLOC:
+	case NODE_TOSTRING:
 		return false;
 	case NODE_EXIT:
 	case NODE_YIELD:
@@ -1043,6 +1048,13 @@ static void analyze(Node *node)
 		if (!checkMutable(node->realloc.array))
 			comptimeMessage(MESSAGE_ERRORN, node->realloc.array->pos,
 				"Can't realloc an immutable array");
+		break;
+	case NODE_TOSTRING:
+		if (!(
+			node->toString.value->retType->kind == TYPE_INT
+		)) comptimeMessage(MESSAGE_ERRORN, node->toString.value->pos,
+			"Can't parse %s to string",
+			Type_toString(node->toString.value->retType));
 		break;
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:

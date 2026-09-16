@@ -152,7 +152,7 @@ Arrays can be resized up, resized down, or resized with the same amount of items
 Arrays can also be concatenated:
 ```
 var numbers1 = new [ 1, 2, 3 ];
-var numbers2 = new [ 4, 5, 6  ];
+var numbers2 = new [ 4, 5, 6 ];
 var numbers = numbers1 + numbers2;
 // 1, 2, 3, 4, 5, 6
 ```
@@ -162,7 +162,7 @@ var numbers1 = new [ 1, 2, 3 ];
 var numbers = numbers1 * 2u;
 // 1, 2, 3, 1, 2, 3
 ```
-`numbers` is a new array, with values from old ones copied. Old arrays are not modified.
+`numbers` is a new array, with values from old ones shallowly copied. Old arrays are not modified.
 
 ### Strings
 
