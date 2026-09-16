@@ -96,6 +96,7 @@
 	X(GC_FILL, 0) \
 	X(GC_ASSIGNCOPY, sizeof(size_t)) \
 	X(GC_SIZEOF, 0) \
+	X(GC_REALLOC, 0) \
 	/* options */ \
 	X(OPT_UNWRAP, 0) \
 	X(OPT_CHECK, 0) \

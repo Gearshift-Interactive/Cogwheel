@@ -57,6 +57,7 @@ typedef enum {
 	X(ALIAS) \
 	X(CHAR) \
 	X(STRING) \
+	X(REALLOC) \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
@@ -155,6 +156,9 @@ typedef struct Node {
 			uint32_t *items;
 			size_t count, capacity;
 		} stringLit;
+		struct {
+			struct Node *array, *newSize, *fillValue;
+		} realloc;
 	};
 	Type *retType;
 	bool unreachable;

@@ -667,6 +667,12 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 			i++;
 		}
 		break;
+	case NODE_REALLOC:
+		compileNode(this, node->realloc.array, context);
+		compileNode(this, node->realloc.newSize, context);
+		compileNode(this, node->realloc.fillValue, context);
+		PUSH_OP(OP_GC_REALLOC);
+		break;
 	}
 	return resultSize;
 }

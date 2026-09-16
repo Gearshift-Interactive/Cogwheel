@@ -699,6 +699,25 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		node->retType->array.size = node->stringLit.count;
 		Bank_handOff(node->retType);
 		break;
+	case NODE_REALLOC:
+		mark(&node->realloc.array, scope, context);
+		mark(&node->realloc.newSize, scope, context);
+		mark(&node->realloc.fillValue, scope, context);
+		node->retType = Type_copy(node->realloc.array->retType);
+		if (node->realloc.array->retType->kind != TYPE_ARRAY)
+			comptimeMessage(MESSAGE_ERRORN, node->realloc.array->pos,
+				"Can't reallocate non-array value");
+		else
+			node->retType->array.size = 0;
+		if (node->realloc.newSize->retType->kind != TYPE_UINT)
+			comptimeMessage(MESSAGE_ERRORN, node->realloc.newSize->pos,
+				"Can't reallocate an array with non-uint new size");
+		if (!Type_areCompatible(
+			node->realloc.array->retType->array.underlying,
+			node->realloc.fillValue->retType
+		)) comptimeMessage(MESSAGE_ERRORN, node->realloc.newSize->pos,
+			"Can't reallocate an array with incompatible fill items");
+		break;
 	}
 }
 static void mark(Node **node, ScopeInfo *scope, Context *context)
@@ -736,6 +755,7 @@ static bool isNodeFinal(Node *node)
 	case NODE_ALIAS:
 	case NODE_CHAR:
 	case NODE_STRING:
+	case NODE_REALLOC:
 		return false;
 	case NODE_EXIT:
 	case NODE_YIELD:
@@ -992,6 +1012,7 @@ static void analyze(Node *node)
 	case NODE_ALIAS:
 	case NODE_CHAR:
 	case NODE_STRING:
+	case NODE_REALLOC:
 	{}
 	}
 }

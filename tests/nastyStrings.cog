@@ -1,3 +1,4 @@
+
 alias String = char[];
 
 var print = (String str) -> {
@@ -12,4 +13,4 @@ var println = (String str) -> {
     print(str);
     putChar('\n');
 };
-println("Hello,\nВорлд!");
+println("Hello, Ворлд!");

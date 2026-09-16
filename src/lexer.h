@@ -63,6 +63,7 @@
 	X(NULL) \
 	X(WITH) \
 	X(ALIAS) \
+	X(REALLOC) \
 
 
 typedef enum {

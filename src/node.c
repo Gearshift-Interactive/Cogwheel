@@ -292,6 +292,20 @@ single:
 				putchar((*character >> (i * 8)) & 0xff);
 		putchar('"');
 		break;
+	case NODE_REALLOC:
+		printf("(realloc\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->realloc.array, indent + 1);
+		printf("\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->realloc.newSize, indent + 1);
+		printf("\n");
+		printIndent(indent + 1);
+		Node_printImpl(node->realloc.fillValue, indent + 1);
+		printf("\n");
+		printIndent(indent);
+		printf(")");
+		break;
 	}
 	if (node->retType)
 		printf(" -> %s", Type_toString(node->retType));
@@ -370,6 +384,12 @@ void Node_free(const Node *node)
 	case NODE_STRING:
 		if (node->stringLit.items)
 			free(node->stringLit.items);
+		break;
+	case NODE_REALLOC:
+		Node_free(node->realloc.array);
+		Node_free(node->realloc.newSize);
+		Node_free(node->realloc.fillValue);
+		break;
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:
 	case NODE_FNUMBER_LIT:

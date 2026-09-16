@@ -59,7 +59,8 @@ static const float CAST_BINDING_POWER = 15.0f;
 static const float SIZEOF_BINDING_POWER = 11.1f;
 // static const float UNWRAP_BINDING_POWER = 11.0f;
 static const TokenType TAIL_TOKENS[] = {
-	TOKEN_SEMICOLON, TOKEN_RPAREN, TOKEN_ELSE, TOKEN_RBRACKET, TOKEN_COMMA, TOKEN_RBRACE
+	TOKEN_SEMICOLON, TOKEN_RPAREN, TOKEN_ELSE, TOKEN_RBRACKET, TOKEN_COMMA, TOKEN_RBRACE,
+	TOKEN_WITH
 };
 static const TokenType ATOMIC_TYPE_TOKENS[] = {
 	TOKEN_INT_T, TOKEN_UINT_T, TOKEN_FLOAT_T, TOKEN_BOOL_T, TOKEN_VOID, TOKEN_CHAR_T
@@ -776,6 +777,17 @@ static Node *parseExprHead(TokenStream *tokens)
 		result->alias.name = TokenStream_consumeExpect(tokens, TOKEN_SYMBOL);
 		TokenStream_consumeExpect(tokens, TOKEN_ASSIGN);
 		result->alias.type = parseType(tokens);
+		return result;
+	}
+	else if (peek->type == TOKEN_REALLOC)
+	{
+		Node *result = Node_make(TokenStream_consume(tokens).pos);
+		result->type = NODE_REALLOC;
+		result->realloc.array = parseExpr(tokens, 0);
+		TokenStream_consumeExpect(tokens, TOKEN_COMMA);
+		result->realloc.newSize = parseExpr(tokens, 0);
+		TokenStream_consumeExpect(tokens, TOKEN_WITH);
+		result->realloc.fillValue = parseExpr(tokens, 0);
 		return result;
 	}
 	return parseAtom(tokens);

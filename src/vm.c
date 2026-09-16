@@ -732,6 +732,21 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			.v_char = chunk->charConsts.items[arg1],
 		});
 		break;
+	case OP_GC_REALLOC: {
+		Value fillValue = Stack_pop(&vm->stack);
+		Value newSize = Stack_pop(&vm->stack);
+		Value *array = Stack_currentPtr(&vm->stack);
+		HeapObject *obj = array->v_heap;
+		if (newSize.v_uint == obj->count)
+			break;
+		size_t oldSize = obj->count;
+		obj->items = realloc(obj->items, newSize.v_uint * sizeof *obj->items);
+		obj->count = newSize.v_uint;
+		if (oldSize > obj->count)
+			break;
+		for (size_t i = oldSize; i < obj->count; i++)
+			obj->items[i] = fillValue;
+	} break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;

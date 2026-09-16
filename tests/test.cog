@@ -1,2 +1,12 @@
-char some = '\'';
-putChar(some);
+var numbers = new [ 1, 2, 3, 4, 5, 6 ];
+realloc numbers, sizeof numbers with 0;
+
+mut var i = 0u;
+while (i < sizeof numbers)
+{
+    putInt((int)i);
+    putChar('-');
+    putInt(numbers[i]);
+    putChar('\n');
+    i = i + 1u;
+};
