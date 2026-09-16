@@ -18,7 +18,7 @@ var println = (String str) -> {
     print(str);
     putChar('\n');
 };
-println(new ['H', 'e', 'l', 'l', 'o', ',', ' ', 'W', 'o', 'r', 'l', 'd', '!']);
+println("Hello, World!");
 ```
 
 ## Usage
@@ -137,6 +137,24 @@ var someArray = new [ 2u, null, 8u ] with uint?;
 You can use `sizeof` operator to get the amount of elements in the given array.
 
 Array indexes and sizes can only be of type `uint`
+
+### Strings
+
+Strings are basically nonexistent in this language at runtime. All the strings are is
+just a bunch of syntactical sugar: Strings here are basically an array of characters:
+```
+var print = (char[] str) -> {
+    mut var i = 0u;
+    while (i < sizeof str)
+    {
+        putChar(str[i]);
+        i = i + 1u;
+    };
+};
+print("Hello, World!\n");
+```
+That's it.
+Strings can also accept all chars' escape sequences, but `\'` was replaces with `\"`.
 
 ### Options
 
