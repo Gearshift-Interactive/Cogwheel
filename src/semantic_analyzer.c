@@ -840,7 +840,7 @@ static bool checkMutable(Node *node)
 	{
 		case NODE_SYMBOL:    return node->symbol.isMutable;
 		case NODE_SUBSCRIPT: return checkMutable(node->subscript.value);
-		default:             return false;
+		default:             return true;
 	}
 }
 static void analyze(Node *node)
@@ -868,6 +868,12 @@ static void analyze(Node *node)
 			if (!checkMutable(node->infix.left))
 				comptimeMessage(MESSAGE_ERRORN, node->pos,
 					"Can't assign to immutable variable");
+			if (
+				checkMutable(node->infix.left) &&
+				!checkMutable(node->infix.right) &&
+				Type_isRef(node->infix.right->retType)
+			) comptimeMessage(MESSAGE_ERRORN, node->pos,
+				"Can't assign a refference value of an immutable variable to a mutable variable");
 		}
 		break;
 	case NODE_EXIT:
@@ -892,7 +898,6 @@ static void analyze(Node *node)
 		analyze(node->negation.value);
 		break;
 	case NODE_SCOPE:
-	case NODE_VAR_DECL:
 	case NODE_YIELD:
 	case NODE_NOT:
 	case NODE_SIZEOF:
@@ -1059,6 +1064,15 @@ static void analyze(Node *node)
 		)) comptimeMessage(MESSAGE_ERRORN, node->toString.value->pos,
 			"Can't parse %s to string",
 			Type_toString(node->toString.value->retType));
+		break;
+	case NODE_VAR_DECL:
+		analyze(node->var_decl.value);
+		if (
+			node->var_decl.isMutable &&
+			!checkMutable(node->var_decl.value) &&
+			Type_isRef(node->var_decl.value->retType)
+		) comptimeMessage(MESSAGE_ERRORN, node->var_decl.value->pos,
+			"Can't assign a refference value of an immutable variable to a mutable variable");
 		break;
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:
