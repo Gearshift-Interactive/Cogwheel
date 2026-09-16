@@ -1,3 +1,29 @@
+alias String = char[];
+
+var print = (String... strs) -> {
+    mut var j = 0u;
+    while (j < sizeof strs)
+    {
+        var str = strs[j];
+        mut var i = 0u;
+        while (i < sizeof str)
+        {
+            putChar(str[i]);
+            i = i + 1u;
+        };
+        j = j + 1u;
+    };
+};
+var println = (String... strs) -> {
+    mut var i = 0u;
+    while (i < sizeof strs)
+    {
+        print(strs[i]);
+        i = i + 1u;
+    };
+    putChar('\n');
+};
+
 alias Vector = float[];
 alias VectorAction = float(float, float);
 
@@ -30,6 +56,20 @@ var Vector_add = Vector_elementwise((float a, float b) -> a + b);
 var Vector_sub = Vector_elementwise((float a, float b) -> a - b);
 var Vector_mul = Vector_elementwise((float a, float b) -> a * b);
 var Vector_div = Vector_elementwise((float a, float b) -> a / b);
+var Vector_toString = (Vector this) -> {
+    mut var result = "Vector" + $sizeof this + "d(";
+    mut var i = 0u;
+    while (i < sizeof this)
+    {
+        result = result + $this[i] +
+            if (i == sizeof this - 1u)
+                ")"
+            else
+                ", ";
+        i = i + 1u;
+    };
+    yield result;
+};
 
 var vector1 = Vector2d(1.0, 0.5);
 var vector2 = Vector3d(0.5, 1.0,  0.75);
@@ -40,5 +80,9 @@ var vector6 = Vector_add(vector1, vector5);
 
 var round = (float i) -> if(i >= 0.5) (int)i + 1 else (int)i;
 
-exit round(vector6[0u]);
-
+println("1 - ", Vector_toString(vector1));
+println("2 - ", Vector_toString(vector2));
+println("3 - ", Vector_toString(vector3));
+println("4 - ", Vector_toString(vector4));
+println("5 - ", Vector_toString(vector5));
+println("6 - ", Vector_toString(vector6));
