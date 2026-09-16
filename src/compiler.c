@@ -207,6 +207,13 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 		}
 		break;
 	case INFIX_MUL:
+		if (
+			node->infix.left->retType->kind == TYPE_ARRAY &&
+			node->infix.right->retType->kind == TYPE_UINT
+		) {
+			PUSH_OP(OP_GC_REPEAT);
+			break;
+		}
 		switch (node->retType->kind)
 		{
 		case TYPE_INT:

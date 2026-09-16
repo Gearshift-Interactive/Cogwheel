@@ -758,6 +758,15 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			resultHeap->items[obj1->count + i] = obj2->items[i];
 		Stack_push(&vm->stack, result);
 	} break;
+	case OP_GC_REPEAT: {
+		Value repeatTimes = Stack_pop(&vm->stack);
+		HeapObject *obj = Stack_pop(&vm->stack).v_heap;
+		Value result = GC_alloc(&vm->gc, obj->count * repeatTimes.v_uint);
+		HeapObject *resultHeap = result.v_heap;
+		for (size_t i = 0; i < resultHeap->count; i++)
+			resultHeap->items[i] = obj->items[i % obj->count];
+		Stack_push(&vm->stack, result);
+	} break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;

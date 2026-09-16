@@ -407,6 +407,19 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					node->retType->array.size = 0;
 			}
 		}
+		else if (
+			node->infix.type == INFIX_MUL &&
+			left->retType->kind == TYPE_ARRAY &&
+			right->retType->kind == TYPE_UINT
+		) {
+			if (left->retType->array.size)
+			{
+				node->retType = Type_copy(left->retType);
+				node->retType->array.size = 0;
+			}
+			else
+				node->retType = left->retType;
+		}
 		else if (left->retType == &TYPE_INT_OBJ && right->retType == &TYPE_INT_OBJ)
 			node->retType = &TYPE_INT_OBJ;
 		else if (left->retType == &TYPE_UINT_OBJ && right->retType == &TYPE_UINT_OBJ)
