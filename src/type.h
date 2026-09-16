@@ -62,6 +62,7 @@ extern Type TYPE_BOOL_OBJ;
 extern Type TYPE_VOID_OBJ;
 extern Type TYPE_NULL_OBJ;
 extern Type TYPE_CHAR_OBJ;
+extern Type TYPE_STRING_OBJ;
 
 const char *Type_toString(const Type *);
 bool Type_areCompatible(const Type *, const Type *);

@@ -24,6 +24,12 @@ Type TYPE_NULL_OBJ = {
 Type TYPE_CHAR_OBJ = {
 	.kind = TYPE_CHAR,
 };
+Type TYPE_STRING_OBJ = {
+	.kind = TYPE_ARRAY,
+	.array = {
+		.underlying = &TYPE_CHAR_OBJ,
+	},
+};
 static const char *TypeKind_toString(const TypeKind tk)
 {
 	switch (tk)

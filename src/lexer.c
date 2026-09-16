@@ -40,7 +40,6 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "int", TOKEN_INT_T },
 	{ "uint", TOKEN_UINT_T },
 	{ "float", TOKEN_FLOAT_T },
-	{ "string", TOKEN_STRING_T },
 	{ "boolean", TOKEN_BOOL_T },
 	{ "void", TOKEN_VOID },
 	{ "char", TOKEN_CHAR_T },
@@ -323,6 +322,15 @@ static void Tokenizer_handleComment(Tokenizer *this)
 		}
 	}
 }
+static size_t Tokenizer_incrementChar(Tokenizer *this)
+{
+	if (*(this->text.data + this->offset) == '\\')
+		Tokenizer_advance(this);
+	uint8_t charLength = nob_bytes_for_utf8[(uint8_t)*(this->text.data + this->offset)];
+	printf("%c - %d\n", *(this->text.data + this->offset), charLength);
+	Tokenizer_advance(this);
+	return (size_t)charLength;
+}
 bool Tokenizer_checkCharacter(Tokenizer *this)
 {
 	return *(this->text.data + this->offset) == '\'';
@@ -331,21 +339,35 @@ static Token Tokenizer_handleCharacter(Tokenizer *this)
 {
 	Tokenizer_advance(this);
 	const size_t start = this->offset;
-	size_t length = 0;
-	if (*(this->text.data + this->offset) == '\\')
-	{
-		length++;
-		Tokenizer_advance(this);
-	}
-	uint8_t charLength = nob_bytes_for_utf8[(uint8_t)*(this->text.data + this->offset)];
-	printf("%c - %d\n", *(this->text.data + this->offset), charLength);
-	length += charLength;
-	Tokenizer_advance(this);
+	size_t length = Tokenizer_incrementChar(this);
 	if (*(this->text.data + this->offset) != '\'')
-		PANIC("Expected \"'\", got %c", *(this->text.data + this->offset));
+		PANIC("Expected \"'\" for the end of the character literal, got %c",
+			*(this->text.data + this->offset));
 	Tokenizer_advance(this);
 	return (Token){
 		.type = TOKEN_CHAR,
+		.pos = (TokenPosition){
+			.origin = this->origin,
+			.start = start,
+			.length = length,
+			.originName = this->originName,
+		},
+	};
+}
+bool Tokenizer_checkString(Tokenizer *this)
+{
+	return *(this->text.data + this->offset) == '"';
+}
+static Token Tokenizer_handleString(Tokenizer *this)
+{
+	Tokenizer_advance(this);
+	const size_t start = this->offset;
+	size_t length = 0;
+	while (*(this->text.data + this->offset) != '"')
+		length += Tokenizer_incrementChar(this);
+	Tokenizer_advance(this);
+	return (Token){
+		.type = TOKEN_STRING,
 		.pos = (TokenPosition){
 			.origin = this->origin,
 			.start = start,
@@ -373,6 +395,8 @@ TokenStream tokenize(String_View text, const char *filename)
 			da_append(&tokens, Tokenizer_handleNumber(&tokenizer));
 		else if (Tokenizer_checkCharacter(&tokenizer))
 			da_append(&tokens, Tokenizer_handleCharacter(&tokenizer));
+		else if (Tokenizer_checkString(&tokenizer))
+			da_append(&tokens, Tokenizer_handleString(&tokenizer));
 		else if (Tokenizer_checkComment(&tokenizer))
 			Tokenizer_handleComment(&tokenizer);
 		else if (Tokenizer_checkWhitespace(&tokenizer))

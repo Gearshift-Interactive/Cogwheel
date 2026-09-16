@@ -48,6 +48,7 @@ static void TokenPosition_pprint(TokenPosition pos, size_t lineNumber, size_t li
 	size_t curLine = 1;
 	// size_t curLinePos = 1;
 	bool printnl = false;
+	size_t continuationBytesCount = 0;
 	if (curLine == lineNumber || curLine == lineNumber - 1)
 	{
 		printLineNumber(curLine);
@@ -76,6 +77,8 @@ static void TokenPosition_pprint(TokenPosition pos, size_t lineNumber, size_t li
 		}
 		if (curLine == lineNumber || curLine == lineNumber - 1)
 			putchar(pos.origin[i]);
+		if (nob_bytes_for_utf8[(uint8_t)pos.origin[i]] != 1)
+			continuationBytesCount += nob_bytes_for_utf8[(uint8_t)pos.origin[i]] - 1;
 		if (curLine > lineNumber)
 			break;
 	}
@@ -84,7 +87,7 @@ static void TokenPosition_pprint(TokenPosition pos, size_t lineNumber, size_t li
 	for (size_t i = 0; i < linePos - ((lineNumber == 1) ? 1 : 0); i++)
 		putchar(' ');
 	putchar('^');
-	for (size_t i = 0; i < pos.length - 1; i++)
+	for (size_t i = 0; i < pos.length - continuationBytesCount - 1; i++)
 		putchar('~');
 }
 #ifdef DEBUG

@@ -56,6 +56,7 @@ typedef enum {
 	X(CALL) \
 	X(ALIAS) \
 	X(CHAR) \
+	X(STRING) \
 
 typedef enum {
 #define X(NAME) NODE_##NAME,
@@ -150,6 +151,10 @@ typedef struct Node {
 			Type *type;
 		} alias;
 		struct { uint32_t value; } charLit;
+		struct {
+			uint32_t *items;
+			size_t count, capacity;
+		} stringLit;
 	};
 	Type *retType;
 	bool unreachable;

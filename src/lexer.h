@@ -47,7 +47,6 @@
 	X(UINT_T) \
 	X(FLOAT_T) \
 	X(BOOL_T) \
-	X(STRING_T) \
 	X(VOID) \
 	X(CHAR_T) \
 	/* keywords */ \

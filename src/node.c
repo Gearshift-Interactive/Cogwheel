@@ -285,6 +285,13 @@ single:
 			putchar((node->charLit.value >> (i * 8)) & 0xff);
 		putchar('\'');
 		break;
+	case NODE_STRING:
+		putchar('"');
+		da_foreach(uint32_t, character, &node->stringLit)
+			for (size_t i = 0; i < nob_bytes_for_utf8[*(uint8_t*)character]; ++i)
+				putchar((*character >> (i * 8)) & 0xff);
+		putchar('"');
+		break;
 	}
 	if (node->retType)
 		printf(" -> %s", Type_toString(node->retType));
@@ -360,6 +367,9 @@ void Node_free(const Node *node)
 			Node_free(*child);
 		free(node->tuple.items);
 		break;
+	case NODE_STRING:
+		if (node->stringLit.items)
+			free(node->stringLit.items);
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:
 	case NODE_FNUMBER_LIT:

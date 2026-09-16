@@ -24,7 +24,6 @@ static const struct {
 	{ TOKEN_BOOL_T, &TYPE_BOOL_OBJ },
 	{ TOKEN_VOID, &TYPE_VOID_OBJ },
 	{ TOKEN_CHAR_T, &TYPE_CHAR_OBJ },
-	// { TOKEN_STRING_T, ATOM_STRING },
 };
 static const BindingPower BINDING_POWERS[] = {
 	{ TOKEN_ARROW,  0.5f,  0.6f  },
@@ -63,8 +62,7 @@ static const TokenType TAIL_TOKENS[] = {
 	TOKEN_SEMICOLON, TOKEN_RPAREN, TOKEN_ELSE, TOKEN_RBRACKET, TOKEN_COMMA, TOKEN_RBRACE
 };
 static const TokenType ATOMIC_TYPE_TOKENS[] = {
-	TOKEN_INT_T, TOKEN_UINT_T, TOKEN_FLOAT_T, TOKEN_BOOL_T, TOKEN_STRING_T, TOKEN_VOID,
-	TOKEN_CHAR_T
+	TOKEN_INT_T, TOKEN_UINT_T, TOKEN_FLOAT_T, TOKEN_BOOL_T, TOKEN_VOID, TOKEN_CHAR_T
 };
 
 static Type *tokenToType(Token t)
@@ -172,6 +170,37 @@ static uint32_t parseChar(Token token)
 		result |= (uint32_t)s[i] << (i * 8);
 	return result;
 }
+static void parseString(Node **resultNode, Token token)
+{
+	for(size_t currentByte = 0; currentByte < token.pos.length; currentByte++)
+	{
+		const uint8_t *s = (const uint8_t *)
+			token.pos.origin + token.pos.start + currentByte;
+		size_t charSize = nob_bytes_for_utf8[(uint8_t)*s];
+		uint32_t result = 0;
+
+		if (charSize == 2 && s[0] == '\\')
+			switch (s[1])
+			{
+			case 'n':  result = L'\n'; break;
+			case 't':  result = L'\t'; break;
+			case 'r':  result = L'\r'; break;
+			case 'a':  result = L'\a'; break;
+			case 'b':  result = L'\b'; break;
+			case 'f':  result = L'\f'; break;
+			case 'v':  result = L'\v'; break;
+			case '\\': result = L'\\'; break;
+			case '"': result = L'"'; break;
+			}
+		else
+		{
+			for (size_t i = 0; i < charSize; ++i)
+				result |= (uint32_t)s[i] << (i * 8);
+			currentByte += charSize - 1;
+		}
+		da_append(&(*resultNode)->stringLit, result);
+	}
+}
 static Node *parseAtom(TokenStream *tokens)
 {
 	Token consumed = TokenStream_consume(tokens);
@@ -220,6 +249,12 @@ static Node *parseAtom(TokenStream *tokens)
 			Node *node = Node_make(consumed.pos);
 			node->type = NODE_CHAR;
 			node->charLit.value = parseChar(consumed);
+			return node;
+		}
+		case TOKEN_STRING: {
+			Node *node = Node_make(consumed.pos);
+			node->type = NODE_STRING;
+			parseString(&node, consumed);
 			return node;
 		}
 		default: {
