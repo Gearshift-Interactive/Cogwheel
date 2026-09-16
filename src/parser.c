@@ -176,11 +176,14 @@ static void parseString(Node **resultNode, Token token)
 	{
 		const uint8_t *s = (const uint8_t *)
 			token.pos.origin + token.pos.start + currentByte;
-		size_t charSize = nob_bytes_for_utf8[(uint8_t)*s];
+		size_t charSize = nob_bytes_for_utf8[*s];
 		uint32_t result = 0;
 
-		if (charSize == 2 && s[0] == '\\')
-			switch (s[1])
+		if (charSize == 1 && *s == '\\')
+		{
+			currentByte++;
+			bool ok = true;
+			switch (*(s + 1))
 			{
 			case 'n':  result = L'\n'; break;
 			case 't':  result = L'\t'; break;
@@ -191,7 +194,13 @@ static void parseString(Node **resultNode, Token token)
 			case 'v':  result = L'\v'; break;
 			case '\\': result = L'\\'; break;
 			case '"': result = L'"'; break;
+			default:
+				comptimeMessage(MESSAGE_ERRORN, token.pos,
+					"Invalid escape sequence");
+				ok = false;
 			}
+			if (!ok) break;
+		}
 		else
 		{
 			for (size_t i = 0; i < charSize; ++i)
@@ -249,6 +258,9 @@ static Node *parseAtom(TokenStream *tokens)
 			Node *node = Node_make(consumed.pos);
 			node->type = NODE_CHAR;
 			node->charLit.value = parseChar(consumed);
+			// uint8_t charSize = nob_bytes_for_utf8[*(uint8_t*)&node->charLit.value];
+			// for (size_t bi = 0; bi < charSize; ++bi)
+			// 	putchar((node->charLit.value >> (bi * 8)) & 0xff);
 			return node;
 		}
 		case TOKEN_STRING: {

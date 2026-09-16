@@ -324,12 +324,17 @@ static void Tokenizer_handleComment(Tokenizer *this)
 }
 static size_t Tokenizer_incrementChar(Tokenizer *this)
 {
+	size_t length = 0;
 	if (*(this->text.data + this->offset) == '\\')
+	{
+		length++;
 		Tokenizer_advance(this);
+	}
 	uint8_t charLength = nob_bytes_for_utf8[(uint8_t)*(this->text.data + this->offset)];
-	printf("%c - %d\n", *(this->text.data + this->offset), charLength);
+	length += charLength;
+	// printf("%c - %d\n", *(this->text.data + this->offset), charLength);
 	Tokenizer_advance(this);
-	return (size_t)charLength;
+	return length;
 }
 bool Tokenizer_checkCharacter(Tokenizer *this)
 {

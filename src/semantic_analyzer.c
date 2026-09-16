@@ -692,6 +692,13 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 	case NODE_CHAR:
 		node->retType = &TYPE_CHAR_OBJ;
 		break;
+	case NODE_STRING:
+		node->retType = calloc(1, sizeof *node->retType);
+		node->retType->kind = TYPE_ARRAY;
+		node->retType->array.underlying = &TYPE_CHAR_OBJ;
+		node->retType->array.size = node->stringLit.count;
+		Bank_handOff(node->retType);
+		break;
 	}
 }
 static void mark(Node **node, ScopeInfo *scope, Context *context)
@@ -728,6 +735,7 @@ static bool isNodeFinal(Node *node)
 	case NODE_CALL:
 	case NODE_ALIAS:
 	case NODE_CHAR:
+	case NODE_STRING:
 		return false;
 	case NODE_EXIT:
 	case NODE_YIELD:
@@ -983,6 +991,7 @@ static void analyze(Node *node)
 	case NODE_PARAMETER:
 	case NODE_ALIAS:
 	case NODE_CHAR:
+	case NODE_STRING:
 	{}
 	}
 }

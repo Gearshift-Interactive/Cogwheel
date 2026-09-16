@@ -151,6 +151,18 @@ static void Chunk_printImpl(const Chunk *this, size_t level)
 		printf("  %ld - %f,\n", fi, this->floatConsts.items[fi]);
 	}
 	printLevel(level);
+	printf("CHAR_CONSTANTS:\n");
+	da_enumerate(ci, &this->charConsts)
+	{
+		printLevel(level);
+		printf("  %ld - ", ci);
+		uint32_t value = this->charConsts.items[ci];
+		uint8_t charSize = nob_bytes_for_utf8[*(uint8_t*)&value];
+		for (size_t bi = 0; bi < charSize; ++bi)
+			putchar((value >> (bi * 8)) & 0xff);
+		putchar('\n');
+	}
+	printLevel(level);
 	printf("FUNCTIONS:\n");
 	da_enumerate(fni, &this->functions)
 	{

@@ -653,6 +653,20 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		PUSH_OP(OP_CLOAD_CHAR);
 		PUSH_DATA(size_t, this->charConsts.count - 1);
 		break;
+	case NODE_STRING:
+		PUSH_OP(OP_GC_ALLOC);
+		PUSH_DATA(size_t, node->stringLit.count);
+		size_t i = 0;
+		da_foreach(uint32_t, character, &node->stringLit)
+		{
+			da_append(&this->charConsts, *character);
+			PUSH_OP(OP_CLOAD_CHAR);
+			PUSH_DATA(size_t, this->charConsts.count - 1);
+			PUSH_OP(OP_GC_ASSIGN);
+			PUSH_DATA(size_t, i);
+			i++;
+		}
+		break;
 	}
 	return resultSize;
 }

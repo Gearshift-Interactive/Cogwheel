@@ -12,4 +12,4 @@ var println = (String str) -> {
     print(str);
     putChar('\n');
 };
-println("Hello, Ворлд!");
+println("Hello,\nВорлд!");
