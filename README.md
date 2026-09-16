@@ -90,6 +90,8 @@ Characters support following escapse sequences:
 - `\\`: Backslash
 - `\'`: Apostrophe
 
+And it also supports UTF-8 characters
+
 ### Variables
 
 You can declare a variable with it's type, followed by its name, an equal sign and a value:
