@@ -812,6 +812,15 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		free(string);
 		Stack_push(&vm->stack, result);
 	} break;
+	case OP_TOSTRING_FLOAT: {
+		const double value = Stack_pop(&vm->stack).v_float;
+		const size_t charCount = snprintf(NULL, 0, "%f", value) + 1;
+		char *const string = calloc(charCount, sizeof(char));
+		const size_t length = snprintf(string, charCount, "%f", value);
+		const Value result = cstrToCogstr(vm, string, length);
+		free(string);
+		Stack_push(&vm->stack, result);
+	} break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;

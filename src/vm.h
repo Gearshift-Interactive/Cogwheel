@@ -110,7 +110,6 @@
 	X(TOSTRING_UINT, 0) \
 	X(TOSTRING_FLOAT, 0) \
 	X(TOSTRING_BOOL, 0) \
-	X(TOSTRING_ARR, 0) \
 
 typedef enum {
 	OP_NOOP = 0,

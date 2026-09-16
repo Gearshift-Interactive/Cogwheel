@@ -693,6 +693,9 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		case TYPE_UINT:
 			PUSH_OP(OP_TOSTRING_UINT);
 			break;
+		case TYPE_FLOAT:
+			PUSH_OP(OP_TOSTRING_FLOAT);
+			break;
 		default:
 			PANIC("Unsupported type for stringification: %s",
 				Type_toString(node->toString.value->retType));
