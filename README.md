@@ -182,6 +182,26 @@ print("Hello, World!\n");
 That's it.
 Strings can also accept all chars' escape sequences, but `\'` was replaces with `\"`.
 
+
+### Stringification
+
+There is an operator, that converts every atomic type into a string with its' representations:
+```
+var print = (String str) -> {
+    mut var i = 0u;
+    while (i < sizeof str)
+    {
+        putChar(str[i]);
+        i = i + 1u;
+    };
+};
+print($12);
+print($35u);
+print($0.36);
+print($true);
+// to ^ string
+```
+
 ### Options
 
 Option is a kind of value, that can have either an actual value of given type or `null`.
