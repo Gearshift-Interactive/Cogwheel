@@ -164,6 +164,9 @@ static uint32_t parseChar(Token token)
 		case 'v':  return L'\v';
 		case '\\': return L'\\';
 		case '\'': return L'\'';
+		default:
+			comptimeMessage(MESSAGE_ERRORN, token.pos,
+				"Invalid escape sequence");
 		}
 	uint32_t result = 0;
 	for (size_t i = 0; i < token.pos.length; ++i)
