@@ -1026,6 +1026,11 @@ static void analyze(Node *node)
 				);
 		}
 		break;
+	case NODE_REALLOC:
+		if (!checkMutable(node->realloc.array))
+			comptimeMessage(MESSAGE_ERRORN, node->realloc.array->pos,
+				"Can't realloc an immutable array");
+		break;
 	case NODE_NUMBER_LIT:
 	case NODE_UNUMBER_LIT:
 	case NODE_FNUMBER_LIT:
@@ -1037,7 +1042,6 @@ static void analyze(Node *node)
 	case NODE_ALIAS:
 	case NODE_CHAR:
 	case NODE_STRING:
-	case NODE_REALLOC:
 	{}
 	}
 }
