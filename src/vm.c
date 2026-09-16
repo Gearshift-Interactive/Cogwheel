@@ -40,7 +40,7 @@ static void Scope_release(Scope *this)
 typedef struct {
 	bool marked;
 	size_t count;
-	Value items[];
+	Value *items;
 } HeapObject;
 
 typedef struct {
@@ -56,8 +56,9 @@ typedef struct {
 
 static Value GC_alloc(GC *this, size_t valueCount)
 {
-	HeapObject *obj = calloc(1, sizeof(*obj) + sizeof(Value) * valueCount);
+	HeapObject *obj = calloc(1, sizeof *obj);
 	obj->count = valueCount;
+	obj->items = calloc(valueCount, sizeof(Value));
 	da_append(&this->allObjects, obj);
 	return (Value){
 #ifdef DEBUG
@@ -84,7 +85,10 @@ static Value GC_allocClosure(GC *this, Chunk *chunk, Scope *env)
 static void GC_freeAll(GC *this)
 {
 	da_foreach(HeapObject*, obj, &this->allObjects)
+	{
+		free((*obj)->items);
 		free(*obj);
+	}
 	if (this->allObjects.items)
 		free(this->allObjects.items);
 	da_foreach(Closure*, obj, &this->closures)
