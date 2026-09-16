@@ -38,5 +38,22 @@ var arrayPrettyPrint = (int?[] array) -> {
     };
     println("]");
 };
+var arrayPrettyString = (int?[] array) -> {
+    mut var result = "";
+    result = result + "[\n";
+    mut var i = 0u;
+    while (i < sizeof array)
+    {
+        result = result + "  " + $array[i]! +
+            if (i == sizeof array - 1u)
+                "\n"
+            else
+                ",\n";
+        i = i + 1u;
+    };
+    result = result + "]\n";
+    yield result;
+};
 var array = new [ 12, 43, 65, 745, 43 ];
 arrayPrettyPrint(array);
+print(arrayPrettyString(array));
