@@ -87,7 +87,11 @@ static void TokenPosition_pprint(TokenPosition pos, size_t lineNumber, size_t li
 	for (size_t i = 0; i < pos.length - 1; i++)
 		putchar('~');
 }
+#ifdef DEBUG
 void comptimeMessage_impl(const char *file, size_t ln, MessageLevel level, TokenPosition pos, const char *fmt, ...)
+#else
+void comptimeMessage_impl(__attribute__((unused)) const char *file, __attribute__((unused)) size_t ln, MessageLevel level, TokenPosition pos, const char *fmt, ...)
+#endif
 {
 	va_list args;
 	const size_t lineNumber = TokenPosition_countLineNumber(pos);

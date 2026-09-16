@@ -150,28 +150,26 @@ static double parseFloat(Token token)
 	}
 	return result;
 }
-static wchar_t parseChar(Token token)
+static uint32_t parseChar(Token token)
 {
-	wchar_t result = 0;
-	memcpy(&result, token.pos.origin + token.pos.start, token.pos.length);
-	if (!strncmp((char*)&result, "\\a", sizeof result))
-		result = '\a';
-	else if (!strncmp((char*)&result, "\\b", 2))
-		result = '\b';
-	else if (!strncmp((char*)&result, "\\f", 2))
-		result = '\f';
-	else if (!strncmp((char*)&result, "\\n", 2))
-		result = '\n';
-	else if (!strncmp((char*)&result, "\\r", 2))
-		result = '\r';
-	else if (!strncmp((char*)&result, "\\t", 2))
-		result = '\t';
-	else if (!strncmp((char*)&result, "\\v", 2))
-		result = '\v';
-	else if (!strncmp((char*)&result, "\\\\", 2))
-		result = '\\';
-	else if (!strncmp((char*)&result, "\\'", 2))
-		result = '\'';
+	const uint8_t *s = (const uint8_t *)token.pos.origin + token.pos.start;
+
+	if (token.pos.length == 2 && s[0] == '\\')
+		switch (s[1])
+		{
+		case 'n':  return L'\n';
+		case 't':  return L'\t';
+		case 'r':  return L'\r';
+		case 'a':  return L'\a';
+		case 'b':  return L'\b';
+		case 'f':  return L'\f';
+		case 'v':  return L'\v';
+		case '\\': return L'\\';
+		case '\'': return L'\'';
+		}
+	uint32_t result = 0;
+	for (size_t i = 0; i < token.pos.length; ++i)
+		result |= (uint32_t)s[i] << (i * 8);
 	return result;
 }
 static Node *parseAtom(TokenStream *tokens)

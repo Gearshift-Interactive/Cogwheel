@@ -327,7 +327,7 @@ bool Tokenizer_checkCharacter(Tokenizer *this)
 {
 	return *(this->text.data + this->offset) == '\'';
 }
-Token Tokenizer_handleCharacter(Tokenizer *this)
+static Token Tokenizer_handleCharacter(Tokenizer *this)
 {
 	Tokenizer_advance(this);
 	const size_t start = this->offset;
@@ -337,12 +337,11 @@ Token Tokenizer_handleCharacter(Tokenizer *this)
 		length++;
 		Tokenizer_advance(this);
 	}
-	size_t charLength = nob_bytes_for_utf8[(size_t)*(this->text.data + this->offset)];
-	for (size_t i = 0; i < charLength; i++)
-	{
-		length++;
+	uint8_t charLength = nob_bytes_for_utf8[(uint8_t)*(this->text.data + this->offset)];
+	// printf("%c - %d\n", *(this->text.data + this->offset), charLength);
+	length += charLength;
+	for (uint8_t i = 0; i < (charLength > 1 ? charLength - 1 : charLength); i++)
 		Tokenizer_advance(this);
-	}
 	if (*(this->text.data + this->offset) != '\'')
 		PANIC("Expected \"'\", got %c", *(this->text.data + this->offset));
 	Tokenizer_advance(this);

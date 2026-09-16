@@ -149,7 +149,7 @@ typedef struct Node {
 			Token name;
 			Type *type;
 		} alias;
-		struct { wchar_t value; } charLit;
+		struct { uint32_t value; } charLit;
 	};
 	Type *retType;
 	bool unreachable;

@@ -279,7 +279,11 @@ single:
 		printf(")");
 		break;
 	case NODE_CHAR:
-		printf("'%lc'", node->charLit.value);
+		putchar('\'');
+		uint8_t charSize = nob_bytes_for_utf8[*(uint8_t*)&node->charLit.value];
+		for (size_t i = 0; i < charSize; ++i)
+			putchar((node->charLit.value >> (i * 8)) & 0xff);
+		putchar('\'');
 		break;
 	}
 	if (node->retType)

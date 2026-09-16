@@ -21,7 +21,10 @@ void printFloat_f(Stack *stack, __attribute__((unused)) size_t argc)
 }
 void printChar_f(Stack *stack, __attribute__((unused)) size_t argc)
 {
-	printf("%lc", Stack_pop(stack).v_char);
+	Value v = Stack_pop(stack);
+	uint8_t charSize = nob_bytes_for_utf8[*(uint8_t*)&v.v_char];
+	for (size_t i = 0; i < charSize; ++i)
+		putchar((v.v_char >> (i * 8)) & 0xff);
 }
 
 void buildStd(Globals *globals)

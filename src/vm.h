@@ -118,7 +118,7 @@ typedef struct Chunk {
 	CONST_ARRAY(uint64_t) uintConsts;
 	CONST_ARRAY(double) floatConsts;
 	CONST_ARRAY(struct Chunk) functions;
-	CONST_ARRAY(wchar_t) charConsts;
+	CONST_ARRAY(uint32_t) charConsts;
 	struct {
 		union { size_t count, length; };
 		size_t capacity;
