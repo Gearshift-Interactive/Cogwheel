@@ -138,6 +138,17 @@ You can use `sizeof` operator to get the amount of elements in the given array.
 
 Array indexes and sizes can only be of type `uint`
 
+Arrays can also be resized:
+```
+realloc numbers, sizeof numbers * 2u with 0;
+```
+where:
+- `numbers` - the array, that needs to be resized
+- `sizeof numbers * 2u` - new size of the array
+- `0` - the value, that new array items will be initialized with if present
+
+Arrays can be resized up, resized down, or resized with the same amount of items.
+
 ### Strings
 
 Strings are basically nonexistent in this language at runtime. All the strings are is
