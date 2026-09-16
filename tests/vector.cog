@@ -24,6 +24,18 @@ var println = (String... strs) -> {
     putChar('\n');
 };
 
+var panic = (String... message) -> {
+    print("[PANIC] ");
+    mut var i = 0u;
+    while (i < sizeof message)
+    {
+        print(message[i]);
+        i = i + 1u;
+    };
+    putChar('\n');
+    exit 1;
+};
+
 alias Vector = float[];
 alias VectorAction = float(float, float);
 
@@ -36,12 +48,12 @@ var Vector_elementwise = (VectorAction action) -> (Vector a, Vector... other) ->
     result[1u] = a[1u];
     mut var j = 0u;
     if (sizeof other < 1u)
-        exit 1;
+        panic("Elementwise operation on a single vector");
     while (j < sizeof other)
     {
         var current = other[j];
         if (sizeof a != sizeof current)
-            exit 1;
+            panic("Elementwise operation on differently sized vectors");
         mut var i = 0u;
         while (i < sizeof a)
         {
