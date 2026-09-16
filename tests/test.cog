@@ -26,4 +26,4 @@ var printlns = (String... strs) -> {
         i = i + 1u;
     };
 };
-println("Hello, ", $256);
+println("Hello, ", $(256u - 12u));

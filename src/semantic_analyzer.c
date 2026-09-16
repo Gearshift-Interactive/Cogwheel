@@ -1051,7 +1051,8 @@ static void analyze(Node *node)
 		break;
 	case NODE_TOSTRING:
 		if (!(
-			node->toString.value->retType->kind == TYPE_INT
+			node->toString.value->retType->kind == TYPE_INT ||
+			node->toString.value->retType->kind == TYPE_UINT
 		)) comptimeMessage(MESSAGE_ERRORN, node->toString.value->pos,
 			"Can't parse %s to string",
 			Type_toString(node->toString.value->retType));

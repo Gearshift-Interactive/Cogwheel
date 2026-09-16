@@ -803,6 +803,15 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		free(string);
 		Stack_push(&vm->stack, result);
 	} break;
+	case OP_TOSTRING_UINT: {
+		const uint64_t value = Stack_pop(&vm->stack).v_uint;
+		const size_t charCount = snprintf(NULL, 0, "%"PRIu64, value) + 1;
+		char *const string = calloc(charCount, sizeof(char));
+		const size_t length = snprintf(string, charCount, "%"PRIu64, value);
+		const Value result = cstrToCogstr(vm, string, length);
+		free(string);
+		Stack_push(&vm->stack, result);
+	} break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;

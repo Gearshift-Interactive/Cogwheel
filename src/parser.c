@@ -785,10 +785,13 @@ static Node *parseExprHead(TokenStream *tokens)
 		Node *result = Node_make(TokenStream_consume(tokens).pos);
 		result->type = NODE_REALLOC;
 		result->realloc.array = parseExpr(tokens, 0);
+		compactTuple(&result->realloc.array);
 		TokenStream_consumeExpect(tokens, TOKEN_COMMA);
 		result->realloc.newSize = parseExpr(tokens, 0);
+		compactTuple(&result->realloc.newSize);
 		TokenStream_consumeExpect(tokens, TOKEN_WITH);
 		result->realloc.fillValue = parseExpr(tokens, 0);
+		compactTuple(&result->realloc.fillValue);
 		return result;
 	}
 	else if (peek->type == TOKEN_TOSTRING)
@@ -796,6 +799,7 @@ static Node *parseExprHead(TokenStream *tokens)
 		Node *result = Node_make(TokenStream_consume(tokens).pos);
 		result->type = NODE_TOSTRING;
 		result->toString.value = parseExpr(tokens, TOSTRING_BINDING_POWER);
+		compactTuple(&result->toString.value);
 		return result;
 	}
 	return parseAtom(tokens);
