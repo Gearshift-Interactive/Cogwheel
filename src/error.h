@@ -2,7 +2,7 @@
 
 #include "lexer.h"
 
-#define PANIC(...) PANIC_IMPL(__VA_ARGS__)
+#define PANIC(...) do{ fflush(stdout); PANIC_IMPL(__VA_ARGS__); }while(0)
 
 #ifdef DEBUG
 #	define PANIC_IMPL(...) do { \

@@ -651,7 +651,8 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 
 		compileNode(this, node->call.function, context);
 		PUSH_OP(OP_CALL);
-		if (node->call.args->tuple.count > node->call.function->retType->function.args.count)
+		// if (node->call.args->tuple.count > node->call.function->retType->function.args.count)
+		if (node->call.function->retType->function.varArgItem)
 			PUSH_DATA(size_t, node->call.function->retType->function.args.count + 1);
 		else
 			PUSH_DATA(size_t, node->call.args->tuple.count);
