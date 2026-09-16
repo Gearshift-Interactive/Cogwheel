@@ -821,6 +821,18 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		free(string);
 		Stack_push(&vm->stack, result);
 	} break;
+	case OP_TOSTRING_BOOL: {
+		const bool value = Stack_pop(&vm->stack).v_bool;
+		const Value result = cstrToCogstr(vm,
+			value
+			? "true"
+			: "false",
+			value
+			? 4
+			: 5
+		);
+		Stack_push(&vm->stack, result);
+	} break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;

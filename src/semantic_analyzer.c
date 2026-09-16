@@ -1053,7 +1053,8 @@ static void analyze(Node *node)
 		if (!(
 			node->toString.value->retType->kind == TYPE_INT ||
 			node->toString.value->retType->kind == TYPE_UINT ||
-			node->toString.value->retType->kind == TYPE_FLOAT
+			node->toString.value->retType->kind == TYPE_FLOAT ||
+			node->toString.value->retType->kind == TYPE_BOOL
 		)) comptimeMessage(MESSAGE_ERRORN, node->toString.value->pos,
 			"Can't parse %s to string",
 			Type_toString(node->toString.value->retType));

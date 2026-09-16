@@ -26,4 +26,4 @@ var printlns = (String... strs) -> {
         i = i + 1u;
     };
 };
-println("Hello, ", $23.56f);
+println("Hello, ", $false);
