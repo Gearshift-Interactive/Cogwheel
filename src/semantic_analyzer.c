@@ -298,6 +298,12 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 				resolveAlias(scope, &(*arg)->funcParam.type);
 				if ((*arg)->funcParam.isVarArg)
 				{
+					if (gotVarArg)
+					{
+						comptimeMessage(MESSAGE_ERRORN, (*arg)->pos,
+							"Can't have many variadic arguments");
+						break;
+					}
 					Type *type = calloc(1, sizeof *type);
 					type->kind = TYPE_ARRAY;
 					type->array.underlying = (*arg)->funcParam.type;
