@@ -699,7 +699,12 @@ static Node *parseExprHead(TokenStream *tokens)
 		Node *itemCount = parseExpr(tokens, 0);
 		compactTuple(&itemCount);
 		Token consumed = TokenStream_consume(tokens);
-		if (consumed.type == TOKEN_COMMA || consumed.type == TOKEN_RBRACKET)
+		if (consumed.type == TOKEN_RBRACKET)
+		{
+			result->new.kind = NEW_ARRAY;
+			da_append(&result->new.arrayItems, itemCount);
+		}
+		else if (consumed.type == TOKEN_COMMA)
 		{
 			result->new.kind = NEW_ARRAY;
 			da_append(&result->new.arrayItems, itemCount);
