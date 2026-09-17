@@ -372,6 +372,15 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 				node->retType = &TYPE_BOOL_OBJ;
 		}
 		else if (
+			(
+				node->infix.type == INFIX_EQ ||
+				node->infix.type == INFIX_NEQ
+			) &&
+			left->retType == &TYPE_CHAR_OBJ &&
+			right->retType == &TYPE_CHAR_OBJ
+		)
+			node->retType = &TYPE_BOOL_OBJ;
+		else if (
 			node->infix.type == INFIX_EQ ||
 			node->infix.type == INFIX_GT ||
 			node->infix.type == INFIX_LT ||

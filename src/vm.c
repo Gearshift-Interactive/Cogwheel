@@ -833,6 +833,26 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		);
 		Stack_push(&vm->stack, result);
 	} break;
+	case OP_EQ_CHAR: {
+		Value value1 = Stack_pop(&vm->stack);
+		Value value2 = Stack_pop(&vm->stack);
+		Stack_push(&vm->stack, (Value) {
+#ifdef DEBUG
+			.type = VALUE_BOOL,
+#endif
+			.v_bool = value1.v_char == value2.v_char
+		});
+	} break;
+	case OP_NEQ_CHAR: {
+		Value value1 = Stack_pop(&vm->stack);
+		Value value2 = Stack_pop(&vm->stack);
+		Stack_push(&vm->stack, (Value) {
+#ifdef DEBUG
+			.type = VALUE_BOOL,
+#endif
+			.v_bool = value1.v_char != value2.v_char
+		});
+	} break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;

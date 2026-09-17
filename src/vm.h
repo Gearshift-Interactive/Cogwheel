@@ -43,10 +43,12 @@
 	X(EQ_INT, 0) \
 	X(EQ_UINT, 0) \
 	X(EQ_FLOAT, 0) \
+	X(EQ_CHAR, 0) \
 	/* not equal */ \
 	X(NEQ_INT, 0) \
 	X(NEQ_UINT, 0) \
 	X(NEQ_FLOAT, 0) \
+	X(NEQ_CHAR, 0) \
 	/* greater than */ \
 	X(GT_INT, 0) \
 	X(GT_UINT, 0) \

@@ -273,6 +273,9 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 	case INFIX_EQ:
 		switch (node->infix.left->retType->kind)
 		{
+		case TYPE_CHAR:
+			PUSH_OP(OP_EQ_CHAR);
+			break;
 		case TYPE_INT:
 			PUSH_OP(OP_EQ_INT);
 			break;
@@ -290,6 +293,9 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 	case INFIX_NEQ:
 		switch (node->infix.left->retType->kind)
 		{
+		case TYPE_CHAR:
+			PUSH_OP(OP_NEQ_CHAR);
+			break;
 		case TYPE_INT:
 			PUSH_OP(OP_NEQ_INT);
 			break;
