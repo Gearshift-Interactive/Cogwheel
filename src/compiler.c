@@ -569,6 +569,10 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		// }
 		switch (node->new.kind)
 		{
+		case NEW_EMPTY_ARRAY: {
+			PUSH_OP(OP_GC_ALLOC);
+			PUSH_DATA(size_t, 0);
+		} break;
 		case NEW_ARRAY: {
 			PUSH_OP(OP_GC_ALLOC);
 			PUSH_DATA(size_t, node->retType->array.size);

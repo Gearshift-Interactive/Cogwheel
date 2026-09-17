@@ -694,8 +694,13 @@ static Node *parseExprHead(TokenStream *tokens)
 		result->type = NODE_NEW;
 		TokenStream_consumeExpect(tokens, TOKEN_LBRACKET);
 		if (TokenStream_peek(tokens)->type == TOKEN_RBRACKET)
-			comptimeMessage(MESSAGE_ERROR, TokenStream_peek(tokens)->pos,
-				"Empty array initializers are not allowed");
+		{
+			// comptimeMessage(MESSAGE_ERROR, TokenStream_peek(tokens)->pos,
+			// 	"Empty array initializers are not allowed");
+			result->new.kind = NEW_EMPTY_ARRAY;
+			TokenStream_consume(tokens);
+			goto parseWith;
+		}
 		Node *itemCount = parseExpr(tokens, 0);
 		compactTuple(&itemCount);
 		Token consumed = TokenStream_consume(tokens);
@@ -732,6 +737,7 @@ static Node *parseExprHead(TokenStream *tokens)
 			"Unexpected token of type %s, expected SEMICOLON, COMMA or RBRACKET",
 			TokenType_toString(consumed.type)
 		);
+parseWith:
 		if (TokenStream_peek(tokens)->type == TOKEN_WITH)
 		{
 			TokenStream_consume(tokens);

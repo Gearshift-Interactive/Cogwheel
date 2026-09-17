@@ -39,6 +39,5 @@ var arrayPrettyPrint = (int?[] array) -> {
     println("]");
 };
 
-mut var i = new [ 1, 2, 3, 4 ];
-realloc i, sizeof i * 2u with 0;
+mut var i = new [ ] with int;
 arrayPrettyPrint(i);

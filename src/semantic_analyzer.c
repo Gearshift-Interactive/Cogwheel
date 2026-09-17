@@ -611,13 +611,17 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		}
 		break;
 	case NODE_NEW:
-		// TODO
 		// node->retType = node->new.type;
 		// da_foreach(Node*, child, &node->new.builderArgs)
 		// 	mark(child, scope, context);
 		if (node->new.type) resolveAlias(scope, &node->new.type);
 		switch (node->new.kind)
 		{
+		case NEW_EMPTY_ARRAY: {
+			if (!node->new.type)
+				comptimeMessage(MESSAGE_ERRORN, node->pos,
+					"Array item type must be provided for empty arrays");
+		} break;
 		case NEW_ARRAY: {
 			Type *activeType = node->new.type;
 			da_foreach(Node*, item, &node->new.arrayItems)

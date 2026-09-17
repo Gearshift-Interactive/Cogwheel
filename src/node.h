@@ -120,7 +120,7 @@ typedef struct Node {
 			struct Node *cond, *body, *elseBlock;
 		} whileLoop;
 		struct {
-			enum { NEW_ARRAY_PLACEHOLDER, NEW_ARRAY } kind;
+			enum { NEW_ARRAY_PLACEHOLDER, NEW_ARRAY, NEW_EMPTY_ARRAY } kind;
 			Type *type;
 			union {
 				struct {

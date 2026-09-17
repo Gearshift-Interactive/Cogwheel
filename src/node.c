@@ -191,6 +191,9 @@ single:
 		printf("(new :");
 		switch (node->new.kind)
 		{
+		case NEW_EMPTY_ARRAY:
+			printf("empty");
+			break;
 		case NEW_ARRAY_PLACEHOLDER:
 			printf("withDefault\n");
 			printIndent(indent + 1);
@@ -199,6 +202,7 @@ single:
 			printIndent(indent + 1);
 			Node_printImpl(node->new.arrayPlaceholder.placeholderValue, indent + 1);
 			printf("\n");
+			printIndent(indent);
 			break;
 		case NEW_ARRAY:
 			printf("array\n");
@@ -208,9 +212,9 @@ single:
 				Node_printImpl(*child, indent + 1);
 				printf("\n");
 			}
+			printIndent(indent);
 			break;
 		}
-		printIndent(indent);
 		printf(")");
 		break;
 	case NODE_SUBSCRIPT:
@@ -363,6 +367,8 @@ void Node_free(const Node *node)
 	case NODE_NEW:
 		switch (node->new.kind)
 		{
+		case NEW_EMPTY_ARRAY:
+			break;
 		case NEW_ARRAY:
 			if (!node->new.arrayItems.items)
 				break;
