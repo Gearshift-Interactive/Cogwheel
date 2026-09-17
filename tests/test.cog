@@ -1,10 +1,44 @@
-var test = (int... somes, int inst) -> {
-    putInt(inst);
-    mut var i = 0u;
-    while (i < sizeof somes)
+alias String = char[];
+
+var print = (String... strs) -> {
+    mut var j = 0u;
+    while (j < sizeof strs)
     {
-        putInt(somes[i]);
-        i = i + 1u;
+        var str = strs[j];
+        mut var i = 0u;
+        while (i < sizeof str)
+        {
+            putChar(str[i]);
+            i = i + 1u;
+        };
+        j = j + 1u;
     };
 };
-test(12, 453, 64);
+var println = (String... strs) -> {
+    mut var i = 0u;
+    while (i < sizeof strs)
+    {
+        print(strs[i]);
+        i = i + 1u;
+    };
+    putChar('\n');
+};
+var arrayPrettyPrint = (int?[] array) -> {
+    println("[");
+    mut var i = 0u;
+    while (i < sizeof array)
+    {
+        print("  ", $array[i]!,
+            if (i == sizeof array - 1u)
+                "\n"
+            else
+                ",\n"
+        );
+        i = i + 1u;
+    };
+    println("]");
+};
+
+mut var i = new [ 1, 2, 3, 4 ];
+realloc i, sizeof i * 2u with 0;
+arrayPrettyPrint(i);
