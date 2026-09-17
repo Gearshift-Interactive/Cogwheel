@@ -134,6 +134,10 @@ If you need to explicitly specify the type of array item, you can use `with` key
 ```
 var someArray = new [ 2u, null, 8u ] with uint?;
 ```
+You can also initialize arrays with no values, but this will require to specify the type of the item:
+```
+var someArray = new [] with uint?;
+```
 You can use `sizeof` operator to get the amount of elements in the given array.
 
 Array indexes and sizes can only be of type `uint`
