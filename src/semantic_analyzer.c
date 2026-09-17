@@ -291,6 +291,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			Context childContext = {0};
 			ScopeInfo *childScope = ScopeInfo_make();
 			childScope->parent = scope;
+			bool gotVarArg = false;
 			da_foreach(Node*, arg, &left->tuple)
 				// da_append(&node->retType->function.args, (*arg)->funcParam.type);
 			{
@@ -306,6 +307,8 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 						type,
 						(*arg)->funcParam.isMutable
 					);
+					gotVarArg = true;
+					continue;
 				}
 				else
 					ScopeInfo_declare(childScope,
@@ -313,6 +316,12 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 						(*arg)->funcParam.type,
 						(*arg)->funcParam.isMutable
 					);
+				if (gotVarArg)
+				{
+					comptimeMessage(MESSAGE_ERRORN, (*arg)->pos,
+						"Can't have any arguments after a variadic argument");
+					break;
+				}
 			}
 			node->infix.right =
 				markScopeFunc(node->infix.right, childScope, &childContext);

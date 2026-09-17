@@ -1,2 +1,10 @@
-var a = new [ 1, 2, 3, 4, 5 ];
-mut var b = a[0u];
+var test = (int... somes, int inst) -> {
+    putInt(inst);
+    mut var i = 0u;
+    while (i < sizeof somes)
+    {
+        putInt(somes[i]);
+        i = i + 1u;
+    };
+};
+test(12, 453, 64);

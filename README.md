@@ -138,17 +138,6 @@ You can use `sizeof` operator to get the amount of elements in the given array.
 
 Array indexes and sizes can only be of type `uint`
 
-Arrays can also be resized:
-```
-realloc numbers, sizeof numbers * 2u with 0;
-```
-where:
-- `numbers` - the array, that needs to be resized
-- `sizeof numbers * 2u` - new size of the array
-- `0` - the value, that new array items will be initialized with if present
-
-Arrays can be resized up, resized down, or resized with the same amount of items.
-
 Arrays can also be concatenated:
 ```
 var numbers1 = new [ 1, 2, 3 ];
@@ -361,6 +350,7 @@ var sum = (int a, int... values) -> {
     yield result;
 };
 ```
+Variadic argument must be the last argument.
 
 ### Keywords
 
