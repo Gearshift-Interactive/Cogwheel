@@ -256,7 +256,7 @@ int value = if(cond) 1 else 2;
 
 if (cond) {
 	exit 12;
-}
+};
 // free if statement can have only "then" branch
 ```
 
