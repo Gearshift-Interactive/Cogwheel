@@ -1,14 +1,14 @@
 #include "error.h"
 #include <stdarg.h>
 
-bool errorOccured = false;
+bool Cog_errorOccured = false;
 
 // typedef struct {
 // 	const char *origin;
 // 	size_t start;
 // 	size_t length;
-// } TokenPosition;
-static size_t TokenPosition_countLineNumber(TokenPosition pos)
+// } Cog_TokenPosition;
+static size_t TokenPosition_countLineNumber(Cog_TokenPosition pos)
 {
 	size_t result = 1;
 	for (size_t i = 0; i < pos.start && pos.origin[i]; i++)
@@ -16,7 +16,7 @@ static size_t TokenPosition_countLineNumber(TokenPosition pos)
 			result++;
 	return result;
 }
-static size_t TokenPosition_countLinePos(TokenPosition pos)
+static size_t TokenPosition_countLinePos(Cog_TokenPosition pos)
 {
 	size_t result = 1;
 	for (size_t i = 0; i < pos.start && pos.origin[i]; i++)
@@ -26,13 +26,13 @@ static size_t TokenPosition_countLinePos(TokenPosition pos)
 			result++;
 	return result;
 }
-static const char *MessageLevel_toString(MessageLevel level)
+static const char *MessageLevel_toString(Cog_MessageLevel level)
 {
 	switch (level)
 	{
-#define X(NAME, TEXT) case MESSAGE_##NAME: return #TEXT;
-	MESSAGE_LEVELS
-#undef X
+#define COG_X(NAME, TEXT) case COG_MESSAGE_##NAME: return #TEXT;
+	COG_MESSAGE_LEVELS
+#undef COG_X
 	}
 	return "INVALID";
 }
@@ -43,7 +43,7 @@ static void printLineNumber(size_t lineNumber)
 	else
 		printf("%5zu | ", lineNumber);
 }
-static void TokenPosition_pprint(TokenPosition pos, size_t lineNumber, size_t linePos)
+static void TokenPosition_pprint(Cog_TokenPosition pos, size_t lineNumber, size_t linePos)
 {
 	size_t curLine = 1;
 	// size_t curLinePos = 1;
@@ -91,17 +91,17 @@ static void TokenPosition_pprint(TokenPosition pos, size_t lineNumber, size_t li
 	for (size_t i = 0; i < pos.length - continuationBytesCount - 1; i++)
 		putchar('~');
 }
-#ifdef DEBUG
-void comptimeMessage_impl(const char *file, size_t ln, MessageLevel level, TokenPosition pos, const char *fmt, ...)
+#ifdef COG_DEBUG
+void Cog_comptimeMessage_impl(const char *file, size_t ln, Cog_MessageLevel level, Cog_TokenPosition pos, const char *fmt, ...)
 #else
-void comptimeMessage_impl(__attribute__((unused)) const char *file, __attribute__((unused)) size_t ln, MessageLevel level, TokenPosition pos, const char *fmt, ...)
+void Cog_comptimeMessage_impl(__attribute__((unused)) const char *file, __attribute__((unused)) size_t ln, Cog_MessageLevel level, Cog_TokenPosition pos, const char *fmt, ...)
 #endif
 {
 	va_list args;
 	const size_t lineNumber = TokenPosition_countLineNumber(pos);
 	const size_t linePos = TokenPosition_countLinePos(pos);
 
-#ifdef DEBUG
+#ifdef COG_DEBUG
 	printf("%s:%zu:\n", file, ln);
 #endif
 	printf("%s:%zu:%zu: %s: ",
@@ -121,8 +121,8 @@ void comptimeMessage_impl(__attribute__((unused)) const char *file, __attribute_
 
 	printf("\n");
 
-	if (level == MESSAGE_ERROR || level == MESSAGE_ERRORN)
-		errorOccured = true;
-	if (level == MESSAGE_ERROR)
+	if (level == COG_MESSAGE_ERROR || level == COG_MESSAGE_ERRORN)
+		Cog_errorOccured = true;
+	if (level == COG_MESSAGE_ERROR)
 		exit(EXIT_FAILURE);
 }

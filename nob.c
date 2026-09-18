@@ -15,7 +15,7 @@
 #define ARGS "gcc", "-std=c11", "-pedantic-errors", "-Wall", "-Wextra",\
 	"-I"DIR_SRC, "-I.", FILE_OBJ_NOB, "-DCOG_STANDALONE", "-lm"
 #define ARGS_NOB "gcc", "-x", "c", "-DNOB_IMPLEMENTATION", "-c", "nob.h"
-#define ARGS_DEBUG "-ggdb", "-fsanitize=address", "-DDEBUG"
+#define ARGS_DEBUG "-ggdb", "-fsanitize=address", "-DCOG_DEBUG"
 
 struct {
 	char **items;

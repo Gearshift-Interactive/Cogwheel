@@ -9,11 +9,11 @@ typedef struct {
 
 Bank bank;
 
-void Bank_init(void)
+void Cog_Bank_init(void)
 {
 	bank = (Bank){0};
 }
-void *Bank_alloc(size_t size)
+void *Cog_Bank_alloc(size_t size)
 {
 	void *result = calloc(1, size);
 	da_append(&bank, result);
@@ -21,7 +21,7 @@ void *Bank_alloc(size_t size)
 	// fflush(stdout);
 	return result;
 }
-void *Bank_realloc(void *oldPtr, size_t newSize)
+void *Cog_Bank_realloc(void *oldPtr, size_t newSize)
 {
 	void *result;
 	if (oldPtr)
@@ -34,11 +34,11 @@ void *Bank_realloc(void *oldPtr, size_t newSize)
 			}
 		result = realloc(oldPtr, newSize);
 	} else
-		result = Bank_alloc(newSize);
+		result = Cog_Bank_alloc(newSize);
 	da_append(&bank, result);
 	return result;
 }
-void Bank_free(void *oldPtr)
+void Cog_Bank_free(void *oldPtr)
 {
 	if (!oldPtr)
 		return;
@@ -50,11 +50,11 @@ void Bank_free(void *oldPtr)
 		}
 	free(oldPtr);
 }
-void Bank_handOff(void *ptr)
+void Cog_Bank_handOff(void *ptr)
 {
 	da_append(&bank, ptr);
 }
-void Bank_freeAll(void)
+void Cog_Bank_freeAll(void)
 {
 	da_foreach(void*, i, &bank)
 		if (*i)

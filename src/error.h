@@ -2,35 +2,35 @@
 
 #include "lexer.h"
 
-#define PANIC(...) do{ fflush(stdout); PANIC_IMPL(__VA_ARGS__); }while(0)
+#define COG_PANIC(...) do{ fflush(stdout); COG_PANIC_IMPL(__VA_ARGS__); }while(0)
 
-#ifdef DEBUG
-#	define PANIC_IMPL(...) do { \
+#ifdef COG_DEBUG
+#	define COG_PANIC_IMPL(...) do { \
 		printf("%s:%d: error: ", __FILE__, __LINE__); \
 		printf(__VA_ARGS__); \
 		printf("\n"); \
 		exit(EXIT_FAILURE); \
 	} while(0)
 #else
-#	define PANIC_IMPL(...) do { \
+#	define COG_PANIC_IMPL(...) do { \
 		nob_log(ERROR, __VA_ARGS__); \
 		exit(EXIT_FAILURE); \
 	} while(0)
 #endif
 
-#define MESSAGE_LEVELS \
-	X(INFO, info) \
-	X(WARN, warning) \
-	X(ERRORN, error) \
-	X(ERROR, error)
+#define COG_MESSAGE_LEVELS \
+	COG_X(INFO, info) \
+	COG_X(WARN, warning) \
+	COG_X(ERRORN, error) \
+	COG_X(ERROR, error)
 
 typedef enum {
-#define X(NAME, TEXT) MESSAGE_##NAME,
-	MESSAGE_LEVELS
-#undef X
-} MessageLevel;
+#define COG_X(NAME, TEXT) COG_MESSAGE_##NAME,
+	COG_MESSAGE_LEVELS
+#undef COG_X
+} Cog_MessageLevel;
 
-extern bool errorOccured;
+extern bool Cog_errorOccured;
 
-#define comptimeMessage(level, pos, ...) comptimeMessage_impl(__FILE__, __LINE__, level, pos, __VA_ARGS__)
-void comptimeMessage_impl(const char *file, size_t ln, MessageLevel level, TokenPosition pos, const char *fmt, ...);
+#define Cog_comptimeMessage(level, pos, ...) Cog_comptimeMessage_impl(__FILE__, __LINE__, level, pos, __VA_ARGS__)
+void Cog_comptimeMessage_impl(const char *file, size_t ln, Cog_MessageLevel level, Cog_TokenPosition pos, const char *fmt, ...);

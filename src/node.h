@@ -3,74 +3,74 @@
 #include "type.h"
 #include "lexer.h"
 
-#define INFIX_TYPE \
-	X(ASSIGN, =) \
-	X(ADD, +) \
-	X(SUB, -) \
-	X(DIV, /) \
-	X(MUL, *) \
-	X(POW, ^) \
-	X(AND, and) \
-	X(OR, or) \
-	X(EQ, ==) \
-	X(GT, >) \
-	X(LT, <) \
-	X(EGT, >=) \
-	X(ELT, <=) \
-	X(NEQ, !=) \
-	X(FUNC, ->) \
+#define COG_INFIX_TYPE \
+	COG_X(ASSIGN, =) \
+	COG_X(ADD, +) \
+	COG_X(SUB, -) \
+	COG_X(DIV, /) \
+	COG_X(MUL, *) \
+	COG_X(POW, ^) \
+	COG_X(AND, and) \
+	COG_X(OR, or) \
+	COG_X(EQ, ==) \
+	COG_X(GT, >) \
+	COG_X(LT, <) \
+	COG_X(EGT, >=) \
+	COG_X(ELT, <=) \
+	COG_X(NEQ, !=) \
+	COG_X(FUNC, ->) \
 
 typedef enum {
-#define X(name, op) INFIX_##name,
-	INFIX_TYPE
-#undef X
-} InfixType;
+#define COG_X(name, op) COG_INFIX_##name,
+	COG_INFIX_TYPE
+#undef COG_X
+} Cog_InfixType;
 
-#define NODE_TYPE  \
-	X(NUMBER_LIT) \
-	X(UNUMBER_LIT) \
-	X(FNUMBER_LIT) \
-	X(SYMBOL) \
-	X(BLOCK) \
-	X(INFIX) \
-	X(NEGATION) \
-	X(EXIT) \
-	X(CAST) \
-	X(VAR_DECL) \
-	X(SCOPE) \
-	X(TRUE_) \
-	X(FALSE_) \
-	X(YIELD) \
-	X(IF) \
-	X(NOT) \
-	X(WHILE) \
-	X(BREAK) \
-	X(NEW) \
-	X(SUBSCRIPT) \
-	X(SIZEOF) \
-	X(NULL) \
-	X(UNWRAP) \
-	X(CHECK) \
-	X(TUPLE) \
-	X(PARAMETER) \
-	X(CALL) \
-	X(ALIAS) \
-	X(CHAR) \
-	X(STRING) \
-	X(REALLOC) \
-	X(TOSTRING) \
+#define COG_NODE_TYPE  \
+	COG_X(NUMBER_LIT) \
+	COG_X(UNUMBER_LIT) \
+	COG_X(FNUMBER_LIT) \
+	COG_X(SYMBOL) \
+	COG_X(BLOCK) \
+	COG_X(INFIX) \
+	COG_X(NEGATION) \
+	COG_X(EXIT) \
+	COG_X(CAST) \
+	COG_X(VAR_DECL) \
+	COG_X(SCOPE) \
+	COG_X(TRUE_) \
+	COG_X(FALSE_) \
+	COG_X(YIELD) \
+	COG_X(IF) \
+	COG_X(NOT) \
+	COG_X(WHILE) \
+	COG_X(BREAK) \
+	COG_X(NEW) \
+	COG_X(SUBSCRIPT) \
+	COG_X(SIZEOF) \
+	COG_X(NULL) \
+	COG_X(UNWRAP) \
+	COG_X(CHECK) \
+	COG_X(TUPLE) \
+	COG_X(PARAMETER) \
+	COG_X(CALL) \
+	COG_X(ALIAS) \
+	COG_X(CHAR) \
+	COG_X(STRING) \
+	COG_X(REALLOC) \
+	COG_X(TOSTRING) \
 
 typedef enum {
-#define X(NAME) NODE_##NAME,
-	NODE_TYPE
-#undef X
-} NodeType;
+#define COG_X(NAME) COG_NODE_##NAME,
+	COG_NODE_TYPE
+#undef COG_X
+} Cog_NodeType;
 
-typedef struct Node {
-	NodeType type;
+typedef struct Cog_Node {
+	Cog_NodeType type;
 	union {
 		struct {
-			Token token;
+			Cog_Token token;
 			size_t scopeIndex;
 			size_t scopeDepth;
 			bool isMutable;
@@ -79,78 +79,78 @@ typedef struct Node {
 		struct { uint64_t value; } unumLit;
 		struct { double value; } floatLit;
 		struct {
-			struct Node **items;
+			struct Cog_Node **items;
 			size_t count, capacity;
-			TokenPosition posEnd;
+			Cog_TokenPosition posEnd;
 			enum {
-				BLOCK_REGULAR = 0,
-				BLOCK_FILE_ROOT,
+				COG_BLOCK_REGULAR = 0,
+				COG_BLOCK_FILE_ROOT,
 			} type;
 		} block;
 		struct {
-			struct Node *left, *right;
-			InfixType type;
+			struct Cog_Node *left, *right;
+			Cog_InfixType type;
 		} infix;
 		struct {
-			struct Node *assign;
+			struct Cog_Node *assign;
 			bool mut;
 		} let;
 		struct {
-			struct Node *value;
+			struct Cog_Node *value;
 		} exit, negation, yield, not, loopBreak, sizeOf, unwrap, check, toString;
 		struct {
-			struct Node *value;
-			Type *target;
+			struct Cog_Node *value;
+			Cog_Type *target;
 		} cast;
 		struct {
-			struct Node *value;
-			Type *type;
-			Token name;
+			struct Cog_Node *value;
+			Cog_Type *type;
+			Cog_Token name;
 			size_t scopeIndex, scopeDepth;
 			bool isMutable;
 		} var_decl;
 		struct {
-			struct Node *child;
+			struct Cog_Node *child;
 			size_t size;
 		} scope;
 		struct {
-			struct Node *cond, *truthy, *falsy;
+			struct Cog_Node *cond, *truthy, *falsy;
 		} ifelse;
 		struct {
-			struct Node *cond, *body, *elseBlock;
+			struct Cog_Node *cond, *body, *elseBlock;
 		} whileLoop;
 		struct {
-			enum { NEW_ARRAY_PLACEHOLDER, NEW_ARRAY, NEW_EMPTY_ARRAY } kind;
-			Type *type;
+			enum { COG_NEW_ARRAY_PLACEHOLDER, COG_NEW_ARRAY, COG_NEW_EMPTY_ARRAY } kind;
+			Cog_Type *type;
 			union {
 				struct {
-					struct Node **items;
+					struct Cog_Node **items;
 					size_t count, capacity;
 				} arrayItems;
 				struct {
-					struct Node *itemCount, *placeholderValue;
+					struct Cog_Node *itemCount, *placeholderValue;
 				} arrayPlaceholder;
 			};
 		} new;
 		struct {
-			struct Node *value, *index;
+			struct Cog_Node *value, *index;
 		} subscript;
 		struct {
-			struct Node **items;
+			struct Cog_Node **items;
 			size_t count, capacity;
 		} tuple;
 		struct {
-			Type *type;
-			Token name;
+			Cog_Type *type;
+			Cog_Token name;
 			bool isMutable;
 			bool isVarArg;
 		} funcParam;
 		struct {
-			struct Node *function, *args;
+			struct Cog_Node *function, *args;
 		} call;
 		struct {
-			Token name;
-			Type *type;
+			Cog_Token name;
+			Cog_Type *type;
 		} alias;
 		struct { uint32_t value; } charLit;
 		struct {
@@ -158,16 +158,16 @@ typedef struct Node {
 			size_t count, capacity;
 		} stringLit;
 		struct {
-			struct Node *array, *newSize, *fillValue;
+			struct Cog_Node *array, *newSize, *fillValue;
 		} realloc;
 	};
-	Type *retType;
+	Cog_Type *retType;
 	bool unreachable;
-	TokenPosition pos;
-} Node;
+	Cog_TokenPosition pos;
+} Cog_Node;
 
-const char *InfixType_toString(const InfixType *);
-Node *Node_make(TokenPosition);
-Node *Node_makeRaw(void);
-void Node_print(const Node *);
-void Node_free(const Node *);
+const char *Cog_InfixType_toString(const Cog_InfixType *);
+Cog_Node *Cog_Node_make(Cog_TokenPosition);
+Cog_Node *Cog_Node_makeRaw(void);
+void Cog_Node_print(const Cog_Node *);
+void Cog_Node_free(const Cog_Node *);

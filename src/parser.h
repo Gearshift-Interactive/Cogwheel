@@ -3,4 +3,4 @@
 #include "lexer.h"
 #include "node.h"
 
-Node *parse(TokenStream tokens);
+Cog_Node *Cog_parse(Cog_TokenStream tokens);

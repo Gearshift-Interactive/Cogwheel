@@ -13,7 +13,7 @@ typedef struct Context {
 	ContextType type;
 	union {
 		struct {
-			Type *retType;
+			Cog_Type *retType;
 		} block, loop;
 	};
 	struct Context *parent;
@@ -28,14 +28,14 @@ static Context *Context_findParent(Context *this, ContextType type)
 }
 
 typedef struct {
-	TokenPosition name;
-	const Type *type;
+	Cog_TokenPosition name;
+	const Cog_Type *type;
 	bool mutable;
 } VarInfo;
 
 typedef struct {
-	const TokenPosition *name;
-	Type *type;
+	const Cog_TokenPosition *name;
+	Cog_Type *type;
 } AliasInfo;
 
 typedef struct ScopeInfo {
@@ -55,41 +55,41 @@ static ScopeInfo *ScopeInfo_make()
 	ScopeInfo *result = calloc(1, sizeof *result);
 	return result;
 }
-static bool ScopeInfo_isVarPresent(const ScopeInfo *this, const TokenPosition *name)
+static bool ScopeInfo_isVarPresent(const ScopeInfo *this, const Cog_TokenPosition *name)
 {
 	for (const ScopeInfo *current = this; current; current = current->parent)
 		da_foreach(VarInfo, var, &current->vars)
-			if (TokenPosition_eq(&var->name, name))
+			if (Cog_TokenPosition_eq(&var->name, name))
 				return true;
 	return false;
 }
-static bool ScopeInfo_isVarPresentShallow(const ScopeInfo *this, const TokenPosition *name)
+static bool ScopeInfo_isVarPresentShallow(const ScopeInfo *this, const Cog_TokenPosition *name)
 {
 	da_foreach(VarInfo, var, &this->vars)
-		if (TokenPosition_eq(&var->name, name))
+		if (Cog_TokenPosition_eq(&var->name, name))
 			return true;
 	return false;
 }
-static size_t ScopeInfo_getVarIndex(const ScopeInfo *this, const TokenPosition *name)
+static size_t ScopeInfo_getVarIndex(const ScopeInfo *this, const Cog_TokenPosition *name)
 {
 	for (const ScopeInfo *current = this; current; current = current->parent)
 		for (size_t i = 0; i < current->vars.count; i++)
-			if (TokenPosition_eq(&(current->vars.items + i)->name, name))
+			if (Cog_TokenPosition_eq(&(current->vars.items + i)->name, name))
 				return i;
-	// comptimeMessage(MESSAGE_ERRORN, *name, "Undefined variable");
+	// Cog_comptimeMessage(COG_MESSAGE_ERRORN, *name, "Undefined variable");
 	return 0;
 }
-static size_t ScopeInfo_getVarDepth(const ScopeInfo *this, const TokenPosition *name)
+static size_t ScopeInfo_getVarDepth(const ScopeInfo *this, const Cog_TokenPosition *name)
 {
 	size_t depth = 0;
 	for (const ScopeInfo *current = this; current; current = current->parent)
 	{
 		da_foreach(VarInfo, var, &current->vars)
-			if (TokenPosition_eq(&var->name, name))
+			if (Cog_TokenPosition_eq(&var->name, name))
 				return depth;
 		depth++;
 	}
-	// comptimeMessage(MESSAGE_ERRORN, *name, "Undefined variable");
+	// Cog_comptimeMessage(COG_MESSAGE_ERRORN, *name, "Undefined variable");
 	return 0;
 }
 static VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index, size_t depth)
@@ -100,7 +100,7 @@ static VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index, size_t de
 	return current->vars.items + index;
 }
 static void ScopeInfo_declare(
-	ScopeInfo *this, const TokenPosition name, const Type *type, bool mutable
+	ScopeInfo *this, const Cog_TokenPosition name, const Cog_Type *type, bool mutable
 ) {
 	VarInfo info = {
 		.name = name,
@@ -109,7 +109,7 @@ static void ScopeInfo_declare(
 	};
 	da_append(&this->vars, info);
 }
-static void ScopeInfo_declareAlias(ScopeInfo *this, const TokenPosition *name, Type *type)
+static void ScopeInfo_declareAlias(ScopeInfo *this, const Cog_TokenPosition *name, Cog_Type *type)
 {
 	AliasInfo info = {
 		.name = name,
@@ -117,22 +117,22 @@ static void ScopeInfo_declareAlias(ScopeInfo *this, const TokenPosition *name, T
 	};
 	da_append(&this->aliases, info);
 }
-static bool ScopeInfo_aliasExists(ScopeInfo *this, const TokenPosition *name)
+static bool ScopeInfo_aliasExists(ScopeInfo *this, const Cog_TokenPosition *name)
 {
 	for (const ScopeInfo *current = this; current; current = current->parent)
 	{
 		da_foreach(AliasInfo, alias, &current->aliases)
-			if (TokenPosition_eq(alias->name, name))
+			if (Cog_TokenPosition_eq(alias->name, name))
 				return true;
 	}
 	return false;
 }
-static Type *ScopeInfo_getAliasType(ScopeInfo *this, const TokenPosition *name)
+static Cog_Type *ScopeInfo_getAliasType(ScopeInfo *this, const Cog_TokenPosition *name)
 {
 	for (const ScopeInfo *current = this; current; current = current->parent)
 	{
 		da_foreach(AliasInfo, alias, &current->aliases)
-			if (TokenPosition_eq(alias->name, name))
+			if (Cog_TokenPosition_eq(alias->name, name))
 				return alias->type;
 	}
 	return NULL;
@@ -142,149 +142,149 @@ static void ScopeInfo_free(const ScopeInfo *this)
 	if (this->vars.items) free(this->vars.items);
 	if (this->aliases.items) free(this->aliases.items);
 }
-static void mark(Node **node, ScopeInfo *scope, Context *context);
-static void markImpl(Node *node, ScopeInfo *scope, Context *context);
-static Node *markScopeExt(Node *node, ScopeInfo *scope, Context *context)
+static void mark(Cog_Node **node, ScopeInfo *scope, Context *context);
+static void markImpl(Cog_Node *node, ScopeInfo *scope, Context *context);
+static Cog_Node *markScopeExt(Cog_Node *node, ScopeInfo *scope, Context *context)
 {
-	Node *result = Node_make(node->pos);
-	result->type = NODE_SCOPE;
+	Cog_Node *result = Cog_Node_make(node->pos);
+	result->type = COG_NODE_SCOPE;
 	result->scope.child = node;
 	markImpl(result->scope.child, scope, context);
 	result->scope.size = scope->vars.count;
 	result->retType = result->scope.child->retType;
 	return result;
 }
-static Node *markScopeFunc(Node *node, ScopeInfo *scope, Context *context)
+static Cog_Node *markScopeFunc(Cog_Node *node, ScopeInfo *scope, Context *context)
 {
-	Node *result = Node_make(node->pos);
-	result->type = NODE_SCOPE;
+	Cog_Node *result = Cog_Node_make(node->pos);
+	result->type = COG_NODE_SCOPE;
 	result->scope.child = node;
 	mark(&result->scope.child, scope, context);
 	result->scope.size = scope->vars.count;
 	result->retType = result->scope.child->retType;
 	return result;
 }
-static Node *markScope(Node *node, ScopeInfo *parent, Context *context)
+static Cog_Node *markScope(Cog_Node *node, ScopeInfo *parent, Context *context)
 {
 	ScopeInfo *scope = ScopeInfo_make();
 	scope->parent = parent;
-	Node *result = markScopeExt(node, scope, context);
+	Cog_Node *result = markScopeExt(node, scope, context);
 	ScopeInfo_free(scope);
 	free(scope);
 	return result;
 }
-static void resolveAlias(ScopeInfo *scope, Type **type)
+static void resolveAlias(ScopeInfo *scope, Cog_Type **type)
 {
 	switch ((*type)->kind)
 	{
-		case TYPE_ARRAY:
+		case COG_TYPE_ARRAY:
 			resolveAlias(scope, &(*type)->array.underlying);
 			break;
-		case TYPE_OPTION:
+		case COG_TYPE_OPTION:
 			resolveAlias(scope, &(*type)->option.underlying);
 			break;
-		case TYPE_FUNCTION:
+		case COG_TYPE_FUNCTION:
 			resolveAlias(scope, &(*type)->function.retType);
 			if ((*type)->function.varArgItem)
 				resolveAlias(scope, &(*type)->function.varArgItem->type);
-			da_foreach(ArgInfo, arg, &(*type)->function.args)
+			da_foreach(Cog_ArgInfo, arg, &(*type)->function.args)
 				resolveAlias(scope, &arg->type);
 			break;
-		case TYPE_ALIAS:
+		case COG_TYPE_ALIAS:
 			if (!ScopeInfo_aliasExists(scope, &(*type)->alias.name.pos))
 			{
-				comptimeMessage(MESSAGE_ERRORN, (*type)->alias.name.pos,
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, (*type)->alias.name.pos,
 					"Unknown type");
 				break;
 			}
 			*type = ScopeInfo_getAliasType(scope, &(*type)->alias.name.pos);
 			break;
-		case TYPE_UNKNOWN:
-#define X(NAME, LITERAL) case TYPE_##NAME:
-	TYPE_KINDS
-#undef X
+		case COG_TYPE_UNKNOWN:
+#define COG_X(NAME, LITERAL) case COG_TYPE_##NAME:
+	COG_TYPE_KINDS
+#undef COG_X
 			{}
 	}
 }
-static void markImpl(Node *node, ScopeInfo *scope, Context *context)
+static void markImpl(Cog_Node *node, ScopeInfo *scope, Context *context)
 {
-	struct Node *left, *right;
+	struct Cog_Node *left, *right;
 	Context childContext;
 	Context *operatingContext;
-	node->retType = &TYPE_VOID_OBJ;
+	node->retType = &COG_TYPE_VOID_OBJ;
 	switch (node->type)
 	{
-	case NODE_NUMBER_LIT:
-		node->retType = &TYPE_INT_OBJ;
-		// printf("!!!%d\n", TYPE_INT_OBJ.nullable);
+	case COG_NODE_NUMBER_LIT:
+		node->retType = &COG_TYPE_INT_OBJ;
+		// printf("!!!%d\n", COG_TYPE_INT_OBJ.nullable);
 		break;
-	case NODE_UNUMBER_LIT:
-		node->retType = &TYPE_UINT_OBJ;
+	case COG_NODE_UNUMBER_LIT:
+		node->retType = &COG_TYPE_UINT_OBJ;
 		break;
-	case NODE_FNUMBER_LIT:
-		node->retType = &TYPE_FLOAT_OBJ;
+	case COG_NODE_FNUMBER_LIT:
+		node->retType = &COG_TYPE_FLOAT_OBJ;
 		break;
-	case NODE_SYMBOL:
+	case COG_NODE_SYMBOL:
 		if (!ScopeInfo_isVarPresent(scope, &node->symbol.token.pos))
 		{
-			comptimeMessage(MESSAGE_ERRORN, node->symbol.token.pos,
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->symbol.token.pos,
 				"Undefined variable");
-			node->retType = &TYPE_VOID_OBJ;
+			node->retType = &COG_TYPE_VOID_OBJ;
 			break;
 		}
 		size_t varIndex = ScopeInfo_getVarIndex(scope, &node->symbol.token.pos);
 		size_t varDepth = ScopeInfo_getVarDepth(scope, &node->symbol.token.pos);
 		VarInfo *varInfo = ScopeInfo_getInfo(scope, varIndex, varDepth);
-		node->retType = (Type*)varInfo->type;
+		node->retType = (Cog_Type*)varInfo->type;
 		node->symbol.scopeIndex = varIndex;
 		node->symbol.scopeDepth = varDepth;
 		node->symbol.isMutable = varInfo->mutable;
 		break;
-	case NODE_BLOCK:
-		if (node->block.type == BLOCK_REGULAR)
+	case COG_NODE_BLOCK:
+		if (node->block.type == COG_BLOCK_REGULAR)
 		{
 			childContext = (Context){
 				.type = CONT_BLOCK,
 				.parent = context,
 			};
-			da_foreach(Node*, child, &node->block)
+			da_foreach(Cog_Node*, child, &node->block)
 				mark(child, scope, &childContext);
 			if (childContext.block.retType)
 				node->retType = childContext.block.retType;
 			else
-				node->retType = &TYPE_VOID_OBJ;
+				node->retType = &COG_TYPE_VOID_OBJ;
 		}
 		else
 		{
-			da_foreach(Node*, child, &node->block)
+			da_foreach(Cog_Node*, child, &node->block)
 				mark(child, scope, context);
-			node->retType = &TYPE_VOID_OBJ;
+			node->retType = &COG_TYPE_VOID_OBJ;
 		}
 		break;
-	case NODE_INFIX:
+	case COG_NODE_INFIX:
 		mark(&node->infix.left, scope, context);
-		if (node->infix.type != INFIX_FUNC)
+		if (node->infix.type != COG_INFIX_FUNC)
 			mark(&node->infix.right, scope, context);
 		left = node->infix.left;
 		right = node->infix.right;
-		if (node->infix.type == INFIX_ASSIGN)
+		if (node->infix.type == COG_INFIX_ASSIGN)
 		{
 			node->retType = node->infix.right->retType;
-			// printf(">>>>%s\n", Type_toString(node->infix.right->retType));
+			// printf(">>>>%s\n", Cog_Type_toString(node->infix.right->retType));
 			// VarInfo *info = ScopeInfo_getInfo(scope, left->symbol.scopeIndex, left->symbol.scopeDepth);
-			if (!Type_areCompatible(left->retType, right->retType))
-				comptimeMessage(MESSAGE_ERRORN, right->pos,
+			if (!Cog_Type_areCompatible(left->retType, right->retType))
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, right->pos,
 					"Can't assign a value of type \"%s\""
 					" to a variable of type \"%s\"",
-					Type_toString(right->retType),
-					Type_toString(left->retType)
+					Cog_Type_toString(right->retType),
+					Cog_Type_toString(left->retType)
 				);
 		}
-		else if (node->infix.type == INFIX_FUNC)
+		else if (node->infix.type == COG_INFIX_FUNC)
 		{
-			if (left->type != NODE_TUPLE)
+			if (left->type != COG_NODE_TUPLE)
 			{
-				comptimeMessage(MESSAGE_ERRORN, left->pos,
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, left->pos,
 					"Can't create a function with non-tuple args list");
 				break;
 			}
@@ -292,7 +292,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			ScopeInfo *childScope = ScopeInfo_make();
 			childScope->parent = scope;
 			bool gotVarArg = false;
-			da_foreach(Node*, arg, &left->tuple)
+			da_foreach(Cog_Node*, arg, &left->tuple)
 				// da_append(&node->retType->function.args, (*arg)->funcParam.type);
 			{
 				resolveAlias(scope, &(*arg)->funcParam.type);
@@ -300,14 +300,14 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 				{
 					if (gotVarArg)
 					{
-						comptimeMessage(MESSAGE_ERRORN, (*arg)->pos,
+						Cog_comptimeMessage(COG_MESSAGE_ERRORN, (*arg)->pos,
 							"Can't have many variadic arguments");
 						break;
 					}
-					Type *type = calloc(1, sizeof *type);
-					type->kind = TYPE_ARRAY;
+					Cog_Type *type = calloc(1, sizeof *type);
+					type->kind = COG_TYPE_ARRAY;
 					type->array.underlying = (*arg)->funcParam.type;
-					Bank_handOff(type);
+					Cog_Bank_handOff(type);
 					ScopeInfo_declare(childScope,
 						(*arg)->funcParam.name.pos,
 						type,
@@ -324,7 +324,7 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					);
 				if (gotVarArg)
 				{
-					comptimeMessage(MESSAGE_ERRORN, (*arg)->pos,
+					Cog_comptimeMessage(COG_MESSAGE_ERRORN, (*arg)->pos,
 						"Can't have any arguments after a variadic argument");
 					break;
 				}
@@ -334,96 +334,96 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			ScopeInfo_free(childScope);
 			free(childScope);
 			node->retType = calloc(1, sizeof *node->retType);
-			Bank_handOff(node->retType);
-			node->retType->kind = TYPE_FUNCTION;
+			Cog_Bank_handOff(node->retType);
+			node->retType->kind = COG_TYPE_FUNCTION;
 			node->retType->function.retType = right->retType;
-			da_foreach(Node*, arg, &left->tuple)
+			da_foreach(Cog_Node*, arg, &left->tuple)
 			{
 				if ((*arg)->funcParam.isVarArg)
 				{
-					ArgInfo *info = calloc(1, sizeof *info);
+					Cog_ArgInfo *info = calloc(1, sizeof *info);
 					info->type = (*arg)->funcParam.type,
 					info->isMutable = (*arg)->funcParam.isMutable,
-					Bank_handOff(info);
+					Cog_Bank_handOff(info);
 					node->retType->function.varArgItem = info;
 					continue;
 				}
-				ArgInfo info = {
+				Cog_ArgInfo info = {
 					.type = (*arg)->funcParam.type,
 					.isMutable = (*arg)->funcParam.isMutable,
 				};
 				da_append(&node->retType->function.args, info);
 			}
-			Bank_handOff(node->retType->function.args.items);
-			// printf("%s\n", Type_toString(node->retType));
+			Cog_Bank_handOff(node->retType->function.args.items);
+			// printf("%s\n", Cog_Type_toString(node->retType));
 			// fflush(stdout);
 		}
-		else if (node->infix.type == INFIX_OR || node->infix.type == INFIX_AND)
+		else if (node->infix.type == COG_INFIX_OR || node->infix.type == COG_INFIX_AND)
 		{
-			if (left->retType != &TYPE_BOOL_OBJ)
-				comptimeMessage(MESSAGE_ERRORN, left->pos,
+			if (left->retType != &COG_TYPE_BOOL_OBJ)
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, left->pos,
 					"Can't perform %s on non-boolean",
-					InfixType_toString(&node->infix.type));
-			if (right->retType != &TYPE_BOOL_OBJ)
-				comptimeMessage(MESSAGE_ERRORN, right->pos,
+					Cog_InfixType_toString(&node->infix.type));
+			if (right->retType != &COG_TYPE_BOOL_OBJ)
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, right->pos,
 					"Can't perform %s on non-boolean",
-					InfixType_toString(&node->infix.type));
-			if (left->retType == &TYPE_BOOL_OBJ && right->retType == &TYPE_BOOL_OBJ)
-				node->retType = &TYPE_BOOL_OBJ;
+					Cog_InfixType_toString(&node->infix.type));
+			if (left->retType == &COG_TYPE_BOOL_OBJ && right->retType == &COG_TYPE_BOOL_OBJ)
+				node->retType = &COG_TYPE_BOOL_OBJ;
 		}
 		else if (
 			(
-				node->infix.type == INFIX_EQ ||
-				node->infix.type == INFIX_NEQ
+				node->infix.type == COG_INFIX_EQ ||
+				node->infix.type == COG_INFIX_NEQ
 			) &&
-			left->retType == &TYPE_CHAR_OBJ &&
-			right->retType == &TYPE_CHAR_OBJ
+			left->retType == &COG_TYPE_CHAR_OBJ &&
+			right->retType == &COG_TYPE_CHAR_OBJ
 		)
-			node->retType = &TYPE_BOOL_OBJ;
+			node->retType = &COG_TYPE_BOOL_OBJ;
 		else if (
-			node->infix.type == INFIX_EQ ||
-			node->infix.type == INFIX_GT ||
-			node->infix.type == INFIX_LT ||
-			node->infix.type == INFIX_EGT ||
-			node->infix.type == INFIX_ELT ||
-			node->infix.type == INFIX_NEQ
+			node->infix.type == COG_INFIX_EQ ||
+			node->infix.type == COG_INFIX_GT ||
+			node->infix.type == COG_INFIX_LT ||
+			node->infix.type == COG_INFIX_EGT ||
+			node->infix.type == COG_INFIX_ELT ||
+			node->infix.type == COG_INFIX_NEQ
 		) {
 			if (
 				left->retType != right->retType ||
 				!(
-					left->retType == &TYPE_INT_OBJ ||
-					left->retType == &TYPE_UINT_OBJ ||
-					left->retType == &TYPE_FLOAT_OBJ
+					left->retType == &COG_TYPE_INT_OBJ ||
+					left->retType == &COG_TYPE_UINT_OBJ ||
+					left->retType == &COG_TYPE_FLOAT_OBJ
 				)
 			) {
-				comptimeMessage(MESSAGE_ERRORN, node->pos,
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
 					"Can't perform %s on %s and %s",
-					InfixType_toString(&node->infix.type),
-					Type_toString(left->retType),
-					Type_toString(right->retType));
+					Cog_InfixType_toString(&node->infix.type),
+					Cog_Type_toString(left->retType),
+					Cog_Type_toString(right->retType));
 				node->retType = left->retType;
 				break;
 			}
-			node->retType = &TYPE_BOOL_OBJ;
+			node->retType = &COG_TYPE_BOOL_OBJ;
 		}
 		else if (
-			node->infix.type == INFIX_ADD &&
-			left->retType->kind == TYPE_ARRAY &&
-			right->retType->kind == TYPE_ARRAY
+			node->infix.type == COG_INFIX_ADD &&
+			left->retType->kind == COG_TYPE_ARRAY &&
+			right->retType->kind == COG_TYPE_ARRAY
 		) {
-			if (!Type_areCompatible(
+			if (!Cog_Type_areCompatible(
 				left->retType->array.underlying, right->retType->array.underlying
 			)) {
-				comptimeMessage(MESSAGE_ERRORN, node->pos,
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
 					"Can't perform %s on %s and %s",
-					InfixType_toString(&node->infix.type),
-					Type_toString(left->retType),
-					Type_toString(right->retType));
+					Cog_InfixType_toString(&node->infix.type),
+					Cog_Type_toString(left->retType),
+					Cog_Type_toString(right->retType));
 				node->retType = left->retType;
 			}
 			else
 			{
-				node->retType = Type_copy(left->retType);
+				node->retType = Cog_Type_copy(left->retType);
 				if (left->retType->array.size && right->retType->array.size)
 					node->retType->array.size =
 						left->retType->array.size + right->retType->array.size;
@@ -432,72 +432,72 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			}
 		}
 		else if (
-			node->infix.type == INFIX_MUL &&
-			left->retType->kind == TYPE_ARRAY &&
-			right->retType->kind == TYPE_UINT
+			node->infix.type == COG_INFIX_MUL &&
+			left->retType->kind == COG_TYPE_ARRAY &&
+			right->retType->kind == COG_TYPE_UINT
 		) {
 			if (left->retType->array.size)
 			{
-				node->retType = Type_copy(left->retType);
+				node->retType = Cog_Type_copy(left->retType);
 				node->retType->array.size = 0;
 			}
 			else
 				node->retType = left->retType;
 		}
-		else if (left->retType == &TYPE_INT_OBJ && right->retType == &TYPE_INT_OBJ)
-			node->retType = &TYPE_INT_OBJ;
-		else if (left->retType == &TYPE_UINT_OBJ && right->retType == &TYPE_UINT_OBJ)
-			node->retType = &TYPE_UINT_OBJ;
-		else if (left->retType == &TYPE_FLOAT_OBJ && right->retType == &TYPE_FLOAT_OBJ)
-			node->retType = &TYPE_FLOAT_OBJ;
+		else if (left->retType == &COG_TYPE_INT_OBJ && right->retType == &COG_TYPE_INT_OBJ)
+			node->retType = &COG_TYPE_INT_OBJ;
+		else if (left->retType == &COG_TYPE_UINT_OBJ && right->retType == &COG_TYPE_UINT_OBJ)
+			node->retType = &COG_TYPE_UINT_OBJ;
+		else if (left->retType == &COG_TYPE_FLOAT_OBJ && right->retType == &COG_TYPE_FLOAT_OBJ)
+			node->retType = &COG_TYPE_FLOAT_OBJ;
 		else {
-			comptimeMessage(MESSAGE_ERRORN, node->pos,
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
 				"Can't perform %s on %s and %s",
-				InfixType_toString(&node->infix.type),
-				Type_toString(left->retType),
-				Type_toString(right->retType));
+				Cog_InfixType_toString(&node->infix.type),
+				Cog_Type_toString(left->retType),
+				Cog_Type_toString(right->retType));
 			node->retType = left->retType;
 		}
 		break;
-	case NODE_EXIT:
+	case COG_NODE_EXIT:
 		mark(&node->exit.value, scope, context);
-		node->retType = &TYPE_VOID_OBJ;
+		node->retType = &COG_TYPE_VOID_OBJ;
 		break;
-	case NODE_CAST:
+	case COG_NODE_CAST:
 		resolveAlias(scope, &node->cast.target);
 		mark(&node->cast.value, scope, context);
 		if (
-			node->cast.value->retType != &TYPE_INT_OBJ &&
-			node->cast.value->retType != &TYPE_UINT_OBJ &&
-			node->cast.value->retType != &TYPE_FLOAT_OBJ
+			node->cast.value->retType != &COG_TYPE_INT_OBJ &&
+			node->cast.value->retType != &COG_TYPE_UINT_OBJ &&
+			node->cast.value->retType != &COG_TYPE_FLOAT_OBJ
 		)
-			comptimeMessage(MESSAGE_ERRORN, node->cast.value->pos,
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->cast.value->pos,
 				"Can't cast a value of type \"%s\"",
-				Type_toString(node->cast.value->retType)
+				Cog_Type_toString(node->cast.value->retType)
 			);
 		node->retType = node->cast.target;
 		break;
-	case NODE_NEGATION:
+	case COG_NODE_NEGATION:
 		mark(&node->negation.value, scope, context);
 		node->retType = node->negation.value->retType;
 		break;
-	case NODE_VAR_DECL:
+	case COG_NODE_VAR_DECL:
 		mark(&node->var_decl.value, scope, context);
 		node->retType = node->var_decl.value->retType;
 		if (node->var_decl.type)
 			resolveAlias(scope, &node->var_decl.type);
 		else
 			node->var_decl.type = node->var_decl.value->retType;
-		if (!Type_areCompatible(node->var_decl.type, node->var_decl.value->retType))
-			comptimeMessage(MESSAGE_ERRORN, node->var_decl.value->pos,
+		if (!Cog_Type_areCompatible(node->var_decl.type, node->var_decl.value->retType))
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->var_decl.value->pos,
 				"Can't assign a value of type \"%s\" to a variable of type \"%s\"",
-				Type_toString(node->var_decl.value->retType),
-				Type_toString(node->var_decl.type)
+				Cog_Type_toString(node->var_decl.value->retType),
+				Cog_Type_toString(node->var_decl.type)
 			);
 		if (ScopeInfo_isVarPresentShallow(scope, &node->var_decl.name.pos))
-			comptimeMessage(MESSAGE_ERRORN, node->var_decl.name.pos,
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->var_decl.name.pos,
 				"Variable is already declared");
-		// printf("%s\n", Type_toString(node->var_decl.type));
+		// printf("%s\n", Cog_Type_toString(node->var_decl.type));
 		ScopeInfo_declare(scope,
 			node->var_decl.name.pos,
 			node->var_decl.type,
@@ -506,93 +506,93 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		node->var_decl.scopeIndex = ScopeInfo_getVarIndex(scope, &node->var_decl.name.pos);
 		node->var_decl.scopeDepth = ScopeInfo_getVarDepth(scope, &node->var_decl.name.pos);
 		break;
-	case NODE_SCOPE:
-		PANIC("Node of type SCOPE should not be present in not analyzed ast");
-	case NODE_FALSE_:
-	case NODE_TRUE_:
-		node->retType = &TYPE_BOOL_OBJ;
+	case COG_NODE_SCOPE:
+		COG_PANIC("Node of type SCOPE should not be present in not analyzed ast");
+	case COG_NODE_FALSE_:
+	case COG_NODE_TRUE_:
+		node->retType = &COG_TYPE_BOOL_OBJ;
 		break;
-	case NODE_YIELD:
+	case COG_NODE_YIELD:
 		operatingContext = Context_findParent(context, CONT_BLOCK);
 		if (!operatingContext)
 		{
-			comptimeMessage(MESSAGE_ERRORN, node->pos,
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
 				"You can't use \"yield\" in non-block context");
 			break;
 		}
 		mark(&node->yield.value, scope, context);
 		// node->retType = node->yield.value->retType;
-		node->retType = &TYPE_VOID_OBJ;
+		node->retType = &COG_TYPE_VOID_OBJ;
 		if (!operatingContext->block.retType)
 			operatingContext->block.retType = node->yield.value->retType;
 		else
 			if (operatingContext->block.retType != node->yield.value->retType)
-				comptimeMessage(MESSAGE_ERRORN, node->yield.value->pos,
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->yield.value->pos,
 					"Block can't yield multiple data types at once");
 		break;
-	case NODE_IF:
+	case COG_NODE_IF:
 		mark(&node->ifelse.cond, scope, context);
 		mark(&node->ifelse.truthy, scope, context);
-		if (node->ifelse.cond->retType != &TYPE_BOOL_OBJ)
+		if (node->ifelse.cond->retType != &COG_TYPE_BOOL_OBJ)
 		{
-			comptimeMessage(MESSAGE_ERRORN, node->ifelse.cond->pos,
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->ifelse.cond->pos,
 				"\"if\" condition can only accept boolean values");
 			break;
 		}
 		if (!node->ifelse.falsy)
 		{
-			node->retType = &TYPE_VOID_OBJ;
+			node->retType = &COG_TYPE_VOID_OBJ;
 			break;
 		}
 		mark(&node->ifelse.falsy, scope, context);
 		if (
-			node->ifelse.truthy->retType == &TYPE_NULL_OBJ ||
-			node->ifelse.falsy->retType == &TYPE_NULL_OBJ
+			node->ifelse.truthy->retType == &COG_TYPE_NULL_OBJ ||
+			node->ifelse.falsy->retType == &COG_TYPE_NULL_OBJ
 		) {
 			node->retType = calloc(1, sizeof *node->retType);
-			node->retType->kind = TYPE_OPTION;
-			if (node->ifelse.truthy->retType == &TYPE_NULL_OBJ)
+			node->retType->kind = COG_TYPE_OPTION;
+			if (node->ifelse.truthy->retType == &COG_TYPE_NULL_OBJ)
 				node->retType->option.underlying =
 					node->ifelse.falsy->retType;
-			else if (node->ifelse.falsy->retType == &TYPE_NULL_OBJ)
+			else if (node->ifelse.falsy->retType == &COG_TYPE_NULL_OBJ)
 				node->retType->option.underlying =
 					node->ifelse.truthy->retType;
-			Bank_handOff(node->retType);
+			Cog_Bank_handOff(node->retType);
 			break;
 		}
 		if (
-			node->ifelse.truthy->retType->kind == TYPE_OPTION ||
-			node->ifelse.falsy->retType->kind == TYPE_OPTION
+			node->ifelse.truthy->retType->kind == COG_TYPE_OPTION ||
+			node->ifelse.falsy->retType->kind == COG_TYPE_OPTION
 		) {
-			if (node->ifelse.truthy->retType->kind == TYPE_OPTION)
+			if (node->ifelse.truthy->retType->kind == COG_TYPE_OPTION)
 			{
-				if (!Type_areCompatible(node->ifelse.falsy->retType, node->ifelse.truthy->retType->option.underlying))
-					comptimeMessage(MESSAGE_ERRORN, node->ifelse.truthy->pos,
+				if (!Cog_Type_areCompatible(node->ifelse.falsy->retType, node->ifelse.truthy->retType->option.underlying))
+					Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->ifelse.truthy->pos,
 						"If statement can't return multiple data types at once");
 				node->retType = node->ifelse.truthy->retType;
 			}
-			else if (node->ifelse.falsy->retType->kind == TYPE_OPTION)
+			else if (node->ifelse.falsy->retType->kind == COG_TYPE_OPTION)
 			{
-				if (!Type_areCompatible(node->ifelse.truthy->retType, node->ifelse.falsy->retType->option.underlying))
-					comptimeMessage(MESSAGE_ERRORN, node->ifelse.falsy->pos,
+				if (!Cog_Type_areCompatible(node->ifelse.truthy->retType, node->ifelse.falsy->retType->option.underlying))
+					Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->ifelse.falsy->pos,
 						"If statement can't return multiple data types at once");
 				node->retType = node->ifelse.falsy->retType;
 			}
 			break;
 		}
-		if (!Type_areCompatible(node->ifelse.truthy->retType, node->ifelse.falsy->retType))
-			comptimeMessage(MESSAGE_ERRORN, node->ifelse.falsy->pos,
+		if (!Cog_Type_areCompatible(node->ifelse.truthy->retType, node->ifelse.falsy->retType))
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->ifelse.falsy->pos,
 				"If statement can't return multiple data types at once");
 		node->retType = node->ifelse.truthy->retType;
 		break;
-	case NODE_NOT:
+	case COG_NODE_NOT:
 		mark(&node->not.value, scope, context);
-		if (node->not.value->retType != &TYPE_BOOL_OBJ)
-			comptimeMessage(MESSAGE_ERRORN, node->not.value->pos,
+		if (node->not.value->retType != &COG_TYPE_BOOL_OBJ)
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->not.value->pos,
 				"\"not\" can only accept boolean values");
-		node->retType = &TYPE_BOOL_OBJ;
+		node->retType = &COG_TYPE_BOOL_OBJ;
 		break;
-	case NODE_WHILE:
+	case COG_NODE_WHILE:
 		mark(&node->whileLoop.cond, scope, context);
 		if (node->whileLoop.elseBlock)
 			mark(&node->whileLoop.elseBlock, scope, context);
@@ -601,60 +601,60 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			.parent = context,
 		};
 		mark(&node->whileLoop.body, scope, &childContext);
-		// if (childContext.loop.retType && childContext.loop.retType != &TYPE_VOID_OBJ)
+		// if (childContext.loop.retType && childContext.loop.retType != &COG_TYPE_VOID_OBJ)
 		// {
 		// 	nob_log(ERROR, "\"while\" loop doesn't support breaking with values");
 		// 	exit(EXIT_FAILURE);
 		// }
-		if (node->whileLoop.cond->retType != &TYPE_BOOL_OBJ)
-			comptimeMessage(MESSAGE_ERRORN, node->whileLoop.cond->pos,
+		if (node->whileLoop.cond->retType != &COG_TYPE_BOOL_OBJ)
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->whileLoop.cond->pos,
 				"\"while\" condition can only accept boolean values");
-		node->retType = &TYPE_VOID_OBJ;
+		node->retType = &COG_TYPE_VOID_OBJ;
 		if (!node->whileLoop.elseBlock)
 		{
 			if (childContext.loop.retType)
-				comptimeMessage(MESSAGE_WARN, node->pos,
+				Cog_comptimeMessage(COG_MESSAGE_WARN, node->pos,
 					"\"break\" statements with values are ignored since there are no \"else\" block");
 			break;
 		}
 		if (
-			childContext.loop.retType == &TYPE_NULL_OBJ ||
-			node->whileLoop.elseBlock->retType == &TYPE_NULL_OBJ
+			childContext.loop.retType == &COG_TYPE_NULL_OBJ ||
+			node->whileLoop.elseBlock->retType == &COG_TYPE_NULL_OBJ
 		) {
 			node->retType = calloc(1, sizeof *node->retType);
-			node->retType->kind = TYPE_OPTION;
-			if (childContext.loop.retType == &TYPE_NULL_OBJ)
+			node->retType->kind = COG_TYPE_OPTION;
+			if (childContext.loop.retType == &COG_TYPE_NULL_OBJ)
 				node->retType->option.underlying =
 					node->whileLoop.elseBlock->retType;
-			else if (node->whileLoop.elseBlock->retType == &TYPE_NULL_OBJ)
+			else if (node->whileLoop.elseBlock->retType == &COG_TYPE_NULL_OBJ)
 				node->retType->option.underlying =
 					childContext.loop.retType;
-			Bank_handOff(node->retType);
+			Cog_Bank_handOff(node->retType);
 			break;
 		}
 		if (
-			childContext.loop.retType->kind == TYPE_OPTION ||
-			node->whileLoop.elseBlock->retType->kind == TYPE_OPTION
+			childContext.loop.retType->kind == COG_TYPE_OPTION ||
+			node->whileLoop.elseBlock->retType->kind == COG_TYPE_OPTION
 		) {
-			if (childContext.loop.retType->kind == TYPE_OPTION)
+			if (childContext.loop.retType->kind == COG_TYPE_OPTION)
 			{
-				if (!Type_areCompatible(node->whileLoop.elseBlock->retType, childContext.loop.retType->option.underlying))
-					comptimeMessage(MESSAGE_ERRORN, node->whileLoop.elseBlock->pos,
+				if (!Cog_Type_areCompatible(node->whileLoop.elseBlock->retType, childContext.loop.retType->option.underlying))
+					Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->whileLoop.elseBlock->pos,
 						"While loop can't return multiple data types at once");
 				node->retType = childContext.loop.retType;
 			}
-			else if (node->whileLoop.elseBlock->retType->kind == TYPE_OPTION)
+			else if (node->whileLoop.elseBlock->retType->kind == COG_TYPE_OPTION)
 			{
-				if (!Type_areCompatible(childContext.loop.retType, node->whileLoop.elseBlock->retType->option.underlying))
-					comptimeMessage(MESSAGE_ERRORN, node->whileLoop.elseBlock->pos,
+				if (!Cog_Type_areCompatible(childContext.loop.retType, node->whileLoop.elseBlock->retType->option.underlying))
+					Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->whileLoop.elseBlock->pos,
 						"While loop can't return multiple data types at once");
 				node->retType = node->whileLoop.elseBlock->retType;
 			}
 			break;
 		}
-		if (!Type_areCompatible(node->whileLoop.elseBlock->retType, childContext.loop.retType))
+		if (!Cog_Type_areCompatible(node->whileLoop.elseBlock->retType, childContext.loop.retType))
 		{
-			comptimeMessage(MESSAGE_ERRORN, node->pos,
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
 				"\"while\" can't return values of multiple data types");
 		}
 		if (node->whileLoop.elseBlock->retType)
@@ -662,46 +662,46 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		else if (childContext.loop.retType)
 			node->retType = childContext.loop.retType;
 		else
-			node->retType = &TYPE_VOID_OBJ;
+			node->retType = &COG_TYPE_VOID_OBJ;
 		break;
-	case NODE_BREAK:
+	case COG_NODE_BREAK:
 		operatingContext = Context_findParent(context, CONT_LOOP);
 		if (!operatingContext)
 		{
-			comptimeMessage(MESSAGE_ERRORN, node->pos,
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
 				"You can't use \"break\" in non-loop context");
 			break;
 		}
 		if (node->loopBreak.value)
 			mark(&node->loopBreak.value, scope, context);
-		node->retType = &TYPE_VOID_OBJ;
+		node->retType = &COG_TYPE_VOID_OBJ;
 		if (node->loopBreak.value)
 		{
 			if (!operatingContext->block.retType && node->loopBreak.value->retType)
 				operatingContext->block.retType = node->loopBreak.value->retType;
 			else if (operatingContext->block.retType && !node->retType)
-				comptimeMessage(MESSAGE_ERRORN, node->pos,
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
 					"Loop can't break with multiple data types at once");
 			else if (operatingContext->block.retType != node->loopBreak.value->retType)
-				comptimeMessage(MESSAGE_ERRORN, node->loopBreak.value->pos,
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->loopBreak.value->pos,
 					"Loop can't break with multiple data types at once");
 		}
 		break;
-	case NODE_NEW:
+	case COG_NODE_NEW:
 		// node->retType = node->new.type;
-		// da_foreach(Node*, child, &node->new.builderArgs)
+		// da_foreach(Cog_Node*, child, &node->new.builderArgs)
 		// 	mark(child, scope, context);
 		if (node->new.type) resolveAlias(scope, &node->new.type);
 		switch (node->new.kind)
 		{
-		case NEW_EMPTY_ARRAY: {
+		case COG_NEW_EMPTY_ARRAY: {
 			if (!node->new.type)
-				comptimeMessage(MESSAGE_ERRORN, node->pos,
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
 					"Array item type must be provided for empty arrays");
 		} break;
-		case NEW_ARRAY: {
-			Type *activeType = node->new.type;
-			da_foreach(Node*, item, &node->new.arrayItems)
+		case COG_NEW_ARRAY: {
+			Cog_Type *activeType = node->new.type;
+			da_foreach(Cog_Node*, item, &node->new.arrayItems)
 			{
 				mark(item, scope, context);
 				if (!activeType)
@@ -709,38 +709,38 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					activeType = (*item)->retType;
 					continue;
 				}
-				if ((*item)->retType == &TYPE_NULL_OBJ)
+				if ((*item)->retType == &COG_TYPE_NULL_OBJ)
 				{
-					if (activeType->kind == TYPE_OPTION)
+					if (activeType->kind == COG_TYPE_OPTION)
 						continue;
-					Type *underlying = activeType;
+					Cog_Type *underlying = activeType;
 					activeType = calloc(1, sizeof *activeType);
-					activeType->kind = TYPE_OPTION;
+					activeType->kind = COG_TYPE_OPTION;
 					activeType->option.underlying = underlying;
-					Bank_handOff(activeType);
+					Cog_Bank_handOff(activeType);
 				}
-				else if ((*item)->retType->kind == TYPE_OPTION && activeType->kind != TYPE_OPTION)
+				else if ((*item)->retType->kind == COG_TYPE_OPTION && activeType->kind != COG_TYPE_OPTION)
 				{
-					if (!Type_areCompatible((*item)->retType->option.underlying, activeType))
+					if (!Cog_Type_areCompatible((*item)->retType->option.underlying, activeType))
 					{
-						comptimeMessage(MESSAGE_ERRORN, (*item)->pos,
+						Cog_comptimeMessage(COG_MESSAGE_ERRORN, (*item)->pos,
 							"Incompatible type %s for %s",
-							Type_toString((*item)->retType),
-							Type_toString(activeType));
+							Cog_Type_toString((*item)->retType),
+							Cog_Type_toString(activeType));
 						break;
 					}
 					activeType = (*item)->retType;
 				}
-				else if (!Type_areCompatible(activeType, (*item)->retType))
-					comptimeMessage(MESSAGE_ERRORN, (*item)->pos,
+				else if (!Cog_Type_areCompatible(activeType, (*item)->retType))
+					Cog_comptimeMessage(COG_MESSAGE_ERRORN, (*item)->pos,
 						"Incompatible type %s for %s",
-						Type_toString((*item)->retType),
-						Type_toString(activeType));
+						Cog_Type_toString((*item)->retType),
+						Cog_Type_toString(activeType));
 			}
 			if (!node->new.type)
 				node->new.type = activeType;
 		} break;
-		case NEW_ARRAY_PLACEHOLDER: {
+		case COG_NEW_ARRAY_PLACEHOLDER: {
 			mark(&node->new.arrayPlaceholder.itemCount, scope, context);
 			mark(&node->new.arrayPlaceholder.placeholderValue, scope, context);
 			if (!node->new.type)
@@ -749,192 +749,192 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					node->new.arrayPlaceholder.placeholderValue->retType;
 				break;
 			}
-			if (!Type_areCompatible(
+			if (!Cog_Type_areCompatible(
 				node->new.type,
 				node->new.arrayPlaceholder.placeholderValue->retType
-			)) comptimeMessage(MESSAGE_ERRORN,
+			)) Cog_comptimeMessage(COG_MESSAGE_ERRORN,
 				node->new.arrayPlaceholder.placeholderValue->pos,
 				"Incompatible type %s for %s",
-				Type_toString(node->new.arrayPlaceholder.placeholderValue->retType),
-				Type_toString(node->new.type)
+				Cog_Type_toString(node->new.arrayPlaceholder.placeholderValue->retType),
+				Cog_Type_toString(node->new.type)
 			);
 		} break;
 		}
 		node->retType = calloc(1, sizeof *node->retType);
-		Bank_handOff(node->retType);
-		node->retType->kind = TYPE_ARRAY;
+		Cog_Bank_handOff(node->retType);
+		node->retType->kind = COG_TYPE_ARRAY;
 		node->retType->array.underlying = node->new.type;
-		if (node->new.kind == NEW_ARRAY)
+		if (node->new.kind == COG_NEW_ARRAY)
 			node->retType->array.size = node->new.arrayItems.count;
 		break;
-	case NODE_SUBSCRIPT:
+	case COG_NODE_SUBSCRIPT:
 		mark(&node->subscript.value, scope, context);
 		mark(&node->subscript.index, scope, context);
-		if (node->subscript.index->retType != &TYPE_UINT_OBJ)
-			comptimeMessage(MESSAGE_ERRORN, node->subscript.index->pos,
+		if (node->subscript.index->retType != &COG_TYPE_UINT_OBJ)
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->subscript.index->pos,
 				"Subscript can't accept non-uint index");
-		if (node->subscript.value->retType->kind != TYPE_ARRAY)
+		if (node->subscript.value->retType->kind != COG_TYPE_ARRAY)
 		{
-			comptimeMessage(MESSAGE_ERRORN, node->subscript.value->pos,
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->subscript.value->pos,
 				"Subscript can't index non-array value");
-			node->retType = &TYPE_VOID_OBJ;
+			node->retType = &COG_TYPE_VOID_OBJ;
 			break;
 		}
 		node->retType = node->subscript.value->retType->array.underlying;
 		break;
-	case NODE_SIZEOF:
+	case COG_NODE_SIZEOF:
 		mark(&node->sizeOf.value, scope, context);
-		node->retType = &TYPE_UINT_OBJ;
-		if (node->sizeOf.value->retType->kind != TYPE_ARRAY)
-			comptimeMessage(MESSAGE_ERRORN, node->sizeOf.value->pos,
+		node->retType = &COG_TYPE_UINT_OBJ;
+		if (node->sizeOf.value->retType->kind != COG_TYPE_ARRAY)
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->sizeOf.value->pos,
 				"Can't get the size of non-array value");
 		break;
-	case NODE_NULL:
-		node->retType = &TYPE_NULL_OBJ;
+	case COG_NODE_NULL:
+		node->retType = &COG_TYPE_NULL_OBJ;
 		break;
-	case NODE_UNWRAP:
+	case COG_NODE_UNWRAP:
 		mark(&node->unwrap.value, scope, context);
-		if (node->unwrap.value->retType->kind != TYPE_OPTION)
+		if (node->unwrap.value->retType->kind != COG_TYPE_OPTION)
 		{
-			comptimeMessage(MESSAGE_ERRORN, node->unwrap.value->pos,
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->unwrap.value->pos,
 				"Can't unwrap non-option value");
-			node->retType = &TYPE_VOID_OBJ;
+			node->retType = &COG_TYPE_VOID_OBJ;
 			break;
 		}
-		// node->retType = Type_copy(node->unwrap.value->retType);
+		// node->retType = Cog_Type_copy(node->unwrap.value->retType);
 		// node->retType->nullable = false;
 		node->retType = node->unwrap.value->retType->option.underlying;
 		break;
-	case NODE_CHECK:
+	case COG_NODE_CHECK:
 		mark(&node->check.value, scope, context);
-		if (node->unwrap.value->retType->kind != TYPE_OPTION)
-			comptimeMessage(MESSAGE_ERRORN, node->unwrap.value->pos,
+		if (node->unwrap.value->retType->kind != COG_TYPE_OPTION)
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->unwrap.value->pos,
 				"Can't check non-option value");
-		node->retType = &TYPE_BOOL_OBJ;
+		node->retType = &COG_TYPE_BOOL_OBJ;
 		break;
-	case NODE_TUPLE:
-		node->retType = &TYPE_VOID_OBJ;
-		da_foreach(Node*, child, &node->tuple)
+	case COG_NODE_TUPLE:
+		node->retType = &COG_TYPE_VOID_OBJ;
+		da_foreach(Cog_Node*, child, &node->tuple)
 			mark(child, scope, context);
 		break;
-	case NODE_PARAMETER:
-		node->retType = &TYPE_VOID_OBJ;
+	case COG_NODE_PARAMETER:
+		node->retType = &COG_TYPE_VOID_OBJ;
 		break;
-	case NODE_CALL:
+	case COG_NODE_CALL:
 		mark(&node->call.function, scope, context);
 		mark(&node->call.args, scope, context);
-		if (node->call.function->retType->kind != TYPE_FUNCTION)
+		if (node->call.function->retType->kind != COG_TYPE_FUNCTION)
 		{
-			comptimeMessage(MESSAGE_ERRORN, node->call.function->pos,
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->call.function->pos,
 				"This variable is not a function");
-			node->retType = &TYPE_VOID_OBJ;
+			node->retType = &COG_TYPE_VOID_OBJ;
 			break;
 		}
 		node->retType = node->call.function->retType->function.retType;
 		break;
-	case NODE_ALIAS:
+	case COG_NODE_ALIAS:
 		if (ScopeInfo_aliasExists(scope, &node->alias.name.pos))
 		{
-			comptimeMessage(MESSAGE_ERRORN, node->alias.name.pos,
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->alias.name.pos,
 				"Alias %s already exists",
-				TokenPosition_toString(&node->alias.name.pos));
+				Cog_TokenPosition_toString(&node->alias.name.pos));
 			break;
 		}
 		resolveAlias(scope, &node->alias.type);
 		ScopeInfo_declareAlias(scope, &node->alias.name.pos, node->alias.type);
 		node->unreachable = true;
-		node->retType = &TYPE_VOID_OBJ;
+		node->retType = &COG_TYPE_VOID_OBJ;
 		break;
-	case NODE_CHAR:
-		node->retType = &TYPE_CHAR_OBJ;
+	case COG_NODE_CHAR:
+		node->retType = &COG_TYPE_CHAR_OBJ;
 		break;
-	case NODE_STRING:
+	case COG_NODE_STRING:
 		// node->retType = calloc(1, sizeof *node->retType);
-		// node->retType->kind = TYPE_ARRAY;
-		// node->retType->array.underlying = &TYPE_CHAR_OBJ;
+		// node->retType->kind = COG_TYPE_ARRAY;
+		// node->retType->array.underlying = &COG_TYPE_CHAR_OBJ;
 		// node->retType->array.size = node->stringLit.count;
-		// Bank_handOff(node->retType);
-		node->retType = &TYPE_STRING_OBJ;
+		// Cog_Bank_handOff(node->retType);
+		node->retType = &COG_TYPE_STRING_OBJ;
 		break;
-	case NODE_REALLOC:
+	case COG_NODE_REALLOC:
 		mark(&node->realloc.array, scope, context);
 		mark(&node->realloc.newSize, scope, context);
 		mark(&node->realloc.fillValue, scope, context);
-		node->retType = Type_copy(node->realloc.array->retType);
-		if (node->realloc.array->retType->kind != TYPE_ARRAY)
-			comptimeMessage(MESSAGE_ERRORN, node->realloc.array->pos,
+		node->retType = Cog_Type_copy(node->realloc.array->retType);
+		if (node->realloc.array->retType->kind != COG_TYPE_ARRAY)
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->realloc.array->pos,
 				"Can't reallocate non-array value");
 		else
 			node->retType->array.size = 0;
-		if (node->realloc.newSize->retType->kind != TYPE_UINT)
-			comptimeMessage(MESSAGE_ERRORN, node->realloc.newSize->pos,
+		if (node->realloc.newSize->retType->kind != COG_TYPE_UINT)
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->realloc.newSize->pos,
 				"Can't reallocate an array with non-uint new size");
-		if (!Type_areCompatible(
+		if (!Cog_Type_areCompatible(
 			node->realloc.array->retType->array.underlying,
 			node->realloc.fillValue->retType
-		)) comptimeMessage(MESSAGE_ERRORN, node->realloc.newSize->pos,
+		)) Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->realloc.newSize->pos,
 			"Can't reallocate an array with incompatible fill items");
 		break;
-	case NODE_TOSTRING:
+	case COG_NODE_TOSTRING:
 		mark(&node->toString.value, scope, context);
-		node->retType = &TYPE_STRING_OBJ;
+		node->retType = &COG_TYPE_STRING_OBJ;
 		break;
 	}
 }
-static void mark(Node **node, ScopeInfo *scope, Context *context)
+static void mark(Cog_Node **node, ScopeInfo *scope, Context *context)
 {
-	if ((*node)->type == NODE_BLOCK)
+	if ((*node)->type == COG_NODE_BLOCK)
 		*node = markScope(*node, scope, context);
 	else
 		markImpl(*node, scope, context);
 }
-static bool isNodeFinal(Node *node)
+static bool isNodeFinal(Cog_Node *node)
 {
 	bool foundFinal = false;
 	switch (node->type)
 	{
-	case NODE_NUMBER_LIT:
-	case NODE_UNUMBER_LIT:
-	case NODE_FNUMBER_LIT:
-	case NODE_SYMBOL:
-	case NODE_INFIX:
-	case NODE_NEGATION:
-	case NODE_CAST:
-	case NODE_VAR_DECL:
-	case NODE_TRUE_:
-	case NODE_FALSE_:
-	case NODE_NOT:
-	case NODE_NEW:
-	case NODE_SUBSCRIPT:
-	case NODE_SIZEOF:
-	case NODE_NULL:
-	case NODE_UNWRAP:
-	case NODE_CHECK:
-	case NODE_TUPLE:
-	case NODE_PARAMETER:
-	case NODE_CALL:
-	case NODE_ALIAS:
-	case NODE_CHAR:
-	case NODE_STRING:
-	case NODE_REALLOC:
-	case NODE_TOSTRING:
+	case COG_NODE_NUMBER_LIT:
+	case COG_NODE_UNUMBER_LIT:
+	case COG_NODE_FNUMBER_LIT:
+	case COG_NODE_SYMBOL:
+	case COG_NODE_INFIX:
+	case COG_NODE_NEGATION:
+	case COG_NODE_CAST:
+	case COG_NODE_VAR_DECL:
+	case COG_NODE_TRUE_:
+	case COG_NODE_FALSE_:
+	case COG_NODE_NOT:
+	case COG_NODE_NEW:
+	case COG_NODE_SUBSCRIPT:
+	case COG_NODE_SIZEOF:
+	case COG_NODE_NULL:
+	case COG_NODE_UNWRAP:
+	case COG_NODE_CHECK:
+	case COG_NODE_TUPLE:
+	case COG_NODE_PARAMETER:
+	case COG_NODE_CALL:
+	case COG_NODE_ALIAS:
+	case COG_NODE_CHAR:
+	case COG_NODE_STRING:
+	case COG_NODE_REALLOC:
+	case COG_NODE_TOSTRING:
 		return false;
-	case NODE_EXIT:
-	case NODE_YIELD:
-	case NODE_BREAK:
+	case COG_NODE_EXIT:
+	case COG_NODE_YIELD:
+	case COG_NODE_BREAK:
 		return true;
-	case NODE_SCOPE:
+	case COG_NODE_SCOPE:
 		return isNodeFinal(node->scope.child);
-	case NODE_IF:
+	case COG_NODE_IF:
 		if (node->ifelse.falsy)
 			return isNodeFinal(node->ifelse.falsy);
 		return false;
-	case NODE_WHILE:
+	case COG_NODE_WHILE:
 		if (node->whileLoop.elseBlock)
 			return isNodeFinal(node->whileLoop.elseBlock);
 		return false;
-	case NODE_BLOCK:
-		da_foreach(Node*, child, &node->block)
+	case COG_NODE_BLOCK:
+		da_foreach(Cog_Node*, child, &node->block)
 			if (foundFinal)
 				(*child)->unreachable = true;
 			else
@@ -943,111 +943,111 @@ static bool isNodeFinal(Node *node)
 	}
 	return false;
 }
-static bool checkAssignable(Node *node)
+static bool checkAssignable(Cog_Node *node)
 {
 	switch (node->type)
 	{
-		case NODE_SYMBOL:    return true;
-		case NODE_SUBSCRIPT: return checkAssignable(node->subscript.value);
+		case COG_NODE_SYMBOL:    return true;
+		case COG_NODE_SUBSCRIPT: return checkAssignable(node->subscript.value);
 		default:             return false;
 	}
 }
-static bool checkMutable(Node *node)
+static bool checkMutable(Cog_Node *node)
 {
 	switch (node->type)
 	{
-		case NODE_SYMBOL:    return node->symbol.isMutable;
-		case NODE_SUBSCRIPT: return checkMutable(node->subscript.value);
+		case COG_NODE_SYMBOL:    return node->symbol.isMutable;
+		case COG_NODE_SUBSCRIPT: return checkMutable(node->subscript.value);
 		default:             return true;
 	}
 }
-static void analyze(Node *node)
+static void analyze(Cog_Node *node)
 {
 	switch (node->type)
 	{
-	case NODE_BLOCK:
-		da_foreach(Node*, child, &node->block)
+	case COG_NODE_BLOCK:
+		da_foreach(Cog_Node*, child, &node->block)
 			analyze(*child);
-		if (!isNodeFinal(node) && node->retType != &TYPE_VOID_OBJ)
-			comptimeMessage(MESSAGE_ERRORN, node->block.posEnd,
+		if (!isNodeFinal(node) && node->retType != &COG_TYPE_VOID_OBJ)
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->block.posEnd,
 				"Missing yield statement");
 		break;
-	case NODE_INFIX:
+	case COG_NODE_INFIX:
 		analyze(node->infix.left);
 		analyze(node->infix.right);
-		if (node->infix.type == INFIX_ASSIGN)
+		if (node->infix.type == COG_INFIX_ASSIGN)
 		{
 			if (!checkAssignable(node->infix.left))
 			{
-				comptimeMessage(MESSAGE_ERRORN, node->infix.left->pos,
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->infix.left->pos,
 					"Can't assign to non-variable");
 				break;
 			}
 			if (!checkMutable(node->infix.left))
-				comptimeMessage(MESSAGE_ERRORN, node->pos,
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
 					"Can't assign to immutable variable");
 			if (
 				checkMutable(node->infix.left) &&
 				!checkMutable(node->infix.right) &&
-				Type_isRef(node->infix.right->retType)
-			) comptimeMessage(MESSAGE_ERRORN, node->pos,
+				Cog_Type_isRef(node->infix.right->retType)
+			) Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
 				"Can't assign a refference value of an immutable variable to a mutable variable");
 		}
 		break;
-	case NODE_EXIT:
-		if (node->exit.value->retType->kind != TYPE_INT)
-			comptimeMessage(MESSAGE_ERRORN, node->exit.value->pos,
+	case COG_NODE_EXIT:
+		if (node->exit.value->retType->kind != COG_TYPE_INT)
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->exit.value->pos,
 				"Can't exit with non-int value");
 		analyze(node->exit.value);
 		break;
-	case NODE_CAST:
+	case COG_NODE_CAST:
 		if (node->retType->kind == node->cast.value->retType->kind)
-			comptimeMessage(MESSAGE_WARN, node->cast.value->pos,
+			Cog_comptimeMessage(COG_MESSAGE_WARN, node->cast.value->pos,
 				"Casting %s to %s is not necessary",
-				Type_toString(node->retType),
-				Type_toString(node->cast.value->retType));
+				Cog_Type_toString(node->retType),
+				Cog_Type_toString(node->cast.value->retType));
 		analyze(node->cast.value);
 		break;
-	case NODE_NEGATION:
-		if (node->negation.value->retType->kind != TYPE_INT &&
-			node->negation.value->retType->kind != TYPE_FLOAT)
-			comptimeMessage(MESSAGE_ERRORN, node->negation.value->pos,
-				"Cannot negate %s", Type_toString(node->retType));
+	case COG_NODE_NEGATION:
+		if (node->negation.value->retType->kind != COG_TYPE_INT &&
+			node->negation.value->retType->kind != COG_TYPE_FLOAT)
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->negation.value->pos,
+				"Cannot negate %s", Cog_Type_toString(node->retType));
 		analyze(node->negation.value);
 		break;
-	case NODE_SCOPE:
-	case NODE_YIELD:
-	case NODE_NOT:
-	case NODE_SIZEOF:
-	case NODE_UNWRAP:
-	case NODE_CHECK:
+	case COG_NODE_SCOPE:
+	case COG_NODE_YIELD:
+	case COG_NODE_NOT:
+	case COG_NODE_SIZEOF:
+	case COG_NODE_UNWRAP:
+	case COG_NODE_CHECK:
 		analyze(node->scope.child);
 		break;
-	case NODE_IF:
+	case COG_NODE_IF:
 		analyze(node->ifelse.cond);
 		analyze(node->ifelse.truthy);
 		if (node->ifelse.falsy)
 			analyze(node->ifelse.falsy);
 		break;
-	case NODE_WHILE:
+	case COG_NODE_WHILE:
 		analyze(node->whileLoop.cond);
 		analyze(node->whileLoop.body);
 		if (node->whileLoop.elseBlock)
 			analyze(node->whileLoop.elseBlock);
 		break;
-	case NODE_BREAK:
+	case COG_NODE_BREAK:
 		if (node->loopBreak.value)
 			analyze(node->loopBreak.value);
 		break;
-	case NODE_SUBSCRIPT:
+	case COG_NODE_SUBSCRIPT:
 		analyze(node->subscript.value);
 		analyze(node->subscript.index);
 		break;
-	case NODE_NEW:
+	case COG_NODE_NEW:
 		// TODO
-		// if (node->new.type->kind != TYPE_ARRAY)
+		// if (node->new.type->kind != COG_TYPE_ARRAY)
 		// {
-		// 	comptimeMessage(MESSAGE_ERRORN, node->pos,
+		// 	Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
 		// 		"You can't use \"new\" on atomic types");
 		// 	break;
 		// }
@@ -1056,72 +1056,72 @@ static void analyze(Node *node)
 		// case NEW_OBJ:
 		// 	if (node->new.builderArgs.count != 1)
 		// 	{
-		// 		comptimeMessage(MESSAGE_ERRORN, node->pos,
+		// 		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
 		// 			"%s's builder recieves %zu arguments, %d given",
-		// 			Type_toString(node->new.type),
+		// 			Cog_Type_toString(node->new.type),
 		// 			1,
 		// 			node->new.builderArgs.count
 		// 		);
 		// 		break;
 		// 	}
-		// 	if (!Type_areCompatible(
+		// 	if (!Cog_Type_areCompatible(
 		// 		node->new.type->array.underlying,
 		// 		node->new.builderArgs.items[0]->retType
-		// 	)) comptimeMessage(MESSAGE_ERRORN, node->new.builderArgs.items[0]->pos,
+		// 	)) Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->new.builderArgs.items[0]->pos,
 		// 		"Can't assign a value of type \"%s\""
 		// 		" to a variable of type \"%s\"",
-		// 		Type_toString(node->new.builderArgs.items[0]->retType),
-		// 		Type_toString(node->new.type->array.underlying)
+		// 		Cog_Type_toString(node->new.builderArgs.items[0]->retType),
+		// 		Cog_Type_toString(node->new.type->array.underlying)
 		// 	);
 		// 	break;
-		// case NEW_ARRAY:
-		// 	da_foreach(Node*, child, &node->new.arrayItems)
+		// case COG_NEW_ARRAY:
+		// 	da_foreach(Cog_Node*, child, &node->new.arrayItems)
 		// 	{
 		// 		analyze(*child);
-		// 		if (!Type_areCompatible(
+		// 		if (!Cog_Type_areCompatible(
 		// 			node->new.type->array.underlying,
 		// 			(*child)->retType
-		// 		)) comptimeMessage(MESSAGE_ERRORN, (*child)->pos,
+		// 		)) Cog_comptimeMessage(COG_MESSAGE_ERRORN, (*child)->pos,
 		// 			"Can't assign a value of type \"%s\""
 		// 			" to a variable of type \"%s\"",
-		// 			Type_toString((*child)->retType),
-		// 			Type_toString(node->new.type->array.underlying)
+		// 			Cog_Type_toString((*child)->retType),
+		// 			Cog_Type_toString(node->new.type->array.underlying)
 		// 		);
 		// 	}
 		// 	if (node->new.type->array.size != node->new.arrayItems.count)
-		// 		comptimeMessage(MESSAGE_ERRORN, node->pos,
+		// 		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
 		// 			"Expected %zu items in an array, got %zu",
 		// 			node->new.type->array.size,
 		// 			node->new.arrayItems.count
 		// 		);
 		// 	break;
 		// }
-		if (node->new.kind == NEW_ARRAY_PLACEHOLDER)
-			if (node->new.arrayPlaceholder.itemCount->retType != &TYPE_UINT_OBJ)
-				comptimeMessage(
-					MESSAGE_ERRORN,
+		if (node->new.kind == COG_NEW_ARRAY_PLACEHOLDER)
+			if (node->new.arrayPlaceholder.itemCount->retType != &COG_TYPE_UINT_OBJ)
+				Cog_comptimeMessage(
+					COG_MESSAGE_ERRORN,
 					node->new.arrayPlaceholder.itemCount->pos,
 					"Array size can only be of type uint"
 				);
 		break;
-	case NODE_TUPLE:
-		da_foreach(Node*, child, &node->tuple)
+	case COG_NODE_TUPLE:
+		da_foreach(Cog_Node*, child, &node->tuple)
 			analyze(*child);
 		break;
-	case NODE_CALL:
+	case COG_NODE_CALL:
 		analyze(node->call.function);
 		analyze(node->call.args);
-		if (node->call.function->retType->kind != TYPE_FUNCTION)
+		if (node->call.function->retType->kind != COG_TYPE_FUNCTION)
 			break;
 		if (node->call.function->retType->function.args.count > node->call.args->tuple.count)
 		{
 			if (node->call.function->retType->function.varArgItem)
-				comptimeMessage(MESSAGE_ERRORN, node->call.args->pos,
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->call.args->pos,
 					"Expected at minimum %zu parameters, %zu given",
 					node->call.function->retType->function.args.count,
 					node->call.args->tuple.count);
 			else
-				comptimeMessage(MESSAGE_ERRORN, node->call.args->pos,
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->call.args->pos,
 					"Expected %zu parameters, %zu given",
 					node->call.function->retType->function.args.count,
 					node->call.args->tuple.count);
@@ -1129,7 +1129,7 @@ static void analyze(Node *node)
 		}
 		if (node->call.function->retType->function.args.count != node->call.args->tuple.count && !node->call.function->retType->function.varArgItem)
 		{
-			comptimeMessage(MESSAGE_ERRORN, node->call.args->pos,
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->call.args->pos,
 				"Expected %zu parameters, %zu given",
 				node->call.function->retType->function.args.count,
 				node->call.args->tuple.count);
@@ -1139,80 +1139,80 @@ static void analyze(Node *node)
 		{
 			bool currentlyVarArg = i >= node->call.function->retType->function.args.count;
 				// printf("currentlyVarArg = %d i = %d argc = %d\n", currentlyVarArg, i, node->call.function->retType->function.args.count);
-			Type *expected = currentlyVarArg
+			Cog_Type *expected = currentlyVarArg
 				? node->call.function->retType->function.varArgItem->type
 				: node->call.function->retType->function.args.items[i].type;
-			Type *got = node->call.args->tuple.items[i]->retType;
-			if (!Type_areCompatible(expected, got))
+			Cog_Type *got = node->call.args->tuple.items[i]->retType;
+			if (!Cog_Type_areCompatible(expected, got))
 			{
 				if (currentlyVarArg)
-					comptimeMessage(MESSAGE_ERRORN, node->call.args->tuple.items[i]->pos,
+					Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->call.args->tuple.items[i]->pos,
 						"Incompatible type for variadic argument: expected %s, got %s",
-						Type_toString(expected), Type_toString(got)
+						Cog_Type_toString(expected), Cog_Type_toString(got)
 					);
 				else
-					comptimeMessage(MESSAGE_ERRORN, node->call.args->tuple.items[i]->pos,
+					Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->call.args->tuple.items[i]->pos,
 						"Incompatible type for argument %zu: expected %s, got %s",
-						i + 1, Type_toString(expected), Type_toString(got)
+						i + 1, Cog_Type_toString(expected), Cog_Type_toString(got)
 					);
 			}
 			bool expectedMut = currentlyVarArg
 				? node->call.function->retType->function.varArgItem->isMutable
 				: node->call.function->retType->function.args.items[i].isMutable;
 			bool gotMut = checkMutable(node->call.args->tuple.items[i]);
-			if (expectedMut && !gotMut && Type_isRef(got))
-				comptimeMessage(MESSAGE_ERRORN, node->call.args->tuple.items[i]->pos,
+			if (expectedMut && !gotMut && Cog_Type_isRef(got))
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->call.args->tuple.items[i]->pos,
 					"Incompatible mutability for argument %zu: can't pass an"
 					" immutable reference to a mutable function argument",
 					i + 1
 				);
 		}
 		break;
-	case NODE_REALLOC:
+	case COG_NODE_REALLOC:
 		if (!checkMutable(node->realloc.array))
-			comptimeMessage(MESSAGE_ERRORN, node->realloc.array->pos,
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->realloc.array->pos,
 				"Can't realloc an immutable array");
 		break;
-	case NODE_TOSTRING:
+	case COG_NODE_TOSTRING:
 		if (!(
-			node->toString.value->retType->kind == TYPE_INT ||
-			node->toString.value->retType->kind == TYPE_UINT ||
-			node->toString.value->retType->kind == TYPE_FLOAT ||
-			node->toString.value->retType->kind == TYPE_BOOL
-		)) comptimeMessage(MESSAGE_ERRORN, node->toString.value->pos,
+			node->toString.value->retType->kind == COG_TYPE_INT ||
+			node->toString.value->retType->kind == COG_TYPE_UINT ||
+			node->toString.value->retType->kind == COG_TYPE_FLOAT ||
+			node->toString.value->retType->kind == COG_TYPE_BOOL
+		)) Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->toString.value->pos,
 			"Can't parse %s to string",
-			Type_toString(node->toString.value->retType));
+			Cog_Type_toString(node->toString.value->retType));
 		break;
-	case NODE_VAR_DECL:
+	case COG_NODE_VAR_DECL:
 		analyze(node->var_decl.value);
 		if (
 			node->var_decl.isMutable &&
 			!checkMutable(node->var_decl.value) &&
-			Type_isRef(node->var_decl.value->retType)
-		) comptimeMessage(MESSAGE_ERRORN, node->var_decl.value->pos,
+			Cog_Type_isRef(node->var_decl.value->retType)
+		) Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->var_decl.value->pos,
 			"Can't assign a refference value of an immutable variable to a mutable variable");
 		break;
-	case NODE_NUMBER_LIT:
-	case NODE_UNUMBER_LIT:
-	case NODE_FNUMBER_LIT:
-	case NODE_SYMBOL:
-	case NODE_TRUE_:
-	case NODE_FALSE_:
-	case NODE_NULL:
-	case NODE_PARAMETER:
-	case NODE_ALIAS:
-	case NODE_CHAR:
-	case NODE_STRING:
+	case COG_NODE_NUMBER_LIT:
+	case COG_NODE_UNUMBER_LIT:
+	case COG_NODE_FNUMBER_LIT:
+	case COG_NODE_SYMBOL:
+	case COG_NODE_TRUE_:
+	case COG_NODE_FALSE_:
+	case COG_NODE_NULL:
+	case COG_NODE_PARAMETER:
+	case COG_NODE_ALIAS:
+	case COG_NODE_CHAR:
+	case COG_NODE_STRING:
 	{}
 	}
 }
-void analyzeAndMark(Node **node, Globals *globals)
+void Cog_analyzeAndMark(Cog_Node **node, Cog_Globals *globals)
 {
 	Context context = {0};
 	ScopeInfo scope = {0};
-	da_foreach(GlobalValue, value, globals)
+	da_foreach(Cog_GlobalValue, value, globals)
 		ScopeInfo_declare(
-			&scope, TokenPosition_fromString(value->name),
+			&scope, Cog_TokenPosition_fromString(value->name),
 			value->type, value->isMutable
 		);
 	*node = markScope(*node, &scope, &context);

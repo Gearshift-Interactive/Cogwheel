@@ -38,7 +38,7 @@ static size_t Context_findParentDepth(Context *this, ContextType type)
 			return result;
 		else
 			result++;
-	PANIC("Couln't find scope parent");
+	COG_PANIC("Couln't find scope parent");
 }
 
 #define PUSH_OP(OP) do { \
@@ -58,11 +58,11 @@ static size_t Context_findParentDepth(Context *this, ContextType type)
 } while(0);
 #define CHUNK_PTR(I) Chunk_idxToPtr(this, I)
 
-static void *Chunk_idxToPtr(Chunk *this, size_t index)
+static void *Chunk_idxToPtr(Cog_Chunk *this, size_t index)
 {
 	return this->instr.items + index;
 }
-__attribute__((unused)) static void *Chunk_acquireData(Chunk *this, size_t size)
+__attribute__((unused)) static void *Chunk_acquireData(Cog_Chunk *this, size_t size)
 {
 	void *result = this->instr.items + this->instr.count;
 	for (size_t i = 0; i < size; i++) \
@@ -70,47 +70,47 @@ __attribute__((unused)) static void *Chunk_acquireData(Chunk *this, size_t size)
 	return result;
 }
 
-static Chunk compileImpl(const Node *tree, bool shouldFree);
-static size_t compileNode(Chunk *this, const Node *node, Context *context);
+static Cog_Chunk compileImpl(const Cog_Node *tree, bool shouldFree);
+static size_t compileNode(Cog_Chunk *this, const Cog_Node *node, Context *context);
 
-static size_t compileCast(Chunk *this, const Node *node, __attribute__((unused)) Context *context)
+static size_t compileCast(Cog_Chunk *this, const Cog_Node *node, __attribute__((unused)) Context *context)
 {
 	size_t resultSize = 0;
-	Opcode op = 0;
+	Cog_Opcode op = 0;
 	switch (node->cast.target->kind)
 	{
-	case TYPE_INT:
+	case COG_TYPE_INT:
 		switch (node->cast.value->retType->kind)
 		{
-		case TYPE_UINT:
-			op = OP_CAST_UTOI;
+		case COG_TYPE_UINT:
+			op = COG_OP_CAST_UTOI;
 			break;
-		case TYPE_FLOAT:
-			op = OP_CAST_FTOI;
+		case COG_TYPE_FLOAT:
+			op = COG_OP_CAST_FTOI;
 			break;
 		default: {}
 		}
 		break;
-	case TYPE_UINT:
+	case COG_TYPE_UINT:
 		switch (node->cast.value->retType->kind)
 		{
-		case TYPE_INT:
-			op = OP_CAST_ITOU;
+		case COG_TYPE_INT:
+			op = COG_OP_CAST_ITOU;
 			break;
-		case TYPE_FLOAT:
-			op = OP_CAST_FTOU;
+		case COG_TYPE_FLOAT:
+			op = COG_OP_CAST_FTOU;
 			break;
 		default: {}
 		}
 		break;
-	case TYPE_FLOAT:
+	case COG_TYPE_FLOAT:
 		switch (node->cast.value->retType->kind)
 		{
-		case TYPE_INT:
-			op = OP_CAST_ITOF;
+		case COG_TYPE_INT:
+			op = COG_OP_CAST_ITOF;
 			break;
-		case TYPE_UINT:
-			op = OP_CAST_UTOF;
+		case COG_TYPE_UINT:
+			op = COG_OP_CAST_UTOF;
 			break;
 		default: {}
 		}
@@ -120,7 +120,7 @@ static size_t compileCast(Chunk *this, const Node *node, __attribute__((unused))
 	// case ATOM_BOOL:
 	// 	break;
 	default:
-		comptimeMessage(MESSAGE_ERROR, node->pos, "Invalid cast target");
+		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Invalid cast target");
 		break;
 	}
 	if (op)
@@ -128,283 +128,283 @@ static size_t compileCast(Chunk *this, const Node *node, __attribute__((unused))
 	return resultSize;
 }
 
-static size_t compileAssignment(Chunk *this, const Node *node, Context *context)
+static size_t compileAssignment(Cog_Chunk *this, const Cog_Node *node, Context *context)
 {
 	fflush(stdout);
 	size_t resultSize = 0;
 	switch (node->infix.left->type) {
-	case NODE_SYMBOL:
+	case COG_NODE_SYMBOL:
 		compileNode(this, node->infix.right, context);
-		PUSH_OP(OP_SCOPE_WRITE);
+		PUSH_OP(COG_OP_SCOPE_WRITE);
 		PUSH_DATA(size_t, node->infix.left->symbol.scopeDepth);
 		PUSH_DATA(size_t, node->infix.left->symbol.scopeIndex);
 		break;
-	case NODE_SUBSCRIPT:
+	case COG_NODE_SUBSCRIPT:
 		compileNode(this, node->infix.left->subscript.value, context);
 		compileNode(this, node->infix.left->subscript.index, context);
 		compileNode(this, node->infix.right, context);
-		PUSH_OP(OP_GC_ASSIGN_FROMSTACK);
+		PUSH_OP(COG_OP_GC_ASSIGN_FROMSTACK);
 		break;
 	default:
-		PANIC("Can't compile unassignable lvalue");
+		COG_PANIC("Can't compile unassignable lvalue");
 	}
 	return resultSize;
 }
-static size_t compileInfix(Chunk *this, const Node *node, Context *context)
+static size_t compileInfix(Cog_Chunk *this, const Cog_Node *node, Context *context)
 {
 	size_t resultSize = 0;
-	if (node->infix.type == INFIX_AND)
+	if (node->infix.type == COG_INFIX_AND)
 	{
 		compileNode(this, node->infix.left, context);
-		PUSH_OP(OP_JUMPF_IFN_R);
+		PUSH_OP(COG_OP_JUMPF_IFN_R);
 		size_t addr = this->instr.count;
 		PUSH_DATA(size_t, 0);
-		PUSH_OP(OP_POP);
+		PUSH_OP(COG_OP_POP);
 		compileNode(this, node->infix.right, context);
 		*(size_t*)CHUNK_PTR(addr) = this->instr.count - addr;
 		return resultSize;
 	}
-	if (node->infix.type == INFIX_OR)
+	if (node->infix.type == COG_INFIX_OR)
 	{
 		compileNode(this, node->infix.left, context);
-		PUSH_OP(OP_JUMPF_IF_R);
+		PUSH_OP(COG_OP_JUMPF_IF_R);
 		size_t addr = this->instr.count;
 		PUSH_DATA(size_t, 0);
-		PUSH_OP(OP_POP);
+		PUSH_OP(COG_OP_POP);
 		compileNode(this, node->infix.right, context);
 		*(size_t*)CHUNK_PTR(addr) = this->instr.count - addr;
-		// PUSH_OP(OP_CLOAD_TRUE);
+		// PUSH_OP(COG_OP_CLOAD_TRUE);
 		return resultSize;
 	}
-	if (node->infix.type != INFIX_ASSIGN && node->infix.type != INFIX_FUNC)
+	if (node->infix.type != COG_INFIX_ASSIGN && node->infix.type != COG_INFIX_FUNC)
 	{
 		compileNode(this, node->infix.left, context);
 		compileNode(this, node->infix.right, context);
 	}
 	switch (node->infix.type)
 	{
-	case INFIX_FUNC: {
-		Chunk funcChunk = compileImpl(node->infix.right->scope.child, false);
+	case COG_INFIX_FUNC: {
+		Cog_Chunk funcChunk = compileImpl(node->infix.right->scope.child, false);
 		da_append(&this->functions, funcChunk);
-		PUSH_OP(OP_CLOAD_FUNC);
+		PUSH_OP(COG_OP_CLOAD_FUNC);
 		PUSH_DATA(size_t, this->functions.count - 1);
 	} break;
-	case INFIX_ASSIGN:
+	case COG_INFIX_ASSIGN:
 		compileAssignment(this, node, context);
 		break;
-	case INFIX_ADD:
+	case COG_INFIX_ADD:
 		switch (node->retType->kind)
 		{
-		case TYPE_INT:
-			PUSH_OP(OP_ADD_INT);
+		case COG_TYPE_INT:
+			PUSH_OP(COG_OP_ADD_INT);
 			break;
-		case TYPE_UINT:
-			PUSH_OP(OP_ADD_UINT);
+		case COG_TYPE_UINT:
+			PUSH_OP(COG_OP_ADD_UINT);
 			break;
-		case TYPE_FLOAT:
-			PUSH_OP(OP_ADD_FLOAT);
+		case COG_TYPE_FLOAT:
+			PUSH_OP(COG_OP_ADD_FLOAT);
 			break;
-		case TYPE_ARRAY:
-			PUSH_OP(OP_GC_CONCAT);
+		case COG_TYPE_ARRAY:
+			PUSH_OP(COG_OP_GC_CONCAT);
 			break;
 		default:
-			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
+			COG_PANIC("Unsupported type for infix: %s", Cog_Type_toString(node->retType));
 			break;
 		}
 		break;
-	case INFIX_SUB:
+	case COG_INFIX_SUB:
 		switch (node->retType->kind)
 		{
-		case TYPE_INT:
-			PUSH_OP(OP_SUB_INT);
+		case COG_TYPE_INT:
+			PUSH_OP(COG_OP_SUB_INT);
 			break;
-		case TYPE_UINT:
-			PUSH_OP(OP_SUB_UINT);
+		case COG_TYPE_UINT:
+			PUSH_OP(COG_OP_SUB_UINT);
 			break;
-		case TYPE_FLOAT:
-			PUSH_OP(OP_SUB_FLOAT);
+		case COG_TYPE_FLOAT:
+			PUSH_OP(COG_OP_SUB_FLOAT);
 			break;
 		default:
-			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
+			COG_PANIC("Unsupported type for infix: %s", Cog_Type_toString(node->retType));
 			break;
 		}
 		break;
-	case INFIX_MUL:
+	case COG_INFIX_MUL:
 		if (
-			node->infix.left->retType->kind == TYPE_ARRAY &&
-			node->infix.right->retType->kind == TYPE_UINT
+			node->infix.left->retType->kind == COG_TYPE_ARRAY &&
+			node->infix.right->retType->kind == COG_TYPE_UINT
 		) {
-			PUSH_OP(OP_GC_REPEAT);
+			PUSH_OP(COG_OP_GC_REPEAT);
 			break;
 		}
 		switch (node->retType->kind)
 		{
-		case TYPE_INT:
-			PUSH_OP(OP_MUL_INT);
+		case COG_TYPE_INT:
+			PUSH_OP(COG_OP_MUL_INT);
 			break;
-		case TYPE_UINT:
-			PUSH_OP(OP_MUL_UINT);
+		case COG_TYPE_UINT:
+			PUSH_OP(COG_OP_MUL_UINT);
 			break;
-		case TYPE_FLOAT:
-			PUSH_OP(OP_MUL_FLOAT);
+		case COG_TYPE_FLOAT:
+			PUSH_OP(COG_OP_MUL_FLOAT);
 			break;
 		default:
-			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
+			COG_PANIC("Unsupported type for infix: %s", Cog_Type_toString(node->retType));
 			break;
 		}
 		break;
-	case INFIX_DIV:
+	case COG_INFIX_DIV:
 		switch (node->retType->kind)
 		{
-		case TYPE_INT:
-			PUSH_OP(OP_DIV_INT);
+		case COG_TYPE_INT:
+			PUSH_OP(COG_OP_DIV_INT);
 			break;
-		case TYPE_UINT:
-			PUSH_OP(OP_DIV_UINT);
+		case COG_TYPE_UINT:
+			PUSH_OP(COG_OP_DIV_UINT);
 			break;
-		case TYPE_FLOAT:
-			PUSH_OP(OP_DIV_FLOAT);
+		case COG_TYPE_FLOAT:
+			PUSH_OP(COG_OP_DIV_FLOAT);
 			break;
 		default:
-			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
+			COG_PANIC("Unsupported type for infix: %s", Cog_Type_toString(node->retType));
 			break;
 		}
 		break;
-	case INFIX_POW:
+	case COG_INFIX_POW:
 		switch (node->retType->kind)
 		{
-		case TYPE_INT:
-			PUSH_OP(OP_POW_INT);
+		case COG_TYPE_INT:
+			PUSH_OP(COG_OP_POW_INT);
 			break;
-		case TYPE_UINT:
-			PUSH_OP(OP_POW_UINT);
+		case COG_TYPE_UINT:
+			PUSH_OP(COG_OP_POW_UINT);
 			break;
-		case TYPE_FLOAT:
-			PUSH_OP(OP_POW_FLOAT);
+		case COG_TYPE_FLOAT:
+			PUSH_OP(COG_OP_POW_FLOAT);
 			break;
 		default:
-			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
+			COG_PANIC("Unsupported type for infix: %s", Cog_Type_toString(node->retType));
 			break;
 		}
 		break;
-	case INFIX_OR:
-		PUSH_OP(OP_OR);
+	case COG_INFIX_OR:
+		PUSH_OP(COG_OP_OR);
 		break;
-	case INFIX_AND:
-		PUSH_OP(OP_AND);
+	case COG_INFIX_AND:
+		PUSH_OP(COG_OP_AND);
 		break;
-	case INFIX_EQ:
+	case COG_INFIX_EQ:
 		switch (node->infix.left->retType->kind)
 		{
-		case TYPE_CHAR:
-			PUSH_OP(OP_EQ_CHAR);
+		case COG_TYPE_CHAR:
+			PUSH_OP(COG_OP_EQ_CHAR);
 			break;
-		case TYPE_INT:
-			PUSH_OP(OP_EQ_INT);
+		case COG_TYPE_INT:
+			PUSH_OP(COG_OP_EQ_INT);
 			break;
-		case TYPE_UINT:
-			PUSH_OP(OP_EQ_UINT);
+		case COG_TYPE_UINT:
+			PUSH_OP(COG_OP_EQ_UINT);
 			break;
-		case TYPE_FLOAT:
-			PUSH_OP(OP_EQ_FLOAT);
+		case COG_TYPE_FLOAT:
+			PUSH_OP(COG_OP_EQ_FLOAT);
 			break;
 		default:
-			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
+			COG_PANIC("Unsupported type for infix: %s", Cog_Type_toString(node->retType));
 			break;
 		}
 		break;
-	case INFIX_NEQ:
+	case COG_INFIX_NEQ:
 		switch (node->infix.left->retType->kind)
 		{
-		case TYPE_CHAR:
-			PUSH_OP(OP_NEQ_CHAR);
+		case COG_TYPE_CHAR:
+			PUSH_OP(COG_OP_NEQ_CHAR);
 			break;
-		case TYPE_INT:
-			PUSH_OP(OP_NEQ_INT);
+		case COG_TYPE_INT:
+			PUSH_OP(COG_OP_NEQ_INT);
 			break;
-		case TYPE_UINT:
-			PUSH_OP(OP_NEQ_UINT);
+		case COG_TYPE_UINT:
+			PUSH_OP(COG_OP_NEQ_UINT);
 			break;
-		case TYPE_FLOAT:
-			PUSH_OP(OP_NEQ_FLOAT);
+		case COG_TYPE_FLOAT:
+			PUSH_OP(COG_OP_NEQ_FLOAT);
 			break;
 		default:
-			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
+			COG_PANIC("Unsupported type for infix: %s", Cog_Type_toString(node->retType));
 			break;
 		}
 		break;
-	case INFIX_LT:
+	case COG_INFIX_LT:
 		switch (node->infix.left->retType->kind)
 		{
-		case TYPE_INT:
-			PUSH_OP(OP_LT_INT);
+		case COG_TYPE_INT:
+			PUSH_OP(COG_OP_LT_INT);
 			break;
-		case TYPE_UINT:
-			PUSH_OP(OP_LT_UINT);
+		case COG_TYPE_UINT:
+			PUSH_OP(COG_OP_LT_UINT);
 			break;
-		case TYPE_FLOAT:
-			PUSH_OP(OP_LT_FLOAT);
+		case COG_TYPE_FLOAT:
+			PUSH_OP(COG_OP_LT_FLOAT);
 			break;
 		default:
-			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
+			COG_PANIC("Unsupported type for infix: %s", Cog_Type_toString(node->retType));
 			break;
 		}
 		break;
-	case INFIX_GT:
+	case COG_INFIX_GT:
 		switch (node->infix.left->retType->kind)
 		{
-		case TYPE_INT:
-			PUSH_OP(OP_GT_INT);
+		case COG_TYPE_INT:
+			PUSH_OP(COG_OP_GT_INT);
 			break;
-		case TYPE_UINT:
-			PUSH_OP(OP_GT_UINT);
+		case COG_TYPE_UINT:
+			PUSH_OP(COG_OP_GT_UINT);
 			break;
-		case TYPE_FLOAT:
-			PUSH_OP(OP_GT_FLOAT);
+		case COG_TYPE_FLOAT:
+			PUSH_OP(COG_OP_GT_FLOAT);
 			break;
 		default:
-			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
+			COG_PANIC("Unsupported type for infix: %s", Cog_Type_toString(node->retType));
 			break;
 		}
 		break;
-	case INFIX_ELT:
+	case COG_INFIX_ELT:
 		switch (node->infix.left->retType->kind)
 		{
-		case TYPE_INT:
-			PUSH_OP(OP_ELT_INT);
+		case COG_TYPE_INT:
+			PUSH_OP(COG_OP_ELT_INT);
 			break;
-		case TYPE_UINT:
-			PUSH_OP(OP_ELT_UINT);
+		case COG_TYPE_UINT:
+			PUSH_OP(COG_OP_ELT_UINT);
 			break;
-		case TYPE_FLOAT:
-			PUSH_OP(OP_ELT_FLOAT);
+		case COG_TYPE_FLOAT:
+			PUSH_OP(COG_OP_ELT_FLOAT);
 			break;
 		default:
-			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
+			COG_PANIC("Unsupported type for infix: %s", Cog_Type_toString(node->retType));
 			break;
 		}
 		break;
-	case INFIX_EGT:
+	case COG_INFIX_EGT:
 		switch (node->infix.left->retType->kind)
 		{
-		case TYPE_INT:
-			PUSH_OP(OP_EGT_INT);
+		case COG_TYPE_INT:
+			PUSH_OP(COG_OP_EGT_INT);
 			break;
-		case TYPE_UINT:
-			PUSH_OP(OP_EGT_UINT);
+		case COG_TYPE_UINT:
+			PUSH_OP(COG_OP_EGT_UINT);
 			break;
-		case TYPE_FLOAT:
-			PUSH_OP(OP_EGT_FLOAT);
+		case COG_TYPE_FLOAT:
+			PUSH_OP(COG_OP_EGT_FLOAT);
 			break;
 		default:
-			PANIC("Unsupported type for infix: %s", Type_toString(node->retType));
+			COG_PANIC("Unsupported type for infix: %s", Cog_Type_toString(node->retType));
 			break;
 		}
 		break;
 	}
 	return resultSize;
 }
-static size_t compileNode(Chunk *this, const Node *node, Context *context)
+static size_t compileNode(Cog_Chunk *this, const Cog_Node *node, Context *context)
 {
 	if (node->unreachable)
 		return 0;
@@ -414,37 +414,37 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 	Context *workingContext;
 	switch (node->type)
 	{
-	case NODE_NUMBER_LIT:
+	case COG_NODE_NUMBER_LIT:
 		da_append(&this->intConsts, node->numLit.value);
-		PUSH_OP(OP_CLOAD_INT);
+		PUSH_OP(COG_OP_CLOAD_INT);
 		PUSH_DATA(size_t, this->intConsts.count - 1);
 		break;
-	case NODE_UNUMBER_LIT:
+	case COG_NODE_UNUMBER_LIT:
 		da_append(&this->uintConsts, node->unumLit.value);
-		PUSH_OP(OP_CLOAD_UINT);
+		PUSH_OP(COG_OP_CLOAD_UINT);
 		PUSH_DATA(size_t, this->uintConsts.count - 1);
 		break;
-	case NODE_FNUMBER_LIT:
+	case COG_NODE_FNUMBER_LIT:
 		da_append(&this->floatConsts, node->floatLit.value);
-		PUSH_OP(OP_CLOAD_FLOAT);
+		PUSH_OP(COG_OP_CLOAD_FLOAT);
 		PUSH_DATA(size_t, this->floatConsts.count - 1);
 		break;
-	case NODE_SYMBOL:
-		PUSH_OP(OP_SCOPE_READ);
+	case COG_NODE_SYMBOL:
+		PUSH_OP(COG_OP_SCOPE_READ);
 		PUSH_DATA(size_t, node->symbol.scopeDepth);
 		PUSH_DATA(size_t, node->symbol.scopeIndex);
 		break;
-	case NODE_BLOCK:
+	case COG_NODE_BLOCK:
 		childContext = (Context) {
 			.type = CONT_BLOCK,
 			.parent = context,
 		};
-		da_foreach(struct Node*, child, &node->block)
+		da_foreach(struct Cog_Node*, child, &node->block)
 		{
 			childContext.block.length += compileNode(this, *child, &childContext);
-			if ((*child)->retType != &TYPE_VOID_OBJ && (*child)->type != NODE_YIELD)
+			if ((*child)->retType != &COG_TYPE_VOID_OBJ && (*child)->type != COG_NODE_YIELD)
 			{
-				PUSH_OP(OP_POP);
+				PUSH_OP(COG_OP_POP);
 				childContext.block.length++;
 			}
 		}
@@ -453,66 +453,66 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		if(childContext.block.items)
 			free(childContext.block.items);
 		break;
-	case NODE_INFIX:
+	case COG_NODE_INFIX:
 		compileInfix(this, node, context);
 		break;
-	case NODE_EXIT:
+	case COG_NODE_EXIT:
 		compileNode(this, node->exit.value, context);
-		PUSH_OP(OP_EXIT);
+		PUSH_OP(COG_OP_EXIT);
 		break;
-	case NODE_CAST:
+	case COG_NODE_CAST:
 		compileNode(this, node->cast.value, context);
 		compileCast(this, node, context);
 		break;
-	case NODE_NEGATION:
+	case COG_NODE_NEGATION:
 		compileNode(this, node->negation.value, context);
 		switch (node->retType->kind)
 		{
-		case (TYPE_INT):
-			PUSH_OP(OP_NEG_INT);
+		case (COG_TYPE_INT):
+			PUSH_OP(COG_OP_NEG_INT);
 			break;
-		case (TYPE_FLOAT):
-			PUSH_OP(OP_NEG_FLOAT);
+		case (COG_TYPE_FLOAT):
+			PUSH_OP(COG_OP_NEG_FLOAT);
 			break;
 		default:
-			PANIC("Unsupported type for negation: %s", Type_toString(node->retType));
+			COG_PANIC("Unsupported type for negation: %s", Cog_Type_toString(node->retType));
 			break;
 		}
 		break;
-	case NODE_SCOPE:
-		PUSH_OP(OP_SCOPE_ENTER);
+	case COG_NODE_SCOPE:
+		PUSH_OP(COG_OP_SCOPE_ENTER);
 		PUSH_DATA(size_t, node->scope.size);
 		compileNode(this, node->scope.child, context);
-		PUSH_OP(OP_SCOPE_EXIT);
+		PUSH_OP(COG_OP_SCOPE_EXIT);
 		break;
-	case NODE_VAR_DECL:
+	case COG_NODE_VAR_DECL:
 		compileNode(this, node->var_decl.value, context);
-		PUSH_OP(OP_SCOPE_WRITE);
+		PUSH_OP(COG_OP_SCOPE_WRITE);
 		PUSH_DATA(size_t, node->var_decl.scopeDepth);
 		PUSH_DATA(size_t, node->var_decl.scopeIndex);
 		break;
-	case NODE_TRUE_:
-		PUSH_OP(OP_CLOAD_TRUE);
+	case COG_NODE_TRUE_:
+		PUSH_OP(COG_OP_CLOAD_TRUE);
 		break;
-	case NODE_FALSE_:
-		PUSH_OP(OP_CLOAD_FALSE);
+	case COG_NODE_FALSE_:
+		PUSH_OP(COG_OP_CLOAD_FALSE);
 		break;
-	case NODE_YIELD:
+	case COG_NODE_YIELD:
 		workingContext = Context_findParent(context, CONT_BLOCK);
 		compileNode(this, node->yield.value, context);
-		PUSH_OP(OP_JUMPF);
+		PUSH_OP(COG_OP_JUMPF);
 		da_append(&workingContext->block, this->instr.count);
 		PUSH_DATA(size_t, 0);
 		break;
-	case NODE_IF:
+	case COG_NODE_IF:
 		compileNode(this, node->ifelse.cond, context);
-		PUSH_OP(OP_JUMPF_IFN);
+		PUSH_OP(COG_OP_JUMPF_IFN);
 		pos1 = this->instr.count;
 		PUSH_DATA(size_t, 0);
 		compileNode(this, node->ifelse.truthy, context);
 		if (node->ifelse.falsy)
 		{
-			PUSH_OP(OP_JUMPF);
+			PUSH_OP(COG_OP_JUMPF);
 			pos2 = this->instr.count;
 			PUSH_DATA(size_t, 0);
 		}
@@ -523,35 +523,35 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 			*(size_t*)CHUNK_PTR(pos2) = this->instr.count - pos2;
 		}
 		break;
-	case NODE_NOT:
+	case COG_NODE_NOT:
 		compileNode(this, node->not.value, context);
-		PUSH_OP(OP_NOT);
+		PUSH_OP(COG_OP_NOT);
 		break;
-	case NODE_WHILE:
+	case COG_NODE_WHILE:
 		childContext = (Context){
 			.type = CONT_LOOP,
 			.parent = context,
 		};
 		pos2 = this->instr.count;
 		compileNode(this, node->whileLoop.cond, context);
-		PUSH_OP(OP_JUMPF_IFN);
+		PUSH_OP(COG_OP_JUMPF_IFN);
 		pos1 = this->instr.count;
 		PUSH_DATA(size_t, 0);
 		childContext.loop.length += compileNode(this, node->whileLoop.body, &childContext);
-		if (node->whileLoop.body->retType != &TYPE_VOID_OBJ)
+		if (node->whileLoop.body->retType != &COG_TYPE_VOID_OBJ)
 		{
-			PUSH_OP(OP_POP);
+			PUSH_OP(COG_OP_POP);
 			childContext.loop.length++;
 		}
-		PUSH_OP(OP_JUMPB);
+		PUSH_OP(COG_OP_JUMPB);
 		PUSH_DATA(size_t, this->instr.count - pos2);
 		// back to condition
 		*(size_t*)CHUNK_PTR(pos1) = this->instr.count - pos1;
 		if (node->whileLoop.elseBlock)
 		{
 			compileNode(this, node->whileLoop.elseBlock, context);
-			// if (node->whileLoop.elseBlock->retType != &TYPE_VOID_OBJ)
-			// 	PUSH_OP(OP_JUMPB);
+			// if (node->whileLoop.elseBlock->retType != &COG_TYPE_VOID_OBJ)
+			// 	PUSH_OP(COG_OP_JUMPB);
 		}
 		da_foreach(size_t, break_, &childContext.loop.breaks)
 			// breaks
@@ -559,38 +559,38 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		if(childContext.loop.breaks.items)
 			free(childContext.loop.breaks.items);
 		break;
-	case NODE_BREAK:
+	case COG_NODE_BREAK:
 		workingContext = Context_findParent(context, CONT_LOOP);
 		if (node->loopBreak.value)
 			compileNode(this, node->loopBreak.value, context);
 		depth = Context_findParentDepth(context, CONT_LOOP);
 		for (size_t i = 0; i < depth; i++)
-			PUSH_OP(OP_SCOPE_EXIT);
-		PUSH_OP(OP_JUMPF);
+			PUSH_OP(COG_OP_SCOPE_EXIT);
+		PUSH_OP(COG_OP_JUMPF);
 		da_append(&workingContext->loop.breaks, this->instr.count);
 		PUSH_DATA(size_t, 0);
 		break;
-	case NODE_NEW:
+	case COG_NODE_NEW:
 		// TODO
-		if (node->retType->kind != TYPE_ARRAY)
-			PANIC("Compiling non-array \"new\"");
+		if (node->retType->kind != COG_TYPE_ARRAY)
+			COG_PANIC("Compiling non-array \"new\"");
 		// switch (node->new.kind)
 		// {
 		// case NEW_OBJ: {
 		// 	compileNode(this, node->new.builderArgs.items[0], context);
 		// 	for(size_t i = 0; i < node->new.type->array.size; i++)
 		// 	{
-		// 		PUSH_OP(OP_GC_ASSIGNCOPY);
+		// 		PUSH_OP(COG_OP_GC_ASSIGNCOPY);
 		// 		PUSH_DATA(size_t, i);
 		// 	}
-		// 	PUSH_OP(OP_POP);
+		// 	PUSH_OP(COG_OP_POP);
 		// } break;
-		// case NEW_ARRAY: {
+		// case COG_NEW_ARRAY: {
 		// 	size_t i = 0;
-		// 	da_foreach(Node*, item, &node->new.arrayItems)
+		// 	da_foreach(Cog_Node*, item, &node->new.arrayItems)
 		// 	{
 		// 		compileNode(this, *item, context);
-		// 		PUSH_OP(OP_GC_ASSIGN);
+		// 		PUSH_OP(COG_OP_GC_ASSIGN);
 		// 		PUSH_DATA(size_t, i);
 		// 		i++;
 		// 	}
@@ -598,61 +598,61 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		// }
 		switch (node->new.kind)
 		{
-		case NEW_EMPTY_ARRAY: {
-			PUSH_OP(OP_GC_ALLOC);
+		case COG_NEW_EMPTY_ARRAY: {
+			PUSH_OP(COG_OP_GC_ALLOC);
 			PUSH_DATA(size_t, 0);
 		} break;
-		case NEW_ARRAY: {
-			PUSH_OP(OP_GC_ALLOC);
+		case COG_NEW_ARRAY: {
+			PUSH_OP(COG_OP_GC_ALLOC);
 			PUSH_DATA(size_t, node->retType->array.size);
 			size_t i = 0;
-			da_foreach(Node*, item, &node->new.arrayItems)
+			da_foreach(Cog_Node*, item, &node->new.arrayItems)
 			{
 				compileNode(this, *item, context);
-				PUSH_OP(OP_GC_ASSIGN);
+				PUSH_OP(COG_OP_GC_ASSIGN);
 				PUSH_DATA(size_t, i);
 				i++;
 			}
 		} break;
-		case NEW_ARRAY_PLACEHOLDER: {
+		case COG_NEW_ARRAY_PLACEHOLDER: {
 			compileNode(this, node->new.arrayPlaceholder.itemCount, context);
-			PUSH_OP(OP_GC_ALLOC_FROMSTACK);
+			PUSH_OP(COG_OP_GC_ALLOC_FROMSTACK);
 			compileNode(this, node->new.arrayPlaceholder.placeholderValue, context);
-			PUSH_OP(OP_GC_FILL);
+			PUSH_OP(COG_OP_GC_FILL);
 		} break;
 		}
 		break;
-	case NODE_SUBSCRIPT:
+	case COG_NODE_SUBSCRIPT:
 		compileNode(this, node->subscript.value, context);
 		compileNode(this, node->subscript.index, context);
-		PUSH_OP(OP_GC_ACCESS_FROMSTACK);
+		PUSH_OP(COG_OP_GC_ACCESS_FROMSTACK);
 		break;
-	case NODE_SIZEOF:
+	case COG_NODE_SIZEOF:
 		compileNode(this, node->sizeOf.value, context);
-		PUSH_OP(OP_GC_SIZEOF);
+		PUSH_OP(COG_OP_GC_SIZEOF);
 		break;
-	case NODE_NULL:
-		PUSH_OP(OP_CLOAD_NULL);
+	case COG_NODE_NULL:
+		PUSH_OP(COG_OP_CLOAD_NULL);
 		break;
-	case NODE_UNWRAP:
+	case COG_NODE_UNWRAP:
 		compileNode(this, node->unwrap.value, context);
-		PUSH_OP(OP_OPT_UNWRAP);
+		PUSH_OP(COG_OP_OPT_UNWRAP);
 		break;
-	case NODE_CHECK:
+	case COG_NODE_CHECK:
 		compileNode(this, node->check.value, context);
-		PUSH_OP(OP_OPT_CHECK);
+		PUSH_OP(COG_OP_OPT_CHECK);
 		break;
-	case NODE_PARAMETER:
-		PANIC("Illegal parameter");
-	case NODE_TUPLE:
-		PANIC("Illegal tuple");
-	case NODE_CALL:
+	case COG_NODE_PARAMETER:
+		COG_PANIC("Illegal parameter");
+	case COG_NODE_TUPLE:
+		COG_PANIC("Illegal tuple");
+	case COG_NODE_CALL:
 		if (node->call.function->retType->function.isNative)
 		{
 			for (size_t i = 0; i < node->call.args->tuple.count; i++)
 				compileNode(this, node->call.args->tuple.items[i], context);
 			compileNode(this, node->call.function, context);
-			PUSH_OP(OP_CALLN);
+			PUSH_OP(COG_OP_CALLN);
 			PUSH_DATA(size_t, node->call.args->tuple.count);
 			break;
 		}
@@ -660,16 +660,16 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 		{
 			if (i == node->call.function->retType->function.args.count)
 			{
-				PUSH_OP(OP_GC_ALLOC);
+				PUSH_OP(COG_OP_GC_ALLOC);
 				PUSH_DATA(size_t, node->call.args->tuple.count - node->call.function->retType->function.args.count);
 			}
-			Node *arg = node->call.args->tuple.items[i];
+			Cog_Node *arg = node->call.args->tuple.items[i];
 			compileNode(this, arg, context);
 			if (i >= node->call.function->retType->function.args.count)
 			{
 				size_t difference =
 					i - node->call.function->retType->function.args.count;
-				PUSH_OP(OP_GC_ASSIGN);
+				PUSH_OP(COG_OP_GC_ASSIGN);
 				PUSH_DATA(size_t, difference);
 			}
 		}
@@ -678,80 +678,80 @@ static size_t compileNode(Chunk *this, const Node *node, Context *context)
 			node->call.function->retType->function.args.count &&
 			node->call.function->retType->function.varArgItem
 		) {
-			PUSH_OP(OP_GC_ALLOC);
+			PUSH_OP(COG_OP_GC_ALLOC);
 			PUSH_DATA(size_t, 0);
 		}
 
 		compileNode(this, node->call.function, context);
-		PUSH_OP(OP_CALL);
+		PUSH_OP(COG_OP_CALL);
 		// if (node->call.args->tuple.count > node->call.function->retType->function.args.count)
 		if (node->call.function->retType->function.varArgItem)
 			PUSH_DATA(size_t, node->call.function->retType->function.args.count + 1);
 		else
 			PUSH_DATA(size_t, node->call.args->tuple.count);
 		break;
-	case NODE_ALIAS:
-		PANIC("Unexpected alias node in marked AST");
-	case NODE_CHAR:
+	case COG_NODE_ALIAS:
+		COG_PANIC("Unexpected alias node in marked AST");
+	case COG_NODE_CHAR:
 		da_append(&this->charConsts, node->charLit.value);
-		PUSH_OP(OP_CLOAD_CHAR);
+		PUSH_OP(COG_OP_CLOAD_CHAR);
 		PUSH_DATA(size_t, this->charConsts.count - 1);
 		break;
-	case NODE_STRING:
-		PUSH_OP(OP_GC_ALLOC);
+	case COG_NODE_STRING:
+		PUSH_OP(COG_OP_GC_ALLOC);
 		PUSH_DATA(size_t, node->stringLit.count);
 		size_t i = 0;
 		da_foreach(uint32_t, character, &node->stringLit)
 		{
 			da_append(&this->charConsts, *character);
-			PUSH_OP(OP_CLOAD_CHAR);
+			PUSH_OP(COG_OP_CLOAD_CHAR);
 			PUSH_DATA(size_t, this->charConsts.count - 1);
-			PUSH_OP(OP_GC_ASSIGN);
+			PUSH_OP(COG_OP_GC_ASSIGN);
 			PUSH_DATA(size_t, i);
 			i++;
 		}
 		break;
-	case NODE_REALLOC:
+	case COG_NODE_REALLOC:
 		compileNode(this, node->realloc.array, context);
 		compileNode(this, node->realloc.newSize, context);
 		compileNode(this, node->realloc.fillValue, context);
-		PUSH_OP(OP_GC_REALLOC);
+		PUSH_OP(COG_OP_GC_REALLOC);
 		break;
-	case NODE_TOSTRING:
+	case COG_NODE_TOSTRING:
 		compileNode(this, node->toString.value, context);
 		switch (node->toString.value->retType->kind)
 		{
-		case TYPE_INT:
-			PUSH_OP(OP_TOSTRING_INT);
+		case COG_TYPE_INT:
+			PUSH_OP(COG_OP_TOSTRING_INT);
 			break;
-		case TYPE_UINT:
-			PUSH_OP(OP_TOSTRING_UINT);
+		case COG_TYPE_UINT:
+			PUSH_OP(COG_OP_TOSTRING_UINT);
 			break;
-		case TYPE_FLOAT:
-			PUSH_OP(OP_TOSTRING_FLOAT);
+		case COG_TYPE_FLOAT:
+			PUSH_OP(COG_OP_TOSTRING_FLOAT);
 			break;
-		case TYPE_BOOL:
-			PUSH_OP(OP_TOSTRING_BOOL);
+		case COG_TYPE_BOOL:
+			PUSH_OP(COG_OP_TOSTRING_BOOL);
 			break;
 		default:
-			PANIC("Unsupported type for stringification: %s",
-				Type_toString(node->toString.value->retType));
+			COG_PANIC("Unsupported type for stringification: %s",
+				Cog_Type_toString(node->toString.value->retType));
 			break;
 		}
 	}
 	return resultSize;
 }
 
-static Chunk compileImpl(const Node *tree, bool shouldFree)
+static Cog_Chunk compileImpl(const Cog_Node *tree, bool shouldFree)
 {
-	Chunk result = {0};
+	Cog_Chunk result = {0};
 	Context context = {0};
 	compileNode(&result, tree, &context);
 	if (shouldFree)
-		Node_free(tree);
+		Cog_Node_free(tree);
 	return result;
 }
-Chunk compile(const Node *tree)
+Cog_Chunk Cog_compile(const Cog_Node *tree)
 {
 	return compileImpl(tree, true);
 }

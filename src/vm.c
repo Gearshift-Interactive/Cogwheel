@@ -5,7 +5,7 @@
 #include <math.h>
 #include <inttypes.h>
 
-#ifdef DEBUG
+#ifdef COG_DEBUG
 #	include "parser.h"
 #endif
 
@@ -13,13 +13,13 @@ typedef struct Scope {
 	struct Scope *parent;
 	size_t size;
 	size_t refCount;
-	Value values[];
+	Cog_Value values[];
 } Scope;
 
-typedef struct Closure {
-	Chunk *chunk;
+typedef struct Cog_Closure {
+	Cog_Chunk *chunk;
 	Scope *env;
-} Closure;
+} Cog_Closure;
 
 
 static void Scope_retain(Scope *this)
@@ -40,7 +40,7 @@ static void Scope_release(Scope *this)
 typedef struct {
 	bool marked;
 	size_t count;
-	Value *items;
+	Cog_Value *items;
 } HeapObject;
 
 typedef struct {
@@ -49,34 +49,34 @@ typedef struct {
 		size_t count, capacity;
 	} allObjects;
 	struct {
-		Closure **items;
+		Cog_Closure **items;
 		size_t count, capacity;
 	} closures;
 } GC;
 
-static Value GC_alloc(GC *this, size_t valueCount)
+static Cog_Value GC_alloc(GC *this, size_t valueCount)
 {
 	HeapObject *obj = calloc(1, sizeof *obj);
 	obj->count = valueCount;
-	obj->items = calloc(valueCount, sizeof(Value));
+	obj->items = calloc(valueCount, sizeof(Cog_Value));
 	da_append(&this->allObjects, obj);
-	return (Value){
-#ifdef DEBUG
-		.type = VALUE_HEAP,
+	return (Cog_Value){
+#ifdef COG_DEBUG
+		.type = COG_VALUE_HEAP,
 #endif
 		.isHeap = true,
 		.v_heap = obj,
 	};
 }
-static Value GC_allocClosure(GC *this, Chunk *chunk, Scope *env)
+static Cog_Value GC_allocClosure(GC *this, Cog_Chunk *chunk, Scope *env)
 {
-	Closure *closure = calloc(1, sizeof *closure);
+	Cog_Closure *closure = calloc(1, sizeof *closure);
 	closure->chunk = chunk;
 	closure->env = env;
 	da_append(&this->closures, closure);
-	return (Value) {
-#ifdef DEBUG
-		.type = VALUE_FUNC,
+	return (Cog_Value) {
+#ifdef COG_DEBUG
+		.type = COG_VALUE_FUNC,
 #endif
 		.isHeap = true,
 		.v_func = closure,
@@ -91,7 +91,7 @@ static void GC_freeAll(GC *this)
 	}
 	if (this->allObjects.items)
 		free(this->allObjects.items);
-	da_foreach(Closure*, obj, &this->closures)
+	da_foreach(Cog_Closure*, obj, &this->closures)
 	{
 		Scope_release((*obj)->env);
 		free(*obj);
@@ -101,7 +101,7 @@ static void GC_freeAll(GC *this)
 }
 
 typedef struct {
-	Stack stack;
+	Cog_Stack stack;
 	Scope *scope;
 	size_t pc;
 	int retCode;
@@ -109,7 +109,7 @@ typedef struct {
 	GC gc;
 } VM;
 
-void Chunk_free(const Chunk *this)
+void Cog_Chunk_free(const Cog_Chunk *this)
 {
 #define FREE_IF_PRESENT(PTR) if (PTR) free(PTR)
 	FREE_IF_PRESENT(this->intConsts.items);
@@ -120,8 +120,8 @@ void Chunk_free(const Chunk *this)
 #undef FREE_IF_PRESENT
 	if (this->functions.items)
 	{
-		da_foreach(Chunk, chunk, &this->functions)
-			Chunk_free(chunk);
+		da_foreach(Cog_Chunk, chunk, &this->functions)
+			Cog_Chunk_free(chunk);
 		free(this->functions.items);
 	}
 }
@@ -130,7 +130,7 @@ static void printLevel(size_t level)
 	for (size_t i = 0; i < level; i++)
 		printf("    ");
 }
-static void Chunk_printImpl(const Chunk *this, size_t level)
+static void Chunk_printImpl(const Cog_Chunk *this, size_t level)
 {
 #define da_enumerate(I, ARR) for (size_t I = 0; I < (ARR)->count; I++)
 	printLevel(level);
@@ -180,8 +180,8 @@ static void Chunk_printImpl(const Chunk *this, size_t level)
 		printLevel(level);
 		switch (this->instr.code[ini])
 		{
-#define X(NAME, ARGL) \
-	case OP_##NAME: \
+#define COG_X(NAME, ARGL) \
+	case COG_OP_##NAME: \
 		printf("  %ld - %s", ini, #NAME); \
 		if (ARGL) \
 		{ \
@@ -194,33 +194,33 @@ static void Chunk_printImpl(const Chunk *this, size_t level)
 		} \
 		printf("\n"); \
 		break;
-	OPCODE_TYPE
-#undef X
+	COG_OPCODE_TYPE
+#undef COG_X
 		}
 	}
 #undef da_enumerate
 }
-void Chunk_print(const Chunk *this)
+void Cog_Chunk_print(const Cog_Chunk *this)
 {
 	Chunk_printImpl(this, 0);
 }
-static void Stack_free(const Stack *this)
+static void Stack_free(const Cog_Stack *this)
 {
 	if (this->values)
 		free(this->values);
 }
-static size_t readSizeT(VM *vm, const Chunk *chunk)
+static size_t readSizeT(VM *vm, const Cog_Chunk *chunk)
 {
 	size_t value;
     memcpy(&value, &chunk->instr.code[vm->pc], sizeof(value));
     vm->pc += sizeof(value);
     return value;
 }
-static void call(VM *, const Closure *, size_t);
+static void call(VM *, const Cog_Closure *, size_t);
 static void Scope_enter(VM *vm, size_t varCount)
 {
 	Scope *parent = vm->scope;
-	vm->scope = calloc(1, sizeof(*(vm->scope)) + sizeof(Value[varCount]));
+	vm->scope = calloc(1, sizeof(*(vm->scope)) + sizeof(Cog_Value[varCount]));
 	Scope_retain(vm->scope);
 	if (parent)
 		Scope_retain(parent);
@@ -232,24 +232,24 @@ static void Scope_exit(VM *vm)
 	vm->scope = scope->parent;
 	Scope_release(scope);
 }
-static Value scopeRead(VM *vm, size_t depth, size_t id)
+static Cog_Value scopeRead(VM *vm, size_t depth, size_t id)
 {
 	Scope *scope = vm->scope;
 	for (size_t i = 0; i < depth; i++)
 		scope = scope->parent;
 	return scope->values[id];
 }
-static void scopeWrite(VM *vm, size_t depth, size_t id, Value value)
+static void scopeWrite(VM *vm, size_t depth, size_t id, Cog_Value value)
 {
 	Scope *scope = vm->scope;
 	for (size_t i = 0; i < depth; i++)
 		scope = scope->parent;
 	scope->values[id] = value;
 }
-static Value cstrToCogstr(VM *vm, const char *cstr, size_t length)
+static Cog_Value cstrToCogstr(VM *vm, const char *cstr, size_t length)
 {
 	struct {
-		Value *items;
+		Cog_Value *items;
 		size_t count, capacity;
 	} resultb = {0};
 	for(size_t currentByte = 0; currentByte < length; currentByte++)
@@ -260,509 +260,509 @@ static Value cstrToCogstr(VM *vm, const char *cstr, size_t length)
 		for (size_t i = 0; i < charSize; ++i)
 			resultData |= (uint32_t)s[i] << (i * 8);
 		currentByte += charSize - 1;
-		Value character = {
-#ifdef DEBUG
-			.type = VALUE_CHAR,
+		Cog_Value character = {
+#ifdef COG_DEBUG
+			.type = COG_VALUE_CHAR,
 #endif
 			.v_char = resultData,
 		};
 		da_append(&resultb, character);
 	}
-	Value result = GC_alloc(&vm->gc, resultb.count);
+	Cog_Value result = GC_alloc(&vm->gc, resultb.count);
 	memcpy(((HeapObject*)result.v_heap)->items, resultb.items, resultb.count * sizeof *resultb.items);
 	free(resultb.items);
 	return result;
 }
-static void runInstruction(VM *vm, const Chunk *chunk)
+static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 {
-#ifdef DEBUG
+#ifdef COG_DEBUG
 #	define INFIX(TYPE, FIELD, OP)               \
 		do {                                     \
-			Value rhs = Stack_pop(&vm->stack);   \
-			Value lhs = Stack_pop(&vm->stack);   \
-			Value result = {                     \
+			Cog_Value rhs = Cog_Stack_pop(&vm->stack);   \
+			Cog_Value lhs = Cog_Stack_pop(&vm->stack);   \
+			Cog_Value result = {                     \
 				.type = (TYPE),                  \
 				.FIELD = lhs.FIELD OP rhs.FIELD, \
 			};                                   \
-			Stack_push(&vm->stack, result);      \
+			Cog_Stack_push(&vm->stack, result);      \
 		} while (0)
 #else
 #	define INFIX(TYPE, FIELD, OP)               \
 		do {                                     \
-			Value rhs = Stack_pop(&vm->stack);   \
-			Value lhs = Stack_pop(&vm->stack);   \
-			Value result = {                     \
+			Cog_Value rhs = Cog_Stack_pop(&vm->stack);   \
+			Cog_Value lhs = Cog_Stack_pop(&vm->stack);   \
+			Cog_Value result = {                     \
 				.FIELD = lhs.FIELD OP rhs.FIELD, \
 			};                                   \
-			Stack_push(&vm->stack, result);      \
+			Cog_Stack_push(&vm->stack, result);      \
 		} while (0)
 #endif
-	Opcode current = (Opcode)chunk->instr.code[vm->pc];
+	Cog_Opcode current = (Cog_Opcode)chunk->instr.code[vm->pc];
 	size_t arg1, arg2;
 	vm->pc++;
-	Value *curValue;
+	Cog_Value *curValue;
 	switch (current)
 	{
-	case OP_EXIT:
-		vm->retCode = Stack_pop(&vm->stack).v_int;
+	case COG_OP_EXIT:
+		vm->retCode = Cog_Stack_pop(&vm->stack).v_int;
 		vm->done = true;
 		break;
-	case OP_CLOAD_INT:
+	case COG_OP_CLOAD_INT:
 		arg1 = readSizeT(vm, chunk);
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_INT,
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_INT,
 #endif
 			.v_int = chunk->intConsts.items[arg1],
 		});
 		break;
-	case OP_CLOAD_UINT:
+	case COG_OP_CLOAD_UINT:
 		arg1 = readSizeT(vm, chunk);
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_UINT,
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_UINT,
 #endif
 			.v_uint = chunk->uintConsts.items[arg1],
 		});
 		break;
-	case OP_CLOAD_FLOAT:
+	case COG_OP_CLOAD_FLOAT:
 		arg1 = readSizeT(vm, chunk);
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_FLOAT,
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_FLOAT,
 #endif
 			.v_float = chunk->floatConsts.items[arg1],
 		});
 		break;
-	case OP_ADD_INT:
-		INFIX(VALUE_INT, v_int, +);
+	case COG_OP_ADD_INT:
+		INFIX(COG_VALUE_INT, v_int, +);
 		break;
-	case OP_ADD_UINT:
-		INFIX(VALUE_UINT, v_uint, +);
+	case COG_OP_ADD_UINT:
+		INFIX(COG_VALUE_UINT, v_uint, +);
 		break;
-	case OP_ADD_FLOAT:
-		INFIX(VALUE_FLOAT, v_float, +);
+	case COG_OP_ADD_FLOAT:
+		INFIX(COG_VALUE_FLOAT, v_float, +);
 		break;
-	case OP_SUB_INT:
-		INFIX(VALUE_INT, v_int, -);
+	case COG_OP_SUB_INT:
+		INFIX(COG_VALUE_INT, v_int, -);
 		break;
-	case OP_SUB_UINT:
-		INFIX(VALUE_UINT, v_uint, -);
+	case COG_OP_SUB_UINT:
+		INFIX(COG_VALUE_UINT, v_uint, -);
 		break;
-	case OP_SUB_FLOAT:
-		INFIX(VALUE_FLOAT, v_float, -);
+	case COG_OP_SUB_FLOAT:
+		INFIX(COG_VALUE_FLOAT, v_float, -);
 		break;
-	case OP_DIV_INT:
+	case COG_OP_DIV_INT:
 		{
-			Value rhs = Stack_pop(&vm->stack);
-			Value lhs = Stack_pop(&vm->stack);
+			Cog_Value rhs = Cog_Stack_pop(&vm->stack);
+			Cog_Value lhs = Cog_Stack_pop(&vm->stack);
 			if (rhs.v_int == 0)
-				PANIC("Division by zero");
-			Value result = {
-#ifdef DEBUG
-				.type = VALUE_INT,
+				COG_PANIC("Division by zero");
+			Cog_Value result = {
+#ifdef COG_DEBUG
+				.type = COG_VALUE_INT,
 #endif
 				.v_int = lhs.v_int / rhs.v_int,
 			};
-			Stack_push(&vm->stack, result);
+			Cog_Stack_push(&vm->stack, result);
 		}
 		break;
-	case OP_DIV_UINT:
+	case COG_OP_DIV_UINT:
 		{
-			Value rhs = Stack_pop(&vm->stack);
-			Value lhs = Stack_pop(&vm->stack);
+			Cog_Value rhs = Cog_Stack_pop(&vm->stack);
+			Cog_Value lhs = Cog_Stack_pop(&vm->stack);
 			if (rhs.v_uint == 0)
-				PANIC("Division by zero");
-			Value result = {
-#ifdef DEBUG
-				.type = VALUE_UINT,
+				COG_PANIC("Division by zero");
+			Cog_Value result = {
+#ifdef COG_DEBUG
+				.type = COG_VALUE_UINT,
 #endif
 				.v_uint = lhs.v_uint / rhs.v_uint,
 			};
-			Stack_push(&vm->stack, result);
+			Cog_Stack_push(&vm->stack, result);
 		}
 		break;
-	case OP_DIV_FLOAT:
+	case COG_OP_DIV_FLOAT:
 		{
-			Value rhs = Stack_pop(&vm->stack);
-			Value lhs = Stack_pop(&vm->stack);
+			Cog_Value rhs = Cog_Stack_pop(&vm->stack);
+			Cog_Value lhs = Cog_Stack_pop(&vm->stack);
 			if (rhs.v_float == 0)
-				PANIC("Division by zero");
-			Value result = {
-#ifdef DEBUG
-				.type = VALUE_FLOAT,
+				COG_PANIC("Division by zero");
+			Cog_Value result = {
+#ifdef COG_DEBUG
+				.type = COG_VALUE_FLOAT,
 #endif
 				.v_float = lhs.v_float / rhs.v_float,
 			};
-			Stack_push(&vm->stack, result);
+			Cog_Stack_push(&vm->stack, result);
 		}
 		break;
-	case OP_MUL_INT:
-		INFIX(VALUE_INT, v_int, *);
+	case COG_OP_MUL_INT:
+		INFIX(COG_VALUE_INT, v_int, *);
 		break;
-	case OP_MUL_UINT:
-		INFIX(VALUE_UINT, v_uint, *);
+	case COG_OP_MUL_UINT:
+		INFIX(COG_VALUE_UINT, v_uint, *);
 		break;
-	case OP_MUL_FLOAT:
-		INFIX(VALUE_FLOAT, v_float, *);
+	case COG_OP_MUL_FLOAT:
+		INFIX(COG_VALUE_FLOAT, v_float, *);
 		break;
-	case OP_POW_INT: {
-		int64_t rhs = Stack_pop(&vm->stack).v_int;
-		int64_t lhs = Stack_pop(&vm->stack).v_int;
-		Value result = {
-#ifdef DEBUG
-			.type = VALUE_INT,
+	case COG_OP_POW_INT: {
+		int64_t rhs = Cog_Stack_pop(&vm->stack).v_int;
+		int64_t lhs = Cog_Stack_pop(&vm->stack).v_int;
+		Cog_Value result = {
+#ifdef COG_DEBUG
+			.type = COG_VALUE_INT,
 #endif
 			.v_int = round(pow(lhs, rhs)),
 		};
-		Stack_push(&vm->stack, result);
+		Cog_Stack_push(&vm->stack, result);
 		}
 		break;
-	case OP_POW_UINT: {
-		uint64_t rhs = Stack_pop(&vm->stack).v_uint;
-		uint64_t lhs = Stack_pop(&vm->stack).v_uint;
-		Value result = {
-#ifdef DEBUG
-			.type = VALUE_UINT,
+	case COG_OP_POW_UINT: {
+		uint64_t rhs = Cog_Stack_pop(&vm->stack).v_uint;
+		uint64_t lhs = Cog_Stack_pop(&vm->stack).v_uint;
+		Cog_Value result = {
+#ifdef COG_DEBUG
+			.type = COG_VALUE_UINT,
 #endif
 			.v_uint = round(pow(lhs, rhs)),
 		};
-		Stack_push(&vm->stack, result);
+		Cog_Stack_push(&vm->stack, result);
 		}
 		break;
-	case OP_POW_FLOAT: {
-		double rhs = Stack_pop(&vm->stack).v_float;
-		double lhs = Stack_pop(&vm->stack).v_float;
-		Value result = {
-#ifdef DEBUG
-			.type = VALUE_FLOAT,
+	case COG_OP_POW_FLOAT: {
+		double rhs = Cog_Stack_pop(&vm->stack).v_float;
+		double lhs = Cog_Stack_pop(&vm->stack).v_float;
+		Cog_Value result = {
+#ifdef COG_DEBUG
+			.type = COG_VALUE_FLOAT,
 #endif
 			.v_float = pow(lhs, rhs),
 		};
-		Stack_push(&vm->stack, result);
+		Cog_Stack_push(&vm->stack, result);
 		}
 		break;
-	case OP_CAST_ITOU:
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_UINT,
+	case COG_OP_CAST_ITOU:
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_UINT,
 #endif
-			.v_uint = (uint64_t)Stack_pop(&vm->stack).v_int,
+			.v_uint = (uint64_t)Cog_Stack_pop(&vm->stack).v_int,
 		});
 		break;
-	case OP_CAST_ITOF:
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_FLOAT,
+	case COG_OP_CAST_ITOF:
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_FLOAT,
 #endif
-			.v_float = (double)Stack_pop(&vm->stack).v_int,
+			.v_float = (double)Cog_Stack_pop(&vm->stack).v_int,
 		});
 		break;
-	case OP_CAST_UTOI:
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_INT,
+	case COG_OP_CAST_UTOI:
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_INT,
 #endif
-			.v_int = (int64_t)Stack_pop(&vm->stack).v_uint,
+			.v_int = (int64_t)Cog_Stack_pop(&vm->stack).v_uint,
 		});
 		break;
-	case OP_CAST_UTOF:
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_FLOAT,
+	case COG_OP_CAST_UTOF:
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_FLOAT,
 #endif
-			.v_float = (double)Stack_pop(&vm->stack).v_uint,
+			.v_float = (double)Cog_Stack_pop(&vm->stack).v_uint,
 		});
 		break;
-	case OP_CAST_FTOI:
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_INT,
+	case COG_OP_CAST_FTOI:
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_INT,
 #endif
-			.v_int = (int64_t)Stack_pop(&vm->stack).v_float,
+			.v_int = (int64_t)Cog_Stack_pop(&vm->stack).v_float,
 		});
 		break;
-	case OP_CAST_FTOU:
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_UINT,
+	case COG_OP_CAST_FTOU:
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_UINT,
 #endif
-			.v_uint = (uint64_t)Stack_pop(&vm->stack).v_float,
+			.v_uint = (uint64_t)Cog_Stack_pop(&vm->stack).v_float,
 		});
 		break;
-	case OP_NEG_INT:
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_INT,
+	case COG_OP_NEG_INT:
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_INT,
 #endif
-			.v_int = -(int64_t)Stack_pop(&vm->stack).v_int,
+			.v_int = -(int64_t)Cog_Stack_pop(&vm->stack).v_int,
 		});
 		break;
-	case OP_NEG_FLOAT:
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_FLOAT,
+	case COG_OP_NEG_FLOAT:
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_FLOAT,
 #endif
-			.v_float = -(double)Stack_pop(&vm->stack).v_float,
+			.v_float = -(double)Cog_Stack_pop(&vm->stack).v_float,
 		});
 		break;
-	case OP_POP:
-		Stack_pop(&vm->stack);
+	case COG_OP_POP:
+		Cog_Stack_pop(&vm->stack);
 		break;
-	case OP_SCOPE_ENTER:
+	case COG_OP_SCOPE_ENTER:
 		arg1 = readSizeT(vm, chunk);
 		Scope_enter(vm, arg1);
 		break;
-	case OP_SCOPE_EXIT:
+	case COG_OP_SCOPE_EXIT:
 		Scope_exit(vm);
 		break;
-	case OP_SCOPE_READ:
+	case COG_OP_SCOPE_READ:
 		arg1 = readSizeT(vm, chunk);  // depth
 		arg2 = readSizeT(vm, chunk);  // id
-		Stack_push(&vm->stack, scopeRead(vm, arg1, arg2));
+		Cog_Stack_push(&vm->stack, scopeRead(vm, arg1, arg2));
 		break;
-	case OP_SCOPE_WRITE:
+	case COG_OP_SCOPE_WRITE:
 		arg1 = readSizeT(vm, chunk);  // depth
 		arg2 = readSizeT(vm, chunk);  // id
-		scopeWrite(vm, arg1, arg2, Stack_current(&vm->stack));
+		scopeWrite(vm, arg1, arg2, Cog_Stack_current(&vm->stack));
 		break;
-	case OP_CLOAD_TRUE:
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_BOOL,
+	case COG_OP_CLOAD_TRUE:
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_BOOL,
 #endif
 			.v_bool = true,
 		});
 		break;
-	case OP_CLOAD_FALSE:
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_BOOL,
+	case COG_OP_CLOAD_FALSE:
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_BOOL,
 #endif
 			.v_bool = false,
 		});
 		break;
-	case OP_OR:
-		INFIX(VALUE_BOOL, v_bool, ||);
+	case COG_OP_OR:
+		INFIX(COG_VALUE_BOOL, v_bool, ||);
 		break;
-	case OP_AND:
-		INFIX(VALUE_BOOL, v_bool, &&);
+	case COG_OP_AND:
+		INFIX(COG_VALUE_BOOL, v_bool, &&);
 		break;
-	case OP_JUMPF:
+	case COG_OP_JUMPF:
 		arg1 = readSizeT(vm, chunk);
 		vm->pc += arg1 - sizeof(size_t);
 		break;
-	case OP_JUMPF_IFN:
+	case COG_OP_JUMPF_IFN:
 		arg1 = readSizeT(vm, chunk);
-		if (!Stack_pop(&vm->stack).v_bool)
+		if (!Cog_Stack_pop(&vm->stack).v_bool)
 			vm->pc += arg1 - sizeof(size_t);
 		break;
-#ifdef DEBUG
-#	define INFIX_LOG(FIELD, OP)               \
+#ifdef COG_DEBUG
+#	define COG_INFIX_LOG(FIELD, OP)               \
 		do {                                     \
-			Value rhs = Stack_pop(&vm->stack);   \
-			Value lhs = Stack_pop(&vm->stack);   \
-			Value result = {                     \
-				.type = VALUE_BOOL,        \
+			Cog_Value rhs = Cog_Stack_pop(&vm->stack);   \
+			Cog_Value lhs = Cog_Stack_pop(&vm->stack);   \
+			Cog_Value result = {                     \
+				.type = COG_VALUE_BOOL,        \
 				.v_bool = lhs.FIELD OP rhs.FIELD, \
 			};                                   \
-			Stack_push(&vm->stack, result);      \
+			Cog_Stack_push(&vm->stack, result);      \
 		} while (0)
 #else
-#	define INFIX_LOG(FIELD, OP)               \
+#	define COG_INFIX_LOG(FIELD, OP)               \
 		do {                                     \
-			Value rhs = Stack_pop(&vm->stack);   \
-			Value lhs = Stack_pop(&vm->stack);   \
-			Value result = {                     \
+			Cog_Value rhs = Cog_Stack_pop(&vm->stack);   \
+			Cog_Value lhs = Cog_Stack_pop(&vm->stack);   \
+			Cog_Value result = {                     \
 				.v_bool = lhs.FIELD OP rhs.FIELD, \
 			};                                   \
-			Stack_push(&vm->stack, result);      \
+			Cog_Stack_push(&vm->stack, result);      \
 		} while (0)
 #endif
-	case OP_EQ_INT:
-		INFIX_LOG(v_int, ==);
+	case COG_OP_EQ_INT:
+		COG_INFIX_LOG(v_int, ==);
 		break;
-	case OP_EQ_UINT:
-		INFIX_LOG(v_uint, ==);
+	case COG_OP_EQ_UINT:
+		COG_INFIX_LOG(v_uint, ==);
 		break;
-	case OP_EQ_FLOAT:
-		INFIX_LOG(v_float, ==);
+	case COG_OP_EQ_FLOAT:
+		COG_INFIX_LOG(v_float, ==);
 		break;
-	case OP_NEQ_INT:
-		INFIX_LOG(v_int, !=);
+	case COG_OP_NEQ_INT:
+		COG_INFIX_LOG(v_int, !=);
 		break;
-	case OP_NEQ_UINT:
-		INFIX_LOG(v_uint, !=);
+	case COG_OP_NEQ_UINT:
+		COG_INFIX_LOG(v_uint, !=);
 		break;
-	case OP_NEQ_FLOAT:
-		INFIX_LOG(v_float, !=);
+	case COG_OP_NEQ_FLOAT:
+		COG_INFIX_LOG(v_float, !=);
 		break;
-	case OP_GT_INT:
-		INFIX_LOG(v_int, >);
+	case COG_OP_GT_INT:
+		COG_INFIX_LOG(v_int, >);
 		break;
-	case OP_GT_UINT:
-		INFIX_LOG(v_uint, >);
+	case COG_OP_GT_UINT:
+		COG_INFIX_LOG(v_uint, >);
 		break;
-	case OP_GT_FLOAT:
-		INFIX_LOG(v_float, >);
+	case COG_OP_GT_FLOAT:
+		COG_INFIX_LOG(v_float, >);
 		break;
-	case OP_LT_INT:
-		INFIX_LOG(v_int, <);
+	case COG_OP_LT_INT:
+		COG_INFIX_LOG(v_int, <);
 		break;
-	case OP_LT_UINT:
-		INFIX_LOG(v_uint, <);
+	case COG_OP_LT_UINT:
+		COG_INFIX_LOG(v_uint, <);
 		break;
-	case OP_LT_FLOAT:
-		INFIX_LOG(v_float, <);
+	case COG_OP_LT_FLOAT:
+		COG_INFIX_LOG(v_float, <);
 		break;
-	case OP_EGT_INT:
-		INFIX_LOG(v_int, >=);
+	case COG_OP_EGT_INT:
+		COG_INFIX_LOG(v_int, >=);
 		break;
-	case OP_EGT_UINT:
-		INFIX_LOG(v_uint, >=);
+	case COG_OP_EGT_UINT:
+		COG_INFIX_LOG(v_uint, >=);
 		break;
-	case OP_EGT_FLOAT:
-		INFIX_LOG(v_float, >=);
+	case COG_OP_EGT_FLOAT:
+		COG_INFIX_LOG(v_float, >=);
 		break;
-	case OP_ELT_INT:
-		INFIX_LOG(v_int, <=);
+	case COG_OP_ELT_INT:
+		COG_INFIX_LOG(v_int, <=);
 		break;
-	case OP_ELT_UINT:
-		INFIX_LOG(v_uint, <=);
+	case COG_OP_ELT_UINT:
+		COG_INFIX_LOG(v_uint, <=);
 		break;
-	case OP_ELT_FLOAT:
-		INFIX_LOG(v_float, <=);
+	case COG_OP_ELT_FLOAT:
+		COG_INFIX_LOG(v_float, <=);
 		break;
-	case OP_NOT:
-		curValue = Stack_currentPtr(&vm->stack);
+	case COG_OP_NOT:
+		curValue = Cog_Stack_currentPtr(&vm->stack);
 		curValue->v_bool = !curValue->v_bool;
 		break;
-	case OP_JUMPB:
+	case COG_OP_JUMPB:
 		arg1 = readSizeT(vm, chunk);
 		vm->pc -= arg1 + sizeof(size_t);
 		break;
-	case OP_POP_IFPR:
+	case COG_OP_POP_IFPR:
 		if (vm->stack.count)
-			Stack_pop(&vm->stack);
+			Cog_Stack_pop(&vm->stack);
 		break;
-	case OP_GC_ALLOC:
+	case COG_OP_GC_ALLOC:
 		arg1 = readSizeT(vm, chunk);
-		Stack_push(&vm->stack, GC_alloc(&vm->gc, arg1));
+		Cog_Stack_push(&vm->stack, GC_alloc(&vm->gc, arg1));
 		break;
-	case OP_GC_ACCESS:
-		PANIC("UNIMPLEMENTED");
+	case COG_OP_GC_ACCESS:
+		COG_PANIC("UNIMPLEMENTED");
 		break;
-	case OP_GC_ACCESS_FROMSTACK: {
-		Value index = Stack_pop(&vm->stack);
-		Value target = Stack_pop(&vm->stack);
+	case COG_OP_GC_ACCESS_FROMSTACK: {
+		Cog_Value index = Cog_Stack_pop(&vm->stack);
+		Cog_Value target = Cog_Stack_pop(&vm->stack);
 		HeapObject *obj = target.v_heap;
 		if (index.v_uint < obj->count)
-			Stack_push(&vm->stack, obj->items[index.v_uint]);
+			Cog_Stack_push(&vm->stack, obj->items[index.v_uint]);
 		else
-			PANIC("Buffer overflow");
+			COG_PANIC("Buffer overflow");
 	} break;
-	case OP_GC_ASSIGN: {
-		Value value = Stack_pop(&vm->stack);
-		Value *target = Stack_currentPtr(&vm->stack);
+	case COG_OP_GC_ASSIGN: {
+		Cog_Value value = Cog_Stack_pop(&vm->stack);
+		Cog_Value *target = Cog_Stack_currentPtr(&vm->stack);
 		arg1 = readSizeT(vm, chunk);
 		HeapObject *obj = target->v_heap;
 		if (arg1 < obj->count)
 			obj->items[arg1] = value;
 		else
-			PANIC("Buffer overflow");
+			COG_PANIC("Buffer overflow");
 	} break;
-	case OP_GC_ASSIGN_FROMSTACK: {
-		Value value = Stack_pop(&vm->stack);
-		Value index = Stack_pop(&vm->stack);
-		Value *target = Stack_currentPtr(&vm->stack);
+	case COG_OP_GC_ASSIGN_FROMSTACK: {
+		Cog_Value value = Cog_Stack_pop(&vm->stack);
+		Cog_Value index = Cog_Stack_pop(&vm->stack);
+		Cog_Value *target = Cog_Stack_currentPtr(&vm->stack);
 		HeapObject *obj = target->v_heap;
 		if (index.v_uint < obj->count)
 			obj->items[index.v_uint] = value;
 		else
-			PANIC("Buffer overflow");
+			COG_PANIC("Buffer overflow");
 	} break;
-	case OP_GC_ASSIGNCOPY: {
-		Value *target = Stack_countBack(&vm->stack, 2);
-		Value *value = Stack_countBack(&vm->stack, 1);
+	case COG_OP_GC_ASSIGNCOPY: {
+		Cog_Value *target = Cog_Stack_countBack(&vm->stack, 2);
+		Cog_Value *value = Cog_Stack_countBack(&vm->stack, 1);
 		arg1 = readSizeT(vm, chunk);
 		HeapObject *obj = target->v_heap;
 		if (arg1 < obj->count)
 			obj->items[arg1] = *value;
 		else
-			PANIC("Buffer overflow");
+			COG_PANIC("Buffer overflow");
 	} break;
-	case OP_GC_SIZEOF: {
-		Value value = Stack_pop(&vm->stack);
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_UINT,
+	case COG_OP_GC_SIZEOF: {
+		Cog_Value value = Cog_Stack_pop(&vm->stack);
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_UINT,
 #endif
 			.v_uint = ((HeapObject*)value.v_heap)->count,
 		});
 	} break;
-	case OP_CLOAD_NULL:
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_NULL,
+	case COG_OP_CLOAD_NULL:
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_NULL,
 #endif
 			.isNull = true,
 		});
 		break;
-	case OP_OPT_UNWRAP: {
-		Value *value = Stack_currentPtr(&vm->stack);
+	case COG_OP_OPT_UNWRAP: {
+		Cog_Value *value = Cog_Stack_currentPtr(&vm->stack);
 		if (value->isNull)
-			PANIC("Unwrap failed");
+			COG_PANIC("Unwrap failed");
 	} break;
-	case OP_OPT_CHECK: {
-		Value *value = Stack_currentPtr(&vm->stack);
-		*value = (Value){
-#ifdef DEBUG
-			.type = VALUE_BOOL,
+	case COG_OP_OPT_CHECK: {
+		Cog_Value *value = Cog_Stack_currentPtr(&vm->stack);
+		*value = (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_BOOL,
 #endif
 			.v_bool = !value->isNull,
 		};
 	} break;
-	case OP_CLOAD_FUNC: {
+	case COG_OP_CLOAD_FUNC: {
 		size_t chunkIndex = readSizeT(vm, chunk);
-		Chunk *funcChunk = &chunk->functions.items[chunkIndex];
+		Cog_Chunk *funcChunk = &chunk->functions.items[chunkIndex];
 		// Scope_release(funcChunk->vmData);
 		// funcChunk->vmData = vm->scope;
 		if (vm->scope)
 			Scope_retain(vm->scope);
-		Stack_push(&vm->stack, GC_allocClosure(&vm->gc, funcChunk, vm->scope));
+		Cog_Stack_push(&vm->stack, GC_allocClosure(&vm->gc, funcChunk, vm->scope));
 	} break;
-	case OP_CALL: {
+	case COG_OP_CALL: {
 		size_t argc = readSizeT(vm, chunk);
-		Value function = Stack_pop(&vm->stack);
+		Cog_Value function = Cog_Stack_pop(&vm->stack);
 		call(vm, function.v_func, argc);
 	} break;
-	case OP_GC_ALLOC_FROMSTACK: {
-		Value size = Stack_pop(&vm->stack);
-		Stack_push(&vm->stack, GC_alloc(&vm->gc, size.v_uint));
+	case COG_OP_GC_ALLOC_FROMSTACK: {
+		Cog_Value size = Cog_Stack_pop(&vm->stack);
+		Cog_Stack_push(&vm->stack, GC_alloc(&vm->gc, size.v_uint));
 	} break;
-	case OP_GC_FILL: {
-		Value value = Stack_pop(&vm->stack);
-		HeapObject *obj = Stack_currentPtr(&vm->stack)->v_heap;
+	case COG_OP_GC_FILL: {
+		Cog_Value value = Cog_Stack_pop(&vm->stack);
+		HeapObject *obj = Cog_Stack_currentPtr(&vm->stack)->v_heap;
 		for (size_t i = 0; i < obj->count; i++)
 			obj->items[i] = value;
 	} break;
-	case OP_CALLN: {
-		Value function = Stack_pop(&vm->stack);
+	case COG_OP_CALLN: {
+		Cog_Value function = Cog_Stack_pop(&vm->stack);
 		function.v_nfunc(&vm->stack, readSizeT(vm, chunk));
 	} break;
-	case OP_CLOAD_CHAR:
+	case COG_OP_CLOAD_CHAR:
 		arg1 = readSizeT(vm, chunk);
-		Stack_push(&vm->stack, (Value){
-#ifdef DEBUG
-			.type = VALUE_CHAR,
+		Cog_Stack_push(&vm->stack, (Cog_Value){
+#ifdef COG_DEBUG
+			.type = COG_VALUE_CHAR,
 #endif
 			.v_char = chunk->charConsts.items[arg1],
 		});
 		break;
-	case OP_GC_REALLOC: {
-		Value fillValue = Stack_pop(&vm->stack);
-		Value newSize = Stack_pop(&vm->stack);
-		Value *array = Stack_currentPtr(&vm->stack);
+	case COG_OP_GC_REALLOC: {
+		Cog_Value fillValue = Cog_Stack_pop(&vm->stack);
+		Cog_Value newSize = Cog_Stack_pop(&vm->stack);
+		Cog_Value *array = Cog_Stack_currentPtr(&vm->stack);
 		HeapObject *obj = array->v_heap;
 		if (newSize.v_uint == obj->count)
 			break;
@@ -774,56 +774,56 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 		for (size_t i = oldSize; i < obj->count; i++)
 			obj->items[i] = fillValue;
 	} break;
-	case OP_GC_CONCAT: {
-		HeapObject *obj2 = Stack_pop(&vm->stack).v_heap;
-		HeapObject *obj1 = Stack_pop(&vm->stack).v_heap;
-		Value result = GC_alloc(&vm->gc, obj1->count + obj2->count);
+	case COG_OP_GC_CONCAT: {
+		HeapObject *obj2 = Cog_Stack_pop(&vm->stack).v_heap;
+		HeapObject *obj1 = Cog_Stack_pop(&vm->stack).v_heap;
+		Cog_Value result = GC_alloc(&vm->gc, obj1->count + obj2->count);
 		HeapObject *resultHeap = result.v_heap;
 		for (size_t i = 0; i < obj1->count; i++)
 			resultHeap->items[i] = obj1->items[i];
 		for (size_t i = 0; i < obj2->count; i++)
 			resultHeap->items[obj1->count + i] = obj2->items[i];
-		Stack_push(&vm->stack, result);
+		Cog_Stack_push(&vm->stack, result);
 	} break;
-	case OP_GC_REPEAT: {
-		Value repeatTimes = Stack_pop(&vm->stack);
-		HeapObject *obj = Stack_pop(&vm->stack).v_heap;
-		Value result = GC_alloc(&vm->gc, obj->count * repeatTimes.v_uint);
+	case COG_OP_GC_REPEAT: {
+		Cog_Value repeatTimes = Cog_Stack_pop(&vm->stack);
+		HeapObject *obj = Cog_Stack_pop(&vm->stack).v_heap;
+		Cog_Value result = GC_alloc(&vm->gc, obj->count * repeatTimes.v_uint);
 		HeapObject *resultHeap = result.v_heap;
 		for (size_t i = 0; i < resultHeap->count; i++)
 			resultHeap->items[i] = obj->items[i % obj->count];
-		Stack_push(&vm->stack, result);
+		Cog_Stack_push(&vm->stack, result);
 	} break;
-	case OP_TOSTRING_INT: {
-		const int64_t value = Stack_pop(&vm->stack).v_int;
+	case COG_OP_TOSTRING_INT: {
+		const int64_t value = Cog_Stack_pop(&vm->stack).v_int;
 		const size_t charCount = snprintf(NULL, 0, "%"PRId64, value) + 1;
 		char *const string = calloc(charCount, sizeof(char));
 		const size_t length = snprintf(string, charCount, "%"PRId64, value);
-		const Value result = cstrToCogstr(vm, string, length);
+		const Cog_Value result = cstrToCogstr(vm, string, length);
 		free(string);
-		Stack_push(&vm->stack, result);
+		Cog_Stack_push(&vm->stack, result);
 	} break;
-	case OP_TOSTRING_UINT: {
-		const uint64_t value = Stack_pop(&vm->stack).v_uint;
+	case COG_OP_TOSTRING_UINT: {
+		const uint64_t value = Cog_Stack_pop(&vm->stack).v_uint;
 		const size_t charCount = snprintf(NULL, 0, "%"PRIu64, value) + 1;
 		char *const string = calloc(charCount, sizeof(char));
 		const size_t length = snprintf(string, charCount, "%"PRIu64, value);
-		const Value result = cstrToCogstr(vm, string, length);
+		const Cog_Value result = cstrToCogstr(vm, string, length);
 		free(string);
-		Stack_push(&vm->stack, result);
+		Cog_Stack_push(&vm->stack, result);
 	} break;
-	case OP_TOSTRING_FLOAT: {
-		const double value = Stack_pop(&vm->stack).v_float;
+	case COG_OP_TOSTRING_FLOAT: {
+		const double value = Cog_Stack_pop(&vm->stack).v_float;
 		const size_t charCount = snprintf(NULL, 0, "%f", value) + 1;
 		char *const string = calloc(charCount, sizeof(char));
 		const size_t length = snprintf(string, charCount, "%f", value);
-		const Value result = cstrToCogstr(vm, string, length);
+		const Cog_Value result = cstrToCogstr(vm, string, length);
 		free(string);
-		Stack_push(&vm->stack, result);
+		Cog_Stack_push(&vm->stack, result);
 	} break;
-	case OP_TOSTRING_BOOL: {
-		const bool value = Stack_pop(&vm->stack).v_bool;
-		const Value result = cstrToCogstr(vm,
+	case COG_OP_TOSTRING_BOOL: {
+		const bool value = Cog_Stack_pop(&vm->stack).v_bool;
+		const Cog_Value result = cstrToCogstr(vm,
 			value
 			? "true"
 			: "false",
@@ -831,59 +831,59 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			? 4
 			: 5
 		);
-		Stack_push(&vm->stack, result);
+		Cog_Stack_push(&vm->stack, result);
 	} break;
-	case OP_EQ_CHAR: {
-		Value value1 = Stack_pop(&vm->stack);
-		Value value2 = Stack_pop(&vm->stack);
-		Stack_push(&vm->stack, (Value) {
-#ifdef DEBUG
-			.type = VALUE_BOOL,
+	case COG_OP_EQ_CHAR: {
+		Cog_Value value1 = Cog_Stack_pop(&vm->stack);
+		Cog_Value value2 = Cog_Stack_pop(&vm->stack);
+		Cog_Stack_push(&vm->stack, (Cog_Value) {
+#ifdef COG_DEBUG
+			.type = COG_VALUE_BOOL,
 #endif
 			.v_bool = value1.v_char == value2.v_char
 		});
 	} break;
-	case OP_NEQ_CHAR: {
-		Value value1 = Stack_pop(&vm->stack);
-		Value value2 = Stack_pop(&vm->stack);
-		Stack_push(&vm->stack, (Value) {
-#ifdef DEBUG
-			.type = VALUE_BOOL,
+	case COG_OP_NEQ_CHAR: {
+		Cog_Value value1 = Cog_Stack_pop(&vm->stack);
+		Cog_Value value2 = Cog_Stack_pop(&vm->stack);
+		Cog_Stack_push(&vm->stack, (Cog_Value) {
+#ifdef COG_DEBUG
+			.type = COG_VALUE_BOOL,
 #endif
 			.v_bool = value1.v_char != value2.v_char
 		});
 	} break;
-	case OP_JUMPF_IFN_R:
+	case COG_OP_JUMPF_IFN_R:
 		arg1 = readSizeT(vm, chunk);
-		if (!Stack_currentPtr(&vm->stack)->v_bool)
+		if (!Cog_Stack_currentPtr(&vm->stack)->v_bool)
 			vm->pc += arg1 - sizeof(size_t);
 		break;
-	case OP_JUMPF_IF_R:
+	case COG_OP_JUMPF_IF_R:
 		arg1 = readSizeT(vm, chunk);
-		if (Stack_currentPtr(&vm->stack)->v_bool)
+		if (Cog_Stack_currentPtr(&vm->stack)->v_bool)
 			vm->pc += arg1 - sizeof(size_t);
 		break;
 	default:
-		PANIC("Unsupported operation at %ld", vm->pc - 1);
+		COG_PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;
 	}
 #undef INFIX
-#undef INFIX_LOG
+#undef COG_INFIX_LOG
 }
 
-static void execute(VM *vm, const Chunk *chunk)
+static void execute(VM *vm, const Cog_Chunk *chunk)
 {
 	while (!vm->done && vm->pc < chunk->instr.count)
 	{
-#ifdef DEBUG
+#ifdef COG_DEBUG
 		printf("%zu ", vm->pc);
-		Stack_print(&vm->stack);
+		Cog_Stack_print(&vm->stack);
 		fflush(stdout);
 #endif
 		runInstruction(vm, chunk);
 	}
 }
-static void call(VM *vm, const Closure *closure, size_t argc)
+static void call(VM *vm, const Cog_Closure *closure, size_t argc)
 {
 	size_t oldPc    = vm->pc;
 	Scope *oldScope = vm->scope;
@@ -893,14 +893,14 @@ static void call(VM *vm, const Closure *closure, size_t argc)
 
 	Scope_enter(vm, argc);
 	for (int i = argc - 1; i >= 0; i--)
-		scopeWrite(vm, 0, i, Stack_pop(&vm->stack));
+		scopeWrite(vm, 0, i, Cog_Stack_pop(&vm->stack));
 	execute(vm, closure->chunk);
 	if (vm->done) return;
 	Scope_exit(vm);
 	vm->pc    = oldPc;
 	vm->scope = oldScope;
 }
-int run(const Chunk *chunk, Globals *globals)
+int Cog_run(const Cog_Chunk *chunk, Cog_Globals *globals)
 {
 	VM vm = {0};
 	Scope_enter(&vm, globals->count);
@@ -909,7 +909,7 @@ int run(const Chunk *chunk, Globals *globals)
 	execute(&vm, chunk);
 	Stack_free(&vm.stack);
 	GC_freeAll(&vm.gc);
-	Chunk_free(chunk);
+	Cog_Chunk_free(chunk);
 	while (vm.scope) Scope_exit(&vm);
 	return vm.retCode;
 }

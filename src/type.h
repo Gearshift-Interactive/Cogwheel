@@ -3,68 +3,68 @@
 #include "nob.h"
 #include "lexer.h"
 
-#define TYPE_KINDS  \
-	X(VOID, void)   \
-	X(INT, int)     \
-	X(UINT, uint)   \
-	X(FLOAT, float) \
-	X(BOOL, bool) \
-	X(NULL, null) \
-	X(CHAR, char) \
+#define COG_TYPE_KINDS  \
+	COG_X(VOID, void)   \
+	COG_X(INT, int)     \
+	COG_X(UINT, uint)   \
+	COG_X(FLOAT, float) \
+	COG_X(BOOL, bool) \
+	COG_X(NULL, null) \
+	COG_X(CHAR, char) \
 
 typedef enum {
-	TYPE_UNKNOWN = 0,
-#define X(NAME, LITERAL) TYPE_##NAME,
-	TYPE_KINDS
-#undef X
-	TYPE_ARRAY,
-	TYPE_OPTION,
-	TYPE_FUNCTION,
-	TYPE_ALIAS,
-} TypeKind;
+	COG_TYPE_UNKNOWN = 0,
+#define COG_X(NAME, LITERAL) COG_TYPE_##NAME,
+	COG_TYPE_KINDS
+#undef COG_X
+	COG_TYPE_ARRAY,
+	COG_TYPE_OPTION,
+	COG_TYPE_FUNCTION,
+	COG_TYPE_ALIAS,
+} Cog_TypeKind;
 
-struct Type;
+struct Cog_Type;
 
 typedef struct {
-	struct Type *type;
+	struct Cog_Type *type;
 	bool isMutable;
-} ArgInfo;
+} Cog_ArgInfo;
 
-typedef struct Type {
-	TypeKind kind;
+typedef struct Cog_Type {
+	Cog_TypeKind kind;
 	union {
 		struct {
-			struct Type *underlying;
+			struct Cog_Type *underlying;
 			size_t size;
 		} array;
 		struct {
-			struct Type *underlying;
+			struct Cog_Type *underlying;
 		} option;
 		struct {
-			struct Type *retType;
+			struct Cog_Type *retType;
 			struct {
-				ArgInfo *items;
+				Cog_ArgInfo *items;
 				size_t count, capacity;
 			} args;
-			ArgInfo *varArgItem;
+			Cog_ArgInfo *varArgItem;
 			bool isNative;
 		} function;
 		struct {
-			Token name;
+			Cog_Token name;
 		} alias;
 	};
-} Type;
+} Cog_Type;
 
-extern Type TYPE_INT_OBJ;
-extern Type TYPE_UINT_OBJ;
-extern Type TYPE_FLOAT_OBJ;
-extern Type TYPE_BOOL_OBJ;
-extern Type TYPE_VOID_OBJ;
-extern Type TYPE_NULL_OBJ;
-extern Type TYPE_CHAR_OBJ;
-extern Type TYPE_STRING_OBJ;
+extern Cog_Type COG_TYPE_INT_OBJ;
+extern Cog_Type COG_TYPE_UINT_OBJ;
+extern Cog_Type COG_TYPE_FLOAT_OBJ;
+extern Cog_Type COG_TYPE_BOOL_OBJ;
+extern Cog_Type COG_TYPE_VOID_OBJ;
+extern Cog_Type COG_TYPE_NULL_OBJ;
+extern Cog_Type COG_TYPE_CHAR_OBJ;
+extern Cog_Type COG_TYPE_STRING_OBJ;
 
-const char *Type_toString(const Type *);
-bool Type_areCompatible(const Type *, const Type *);
-Type *Type_copy(const Type *);
-bool Type_isRef(const Type *);
+const char *Cog_Type_toString(const Cog_Type *);
+bool Cog_Type_areCompatible(const Cog_Type *, const Cog_Type *);
+Cog_Type *Cog_Type_copy(const Cog_Type *);
+bool Cog_Type_isRef(const Cog_Type *);

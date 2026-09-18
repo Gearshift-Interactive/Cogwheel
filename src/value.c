@@ -4,18 +4,18 @@
 #include <stdio.h>
 #include <inttypes.h>
 
-#ifdef DEBUG
-static const char *ValueType_toString(ValueType type)
+#ifdef COG_DEBUG
+static const char *ValueType_toString(Cog_ValueType type)
 {
 	switch (type)
 	{
-#	define X(TYPE) case VALUE_##TYPE: return #TYPE;
-		VALUE_TYPES
-#	undef X
+#	define COG_X(TYPE) case COG_VALUE_##TYPE: return #TYPE;
+		COG_VALUE_TYPES
+#undef COG_X
 		default: return "UNKNOWN";
 	}
 }
-void Value_print(const Value *this) {
+void Cog_Value_print(const Cog_Value *this) {
 	if (this->isNull)
 	{
 		printf("NULL\n");
@@ -29,31 +29,31 @@ void Value_print(const Value *this) {
 	}
 	switch (this->type)
 	{
-		case VALUE_INT:
+		case COG_VALUE_INT:
 			printf("(%"PRId64")\n", this->v_int);
 			break;
-		case VALUE_UINT:
+		case COG_VALUE_UINT:
 			printf("(%"PRIu64")\n", this->v_uint);
 			break;
-		case VALUE_FLOAT:
+		case COG_VALUE_FLOAT:
 			printf("(%f)\n", this->v_float);
 			break;
-		case VALUE_BOOL:
+		case COG_VALUE_BOOL:
 			printf("(%s)\n", this->v_bool ? "true" : "false");
 			break;
-		case VALUE_HEAP:
-		case VALUE_FUNC:
-		case VALUE_NFUNC:
+		case COG_VALUE_HEAP:
+		case COG_VALUE_FUNC:
+		case COG_VALUE_NFUNC:
 			printf("(%p)\n", this->v_heap);
 			break;
-		case VALUE_UNKNOWN:
+		case COG_VALUE_UNKNOWN:
 			printf("(WTF)\n");
 			__attribute__((fallthrough));
-		case VALUE_VOID:
-			PANIC("TS is void");
-		case VALUE_NULL:
-			PANIC("TS is null");
-		case VALUE_CHAR:
+		case COG_VALUE_VOID:
+			COG_PANIC("TS is void");
+		case COG_VALUE_NULL:
+			COG_PANIC("TS is null");
+		case COG_VALUE_CHAR:
 			printf("(%lc)\n", this->v_char);
 			break;
 	}

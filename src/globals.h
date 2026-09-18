@@ -4,13 +4,13 @@
 #include "type.h"
 
 typedef struct {
-	Value value;
-	Type *type;
+	Cog_Value value;
+	Cog_Type *type;
 	const char *name;
 	bool isMutable;
-} GlobalValue;
+} Cog_GlobalValue;
 
 typedef struct {
-	GlobalValue *items;
+	Cog_GlobalValue *items;
 	size_t count, capacity;
-} Globals;
+} Cog_Globals;

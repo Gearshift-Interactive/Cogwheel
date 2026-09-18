@@ -11,95 +11,95 @@
 
 #ifdef COG_STANDALONE
 
-void printInt_f(Stack *stack, __attribute__((unused)) size_t argc)
+void printInt_f(Cog_Stack *stack, __attribute__((unused)) size_t argc)
 {
-	printf("%ld", Stack_pop(stack).v_int);
+	printf("%ld", Cog_Stack_pop(stack).v_int);
 }
-void printFloat_f(Stack *stack, __attribute__((unused)) size_t argc)
+void printFloat_f(Cog_Stack *stack, __attribute__((unused)) size_t argc)
 {
-	printf("%f", Stack_pop(stack).v_float);
+	printf("%f", Cog_Stack_pop(stack).v_float);
 }
-void printChar_f(Stack *stack, __attribute__((unused)) size_t argc)
+void printChar_f(Cog_Stack *stack, __attribute__((unused)) size_t argc)
 {
-	Value v = Stack_pop(stack);
+	Cog_Value v = Cog_Stack_pop(stack);
 	uint8_t charSize = nob_bytes_for_utf8[*(uint8_t*)&v.v_char];
 	for (size_t i = 0; i < charSize; ++i)
 		putchar((v.v_char >> (i * 8)) & 0xff);
 }
 
-void buildStd(Globals *globals)
+void buildStd(Cog_Globals *globals)
 {
-	GlobalValue printInt = {
-		.value = (Value) {
+	Cog_GlobalValue printInt = {
+		.value = (Cog_Value) {
 			.v_nfunc = printInt_f,
-#ifdef DEBUG
-			.type = VALUE_NFUNC,
+#ifdef COG_DEBUG
+			.type = COG_VALUE_NFUNC,
 #endif
 		},
-		.type = calloc(1, sizeof(Type)),
+		.type = calloc(1, sizeof(Cog_Type)),
 		.name = "putInt",
 	};
-	printInt.type->kind = TYPE_FUNCTION;
+	printInt.type->kind = COG_TYPE_FUNCTION;
 	printInt.type->function.isNative = true;
-	printInt.type->function.retType = &TYPE_VOID_OBJ;
-	ArgInfo argInfo_printInt = {
-		.type = &TYPE_INT_OBJ,
+	printInt.type->function.retType = &COG_TYPE_VOID_OBJ;
+	Cog_ArgInfo argInfo_printInt = {
+		.type = &COG_TYPE_INT_OBJ,
 	};
 	da_append(&printInt.type->function.args, argInfo_printInt);
-	Bank_handOff(printInt.type);
-	Bank_handOff(printInt.type->function.args.items);
+	Cog_Bank_handOff(printInt.type);
+	Cog_Bank_handOff(printInt.type->function.args.items);
 	da_append(globals, printInt);
 
-	GlobalValue printFloat = {
-		.value = (Value) {
+	Cog_GlobalValue printFloat = {
+		.value = (Cog_Value) {
 			.v_nfunc = printFloat_f,
-#ifdef DEBUG
-			.type = VALUE_NFUNC,
+#ifdef COG_DEBUG
+			.type = COG_VALUE_NFUNC,
 #endif
 		},
-		.type = calloc(1, sizeof(Type)),
+		.type = calloc(1, sizeof(Cog_Type)),
 		.name = "putFloat",
 	};
-	printFloat.type->kind = TYPE_FUNCTION;
+	printFloat.type->kind = COG_TYPE_FUNCTION;
 	printFloat.type->function.isNative = true;
-	printFloat.type->function.retType = &TYPE_VOID_OBJ;
-	ArgInfo argInfo_printFloat = {
-		.type = &TYPE_FLOAT_OBJ,
+	printFloat.type->function.retType = &COG_TYPE_VOID_OBJ;
+	Cog_ArgInfo argInfo_printFloat = {
+		.type = &COG_TYPE_FLOAT_OBJ,
 	};
 	da_append(&printFloat.type->function.args, argInfo_printFloat);
-	Bank_handOff(printFloat.type);
-	Bank_handOff(printFloat.type->function.args.items);
+	Cog_Bank_handOff(printFloat.type);
+	Cog_Bank_handOff(printFloat.type->function.args.items);
 	da_append(globals, printFloat);
 
-	GlobalValue printChar = {
-		.value = (Value) {
+	Cog_GlobalValue printChar = {
+		.value = (Cog_Value) {
 			.v_nfunc = printChar_f,
-#ifdef DEBUG
-			.type = VALUE_NFUNC,
+#ifdef COG_DEBUG
+			.type = COG_VALUE_NFUNC,
 #endif
 		},
-		.type = calloc(1, sizeof(Type)),
+		.type = calloc(1, sizeof(Cog_Type)),
 		.name = "putChar",
 	};
-	printChar.type->kind = TYPE_FUNCTION;
+	printChar.type->kind = COG_TYPE_FUNCTION;
 	printChar.type->function.isNative = true;
-	printChar.type->function.retType = &TYPE_VOID_OBJ;
-	ArgInfo argInfo_printChar = {
-		.type = &TYPE_CHAR_OBJ,
+	printChar.type->function.retType = &COG_TYPE_VOID_OBJ;
+	Cog_ArgInfo argInfo_printChar = {
+		.type = &COG_TYPE_CHAR_OBJ,
 	};
 	da_append(&printChar.type->function.args, argInfo_printChar);
-	Bank_handOff(printChar.type);
-	Bank_handOff(printChar.type->function.args.items);
+	Cog_Bank_handOff(printChar.type);
+	Cog_Bank_handOff(printChar.type->function.args.items);
 	da_append(globals, printChar);
 
-	GlobalValue PI = {
-		.value = (Value) {
+	Cog_GlobalValue PI = {
+		.value = (Cog_Value) {
 			.v_float = 3.1415926535897932384626433832795028841971693993751058209749445923078164062,
-#ifdef DEBUG
-			.type = VALUE_NFUNC,
+#ifdef COG_DEBUG
+			.type = COG_VALUE_NFUNC,
 #endif
 		},
-		.type = &TYPE_FLOAT_OBJ,
+		.type = &COG_TYPE_FLOAT_OBJ,
 		.name = "PI",
 	};
 	da_append(globals, PI);
@@ -107,8 +107,8 @@ void buildStd(Globals *globals)
 
 int main(int argc, char **argv)
 {
-	Bank_init();
-	Globals globals = {0};
+	Cog_Bank_init();
+	Cog_Globals globals = {0};
 	buildStd(&globals);
 	assert(argc == 2);
 	String_Builder sb = {0};
@@ -118,12 +118,12 @@ int main(int argc, char **argv)
 	//////////////////
 	//// TOKENIZE ////
 	//////////////////
-	TokenStream tokens = tokenize(nob_sv_from_parts(sb.items, sb.count), argv[1]);
+	Cog_TokenStream tokens = Cog_tokenize(nob_sv_from_parts(sb.items, sb.count), argv[1]);
 
-#	ifdef DEBUG
-	da_foreach(Token, i, &tokens)
+#	ifdef COG_DEBUG
+	da_foreach(Cog_Token, i, &tokens)
 	{
-		Token_print(*i);
+		Cog_Token_print(*i);
 		printf("\n");
 	}
 #	endif
@@ -131,11 +131,11 @@ int main(int argc, char **argv)
 	///////////////
 	//// PARSE ////
 	///////////////
-	Node *ast = parse(tokens);
+	Cog_Node *ast = Cog_parse(tokens);
 
-#	ifdef DEBUG
+#	ifdef COG_DEBUG
 	printf("//// AST ////\n");
-	Node_print(ast);
+	Cog_Node_print(ast);
 	printf("\n");
 	fflush(stdout);
 #	endif
@@ -143,19 +143,19 @@ int main(int argc, char **argv)
 	//////////////////////////////
 	//// SEMANTICALLY ANALYZE ////
 	//////////////////////////////
-	analyzeAndMark(&ast, &globals);
+	Cog_analyzeAndMark(&ast, &globals);
 
-#	ifdef DEBUG
+#	ifdef COG_DEBUG
 	printf("//// MARKED AST ////\n");
-	Node_print(ast);
+	Cog_Node_print(ast);
 	printf("\n");
 	fflush(stdout);
 #	endif
-	if (errorOccured)
+	if (Cog_errorOccured)
 	{
 		free(sb.items);
-		Node_free(ast);
-		Bank_freeAll();
+		Cog_Node_free(ast);
+		Cog_Bank_freeAll();
 		free(globals.items);
 		return EXIT_FAILURE;
 	}
@@ -163,25 +163,25 @@ int main(int argc, char **argv)
 	/////////////////
 	//// COMPILE ////
 	/////////////////
-	Chunk code = compile(ast);
+	Cog_Chunk code = Cog_compile(ast);
 
-#	ifdef DEBUG
+#	ifdef COG_DEBUG
 	printf("//// BYTECODE ////\n");
-	Chunk_print(&code);
+	Cog_Chunk_print(&code);
 	fflush(stdout);
 	printf("//// EXECUTION ////\n");
 #	endif
 	free(sb.items);
 
-	// Chunk_free(&code);
+	// Cog_Chunk_free(&code);
 	// return 0;
 
 	/////////////
 	//// RUN ////
 	/////////////
-	int result = run(&code, &globals);
+	int result = Cog_run(&code, &globals);
 
-	Bank_freeAll();
+	Cog_Bank_freeAll();
 	free(globals.items);
 	printf("RESULT: %d\n", result);
 	return result;

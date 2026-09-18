@@ -6,64 +6,64 @@
 
 typedef struct {
 	const char *lit;
-	TokenType type;
+	Cog_TokenType type;
 } SymbolInfo;
 
 // longer first
 static const SymbolInfo PUNCTUATION[] = {
-	{ "...", TOKEN_ELIPSIS },
-	{ "->", TOKEN_ARROW },
-	{ "==", TOKEN_EQ },
-	{ "!=", TOKEN_NEQ },
-	{ ">=", TOKEN_EGT },
-	{ "<=", TOKEN_ELT },
-	{ ">", TOKEN_GT },
-	{ "<", TOKEN_LT },
-	{ "+", TOKEN_ADD },
-	{ "-", TOKEN_SUB },
-	{ "*", TOKEN_MUL },
-	{ "/", TOKEN_DIV },
-	{ "^", TOKEN_POW },
-	{ "=", TOKEN_ASSIGN },
-	{ "(", TOKEN_LPAREN },
-	{ ")", TOKEN_RPAREN },
-	{ "{", TOKEN_LBRACE },
-	{ "}", TOKEN_RBRACE },
-	{ "[", TOKEN_LBRACKET },
-	{ "]", TOKEN_RBRACKET },
-	{ ";", TOKEN_SEMICOLON },
-	{ ",", TOKEN_COMMA },
-	{ "?", TOKEN_QUESTION },
-	{ "!", TOKEN_EXCLAMATION },
-	{ "$", TOKEN_TOSTRING },
+	{ "...", COG_TOKEN_ELIPSIS },
+	{ "->", COG_TOKEN_ARROW },
+	{ "==", COG_TOKEN_EQ },
+	{ "!=", COG_TOKEN_NEQ },
+	{ ">=", COG_TOKEN_EGT },
+	{ "<=", COG_TOKEN_ELT },
+	{ ">", COG_TOKEN_GT },
+	{ "<", COG_TOKEN_LT },
+	{ "+", COG_TOKEN_ADD },
+	{ "-", COG_TOKEN_SUB },
+	{ "*", COG_TOKEN_MUL },
+	{ "/", COG_TOKEN_DIV },
+	{ "^", COG_TOKEN_POW },
+	{ "=", COG_TOKEN_ASSIGN },
+	{ "(", COG_TOKEN_LPAREN },
+	{ ")", COG_TOKEN_RPAREN },
+	{ "{", COG_TOKEN_LBRACE },
+	{ "}", COG_TOKEN_RBRACE },
+	{ "[", COG_TOKEN_LBRACKET },
+	{ "]", COG_TOKEN_RBRACKET },
+	{ ";", COG_TOKEN_SEMICOLON },
+	{ ",", COG_TOKEN_COMMA },
+	{ "?", COG_TOKEN_QUESTION },
+	{ "!", COG_TOKEN_EXCLAMATION },
+	{ "$", COG_TOKEN_TOSTRING },
 };
 static const SymbolInfo KEYWORDS[] = {
-	{ "int", TOKEN_INT_T },
-	{ "uint", TOKEN_UINT_T },
-	{ "float", TOKEN_FLOAT_T },
-	{ "boolean", TOKEN_BOOL_T },
-	{ "void", TOKEN_VOID },
-	{ "char", TOKEN_CHAR_T },
+	{ "int", COG_TOKEN_INT_T },
+	{ "uint", COG_TOKEN_UINT_T },
+	{ "float", COG_TOKEN_FLOAT_T },
+	{ "boolean", COG_TOKEN_BOOL_T },
+	{ "void", COG_TOKEN_VOID },
+	{ "char", COG_TOKEN_CHAR_T },
 
-	{ "exit", TOKEN_EXIT },
-	{ "mut", TOKEN_MUT },
-	{ "true", TOKEN_TRUE_ },
-	{ "false", TOKEN_FALSE_ },
-	{ "or", TOKEN_OR },
-	{ "and", TOKEN_AND },
-	{ "yield", TOKEN_YIELD },
-	{ "if", TOKEN_IF },
-	{ "else", TOKEN_ELSE },
-	{ "not", TOKEN_NOT },
-	{ "while", TOKEN_WHILE },
-	{ "break", TOKEN_BREAK },
-	{ "new", TOKEN_NEW },
-	{ "var", TOKEN_VAR },
-	{ "sizeof", TOKEN_SIZEOF },
-	{ "null", TOKEN_NULL },
-	{ "with", TOKEN_WITH },
-	{ "alias", TOKEN_ALIAS },
-	// { "realloc", TOKEN_REALLOC },
+	{ "exit", COG_TOKEN_EXIT },
+	{ "mut", COG_TOKEN_MUT },
+	{ "true", COG_TOKEN_TRUE_ },
+	{ "false", COG_TOKEN_FALSE_ },
+	{ "or", COG_TOKEN_OR },
+	{ "and", COG_TOKEN_AND },
+	{ "yield", COG_TOKEN_YIELD },
+	{ "if", COG_TOKEN_IF },
+	{ "else", COG_TOKEN_ELSE },
+	{ "not", COG_TOKEN_NOT },
+	{ "while", COG_TOKEN_WHILE },
+	{ "break", COG_TOKEN_BREAK },
+	{ "new", COG_TOKEN_NEW },
+	{ "var", COG_TOKEN_VAR },
+	{ "sizeof", COG_TOKEN_SIZEOF },
+	{ "null", COG_TOKEN_NULL },
+	{ "with", COG_TOKEN_WITH },
+	{ "alias", COG_TOKEN_ALIAS },
+	// { "realloc", COG_TOKEN_REALLOC },
 };
 static const char LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char LETTERS_AND_NUMBERS[] =
@@ -71,79 +71,79 @@ static const char LETTERS_AND_NUMBERS[] =
 static const char WHITESPACE[] = "\t\n ";
 static const char NUMBERS[] = "0123456789";
 
-const char *TokenType_toString(const TokenType tt)
+const char *Cog_TokenType_toString(const Cog_TokenType tt)
 {
 	switch (tt)
 	{
-#define X(name) case TOKEN_##name: return #name; break;
-	TOKEN_TYPE
-#undef X
+#define COG_X(name) case COG_TOKEN_##name: return #name; break;
+	COG_TOKEN_TYPE
+#undef COG_X
 	}
 	return "INVALID";
 }
-void TokenPosition_print(const TokenPosition tp)
+void Cog_TokenPosition_print(const Cog_TokenPosition tp)
 {
 	printf("%.*s", (int)tp.length, tp.origin + tp.start);
 }
-void Token_print(const Token token)
+void Cog_Token_print(const Cog_Token token)
 {
-	printf("%s(", TokenType_toString(token.type));
-	TokenPosition_print(token.pos);
+	printf("%s(", Cog_TokenType_toString(token.type));
+	Cog_TokenPosition_print(token.pos);
 	printf(")");
 }
-bool TokenPosition_eq(const TokenPosition *a, const TokenPosition *b)
+bool Cog_TokenPosition_eq(const Cog_TokenPosition *a, const Cog_TokenPosition *b)
 {
 	if (a->length != b->length)
 		return false;
 	return !memcmp(a->origin + a->start, b->origin + b->start, a->length);
 }
-char *TokenPosition_toString(const TokenPosition *tp)
+char *Cog_TokenPosition_toString(const Cog_TokenPosition *tp)
 {
 	char *result = calloc(tp->length + 1, sizeof *result);
-	Bank_handOff(result);
+	Cog_Bank_handOff(result);
 	memcpy(result, (char*)tp->origin + tp->start, tp->length);
 	return result;
 }
-TokenPosition TokenPosition_fromString(const char *chars)
+Cog_TokenPosition Cog_TokenPosition_fromString(const char *chars)
 {
-	return (TokenPosition) {
+	return (Cog_TokenPosition) {
 		.origin = chars,
 		.start = 0,
 		.length = strlen(chars),
 		"src",
 	};
 }
-Token TokenStream_consume(TokenStream *this)
+Cog_Token Cog_TokenStream_consume(Cog_TokenStream *this)
 {
 	assert(this);
 	fflush(stdout);
 	if (this->next >= this->count)
-		PANIC("Ran out of tokens");
-	Token token = *(this->items + (this->next++));
+		COG_PANIC("Ran out of tokens");
+	Cog_Token token = *(this->items + (this->next++));
 	return token;
 }
-Token *TokenStream_current(const TokenStream *this)
+Cog_Token *Cog_TokenStream_current(const Cog_TokenStream *this)
 {
 	assert(this);
 	if (this->next - 1 >= this->count)
 		return NULL;
 	return this->items + this->next - 1;
 }
-Token *TokenStream_peek(const TokenStream *this)
+Cog_Token *Cog_TokenStream_peek(const Cog_TokenStream *this)
 {
 	assert(this);
 	if (this->next >= this->count)
 		return NULL;
 	return this->items + this->next;
 }
-Token *TokenStream_peekForward(const TokenStream *this, size_t countForward)
+Cog_Token *Cog_TokenStream_peekForward(const Cog_TokenStream *this, size_t countForward)
 {
 	assert(this);
 	if (this->next + countForward >= this->count)
 		return NULL;
 	return this->items + this->next + countForward;
 }
-void TokenStream_free(const TokenStream *this) { assert(this);
+void Cog_TokenStream_free(const Cog_TokenStream *this) { assert(this);
 	free(this->items);
 }
 typedef struct {
@@ -165,11 +165,11 @@ static bool Tokenizer_checkSymbolBeginning(const Tokenizer *this) { assert(this)
 static bool Tokenizer_checkSymbolContinueation(const Tokenizer *this) { assert(this);
 	return strchr(LETTERS_AND_NUMBERS, *(this->text.data + this->offset));
 }
-static TokenType Tokenizer_matchSymbol(const Tokenizer *this, const TokenPosition pos) {
+static Cog_TokenType Tokenizer_matchSymbol(const Tokenizer *this, const Cog_TokenPosition pos) {
 	assert(this);
 	char *const buf = calloc(pos.length + 1, 1);
 	memcpy(buf, pos.origin + pos.start, pos.length);
-	TokenType result = TOKEN_SYMBOL;
+	Cog_TokenType result = COG_TOKEN_SYMBOL;
 	for (size_t i = 0; i < ARRAY_LEN(KEYWORDS); i++)
 		if (!strcmp(buf, KEYWORDS[i].lit)) {
 			result = KEYWORDS[i].type;
@@ -178,7 +178,7 @@ static TokenType Tokenizer_matchSymbol(const Tokenizer *this, const TokenPositio
 	free(buf);
 	return result;
 }
-static Token Tokenizer_handleSymbol(Tokenizer *this)
+static Cog_Token Tokenizer_handleSymbol(Tokenizer *this)
 {
 	assert(this);
 	const size_t start = this->offset;
@@ -188,31 +188,31 @@ static Token Tokenizer_handleSymbol(Tokenizer *this)
 		length++;
 		Tokenizer_advance(this);
 	}
-	const TokenPosition pos = {
+	const Cog_TokenPosition pos = {
 		.origin = this->origin,
 		.start = start,
 		.length = length,
 		.originName = this->originName,
 	};
-	return (Token){
+	return (Cog_Token){
 		.type = Tokenizer_matchSymbol(this, pos),
 		.pos = pos,
 	};
 }
-static Token Tokenizer_handleOperator(Tokenizer *this)
+static Cog_Token Tokenizer_handleOperator(Tokenizer *this)
 {
 	assert(this);
 	bool success = false;
-	Token result;
+	Cog_Token result;
 	for (size_t i = 0; i < ARRAY_LEN(PUNCTUATION); i++)
 	{
 		const SymbolInfo *const cur = &PUNCTUATION[i];
 		const size_t opLen = strlen(cur->lit);
 		if (!memcmp(cur->lit, this->text.data + this->offset, opLen))
 		{
-			result = (Token){
+			result = (Cog_Token){
 				.type = cur->type,
-				.pos = (TokenPosition) {
+				.pos = (Cog_TokenPosition) {
 					.origin = this->origin,
 					.start = this->offset,
 					.length = opLen,
@@ -227,7 +227,7 @@ static Token Tokenizer_handleOperator(Tokenizer *this)
 	}
 	if (success)
 		return result;
-	PANIC("Illegal character \"%c\"", *(this->text.data + this->offset));
+	COG_PANIC("Illegal character \"%c\"", *(this->text.data + this->offset));
 }
 static bool Tokenizer_checkNumber(const Tokenizer *this) { assert(this);
 	return strchr(NUMBERS, *(this->text.data + this->offset));
@@ -235,11 +235,11 @@ static bool Tokenizer_checkNumber(const Tokenizer *this) { assert(this);
 static char Tokenizer_getCurrentChar(const Tokenizer *this) { assert(this);
 	return *(this->text.data + this->offset);
 }
-static Token Tokenizer_handleNumber(Tokenizer *this)
+static Cog_Token Tokenizer_handleNumber(Tokenizer *this)
 {
 	const size_t start = this->offset;
 	size_t length = 0;
-	TokenType type = TOKEN_NUMBER;
+	Cog_TokenType type = COG_TOKEN_NUMBER;
 	while (Tokenizer_checkNumber(this))
 	{
 		length++;
@@ -249,12 +249,12 @@ static Token Tokenizer_handleNumber(Tokenizer *this)
 	if (curChar == 'u')
 	{
 		Tokenizer_advance(this);
-		type = TOKEN_UNUMBER;
+		type = COG_TOKEN_UNUMBER;
 	}
 	else if (curChar == 'f')
 	{
 		Tokenizer_advance(this);
-		type = TOKEN_FNUMBER;
+		type = COG_TOKEN_FNUMBER;
 	}
 	else if (curChar == '.')
 	{
@@ -269,12 +269,12 @@ static Token Tokenizer_handleNumber(Tokenizer *this)
 		if (curChar == 'f')
 			Tokenizer_advance(this);
 		else if (curChar == 'u')
-			PANIC("Invaild \"u\" postfix");
-		type = TOKEN_FNUMBER;
+			COG_PANIC("Invaild \"u\" postfix");
+		type = COG_TOKEN_FNUMBER;
 	}
-	return (Token){
+	return (Cog_Token){
 		.type = type,
-		.pos = (TokenPosition){
+		.pos = (Cog_TokenPosition){
 			.origin = this->origin,
 			.start = start,
 			.length = length,
@@ -342,18 +342,18 @@ bool Tokenizer_checkCharacter(Tokenizer *this)
 {
 	return *(this->text.data + this->offset) == '\'';
 }
-static Token Tokenizer_handleCharacter(Tokenizer *this)
+static Cog_Token Tokenizer_handleCharacter(Tokenizer *this)
 {
 	Tokenizer_advance(this);
 	const size_t start = this->offset;
 	size_t length = Tokenizer_incrementChar(this);
 	if (*(this->text.data + this->offset) != '\'')
-		PANIC("Expected \"'\" for the end of the character literal, got %c",
+		COG_PANIC("Expected \"'\" for the end of the character literal, got %c",
 			*(this->text.data + this->offset));
 	Tokenizer_advance(this);
-	return (Token){
-		.type = TOKEN_CHAR,
-		.pos = (TokenPosition){
+	return (Cog_Token){
+		.type = COG_TOKEN_CHAR,
+		.pos = (Cog_TokenPosition){
 			.origin = this->origin,
 			.start = start,
 			.length = length,
@@ -365,7 +365,7 @@ bool Tokenizer_checkString(Tokenizer *this)
 {
 	return *(this->text.data + this->offset) == '"';
 }
-static Token Tokenizer_handleString(Tokenizer *this)
+static Cog_Token Tokenizer_handleString(Tokenizer *this)
 {
 	Tokenizer_advance(this);
 	const size_t start = this->offset;
@@ -373,9 +373,9 @@ static Token Tokenizer_handleString(Tokenizer *this)
 	while (*(this->text.data + this->offset) != '"')
 		length += Tokenizer_incrementChar(this);
 	Tokenizer_advance(this);
-	return (Token){
-		.type = TOKEN_STRING,
-		.pos = (TokenPosition){
+	return (Cog_Token){
+		.type = COG_TOKEN_STRING,
+		.pos = (Cog_TokenPosition){
 			.origin = this->origin,
 			.start = start,
 			.length = length,
@@ -383,10 +383,10 @@ static Token Tokenizer_handleString(Tokenizer *this)
 		},
 	};
 }
-TokenStream tokenize(String_View text, const char *filename)
+Cog_TokenStream Cog_tokenize(String_View text, const char *filename)
 {
 	assert(text.data);
-	TokenStream tokens = {0};
+	Cog_TokenStream tokens = {0};
 	Tokenizer tokenizer = {
 		.origin = text.data,
 		.text = text,
@@ -411,9 +411,9 @@ TokenStream tokenize(String_View text, const char *filename)
 		else
 			da_append(&tokens, Tokenizer_handleOperator(&tokenizer));
 	}
-	Token eof = {
-		.type = TOKEN_EOF,
-		.pos = (TokenPosition) {
+	Cog_Token eof = {
+		.type = COG_TOKEN_EOF,
+		.pos = (Cog_TokenPosition) {
 			.origin = text.data,
 			.start = text.count - 2,
 			.length = 1,

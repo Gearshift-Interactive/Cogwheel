@@ -3,4 +3,4 @@
 #include "parser.h"
 #include "vm.h"
 
-Chunk compile(const Node *);
+Cog_Chunk Cog_compile(const Cog_Node *);
