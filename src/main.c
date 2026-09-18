@@ -112,26 +112,22 @@ int main(int argc, char **argv)
 	Cog_Globals globals = {0};
 	buildStd(&globals);
 	assert(argc == 2);
-
 	Cog_Module *module = Cog_loadModule(argv[1]);
+#ifdef COG_DEBUG
 	Cog_Module_print(module);
-
+#endif
 	Cog_Node *ast = Cog_finalizeModule(module, &globals);
-
+	Cog_Module_freeAll();
 	Cog_Chunk code = Cog_compile(ast);
-
 #	ifdef COG_DEBUG
 	printf("//// BYTECODE ////\n");
 	Cog_Chunk_print(&code);
 	fflush(stdout);
 #	endif
-
-	Cog_Module_freeAll();
-
 #	ifdef COG_DEBUG
 	printf("//// EXECUTION ////\n");
-	int result = Cog_run(&code, &globals);
 #	endif
+	int result = Cog_run(&code, &globals);
 	Cog_Bank_freeAll();
 	free(globals.items);
 	printf("RESULT: %d\n", result);
