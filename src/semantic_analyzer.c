@@ -636,16 +636,23 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			da_foreach(Node*, item, &node->new.arrayItems)
 			{
 				mark(item, scope, context);
-				if (activeType)
-				{
-					if (!Type_areCompatible(activeType, (*item)->retType))
-						comptimeMessage(MESSAGE_ERRORN, (*item)->pos,
-							"Incompatible type %s for %s",
-							Type_toString((*item)->retType),
-							Type_toString(activeType));
-				}
-				else
+				if (!activeType)
 					activeType = (*item)->retType;
+				if ((*item)->retType == &TYPE_NULL_OBJ)
+				{
+					if (activeType->kind == TYPE_OPTION)
+						continue;
+					Type *underlying = activeType;
+					activeType = calloc(1, sizeof *activeType);
+					activeType->kind = TYPE_OPTION;
+					activeType->option.underlying = underlying;
+					Bank_handOff(activeType);
+				}
+				else if (!Type_areCompatible(activeType, (*item)->retType))
+					comptimeMessage(MESSAGE_ERRORN, (*item)->pos,
+						"Incompatible type %s for %s",
+						Type_toString((*item)->retType),
+						Type_toString(activeType));
 			}
 			if (!node->new.type)
 				node->new.type = activeType;
