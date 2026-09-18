@@ -23,7 +23,7 @@ println("Hello, World!");
 
 ## Usage
 
-The is also a code example for [basic vector math](./tests/vector.cog) and [pretty printing](.tests/prettyPrint.cog).
+The is also a code example for [basic vector math](./examples/vector.cog) and [pretty printing](.examples/prettyPrint.cog).
 
 ### Statements
 

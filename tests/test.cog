@@ -1,43 +1,68 @@
-alias String = char[];
-
-var print = (String... strs) -> {
-    mut var j = 0u;
-    while (j < sizeof strs)
-    {
-        var str = strs[j];
-        mut var i = 0u;
-        while (i < sizeof str)
-        {
-            putChar(str[i]);
-            i = i + 1u;
-        };
-        j = j + 1u;
-    };
-};
-var println = (String... strs) -> {
-    mut var i = 0u;
-    while (i < sizeof strs)
-    {
-        print(strs[i]);
-        i = i + 1u;
-    };
+// alias String = char[];
+//
+// var print = (String... strs) -> {
+//     mut var j = 0u;
+//     while (j < sizeof strs)
+//     {
+//         var str = strs[j];
+//         mut var i = 0u;
+//         while (i < sizeof str)
+//         {
+//             putChar(str[i]);
+//             i = i + 1u;
+//         };
+//         j = j + 1u;
+//     };
+// };
+// var println = (String... strs) -> {
+//     mut var i = 0u;
+//     while (i < sizeof strs)
+//     {
+//         print(strs[i]);
+//         i = i + 1u;
+//     };
+//     putChar('\n');
+// };
+// var arrayPrettyPrint = (int?[] array) -> {
+//     println("[");
+//     mut var i = 0u;
+//     while (i < sizeof array)
+//     {
+//         print("  ", if (array[i]?) $array[i]! else "null",
+//             if (i == sizeof array - 1u)
+//                 "\n"
+//             else
+//                 ",\n"
+//         );
+//         i = i + 1u;
+//     };
+//     println("]");
+// };
+// var String_eq = (String a, String b) -> {
+//     if (sizeof a != sizeof b)
+//         yield false;
+//     mut var i = 0u;
+//     mut var result = true;
+//     while (i < sizeof a)
+//     {
+//         if (a[i] != b[i])
+//         {
+//             result = false;
+//             break;
+//         };
+//         i = i + 1u;
+//     };
+//     yield result;
+// };
+mut var i = 0u;
+var some = () -> {
+    var result = (float)i / 2f == 0f;
+    putChar(if (result) 't' else 'f');
     putChar('\n');
+    i = i + 1u;
+    yield result;
 };
-var arrayPrettyPrint = (int?[] array) -> {
-    println("[");
-    mut var i = 0u;
-    while (i < sizeof array)
-    {
-        print("  ", $array[i]!,
-            if (i == sizeof array - 1u)
-                "\n"
-            else
-                ",\n"
-        );
-        i = i + 1u;
-    };
-    println("]");
-};
-
-mut var i = new [ ] with int;
-arrayPrettyPrint(i);
+var test = some();
+if (test and some())
+    exit 1;
+exit 0;
