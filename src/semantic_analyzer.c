@@ -539,16 +539,51 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 				"\"if\" condition can only accept boolean values");
 			break;
 		}
-		if (node->ifelse.falsy)
+		if (!node->ifelse.falsy)
 		{
-			mark(&node->ifelse.falsy, scope, context);
-			if (node->ifelse.truthy->retType != node->ifelse.falsy->retType)
-				comptimeMessage(MESSAGE_ERRORN, node->ifelse.falsy->pos,
-					"If statement can't return multiple data types at once");
-			node->retType = node->ifelse.truthy->retType;
-		}
-		else
 			node->retType = &TYPE_VOID_OBJ;
+			break;
+		}
+		mark(&node->ifelse.falsy, scope, context);
+		if (
+			node->ifelse.truthy->retType == &TYPE_NULL_OBJ ||
+			node->ifelse.falsy->retType == &TYPE_NULL_OBJ
+		) {
+			node->retType = calloc(1, sizeof *node->retType);
+			node->retType->kind = TYPE_OPTION;
+			if (node->ifelse.truthy->retType == &TYPE_NULL_OBJ)
+				node->retType->option.underlying =
+					node->ifelse.falsy->retType;
+			else if (node->ifelse.falsy->retType == &TYPE_NULL_OBJ)
+				node->retType->option.underlying =
+					node->ifelse.truthy->retType;
+			Bank_handOff(node->retType);
+			break;
+		}
+		if (
+			node->ifelse.truthy->retType->kind == TYPE_OPTION ||
+			node->ifelse.falsy->retType->kind == TYPE_OPTION
+		) {
+			if (node->ifelse.truthy->retType->kind == TYPE_OPTION)
+			{
+				if (!Type_areCompatible(node->ifelse.falsy->retType, node->ifelse.truthy->retType->option.underlying))
+					comptimeMessage(MESSAGE_ERRORN, node->ifelse.truthy->pos,
+						"If statement can't return multiple data types at once");
+				node->retType = node->ifelse.truthy->retType;
+			}
+			else if (node->ifelse.falsy->retType->kind == TYPE_OPTION)
+			{
+				if (!Type_areCompatible(node->ifelse.truthy->retType, node->ifelse.falsy->retType->option.underlying))
+					comptimeMessage(MESSAGE_ERRORN, node->ifelse.falsy->pos,
+						"If statement can't return multiple data types at once");
+				node->retType = node->ifelse.falsy->retType;
+			}
+			break;
+		}
+		if (!Type_areCompatible(node->ifelse.truthy->retType, node->ifelse.falsy->retType))
+			comptimeMessage(MESSAGE_ERRORN, node->ifelse.falsy->pos,
+				"If statement can't return multiple data types at once");
+		node->retType = node->ifelse.truthy->retType;
 		break;
 	case NODE_NOT:
 		mark(&node->not.value, scope, context);
@@ -637,7 +672,10 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			{
 				mark(item, scope, context);
 				if (!activeType)
+				{
 					activeType = (*item)->retType;
+					continue;
+				}
 				if ((*item)->retType == &TYPE_NULL_OBJ)
 				{
 					if (activeType->kind == TYPE_OPTION)
@@ -647,6 +685,18 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 					activeType->kind = TYPE_OPTION;
 					activeType->option.underlying = underlying;
 					Bank_handOff(activeType);
+				}
+				else if ((*item)->retType->kind == TYPE_OPTION && activeType->kind != TYPE_OPTION)
+				{
+					if (!Type_areCompatible((*item)->retType->option.underlying, activeType))
+					{
+						comptimeMessage(MESSAGE_ERRORN, (*item)->pos,
+							"Incompatible type %s for %s",
+							Type_toString((*item)->retType),
+							Type_toString(activeType));
+						break;
+					}
+					activeType = (*item)->retType;
 				}
 				else if (!Type_areCompatible(activeType, (*item)->retType))
 					comptimeMessage(MESSAGE_ERRORN, (*item)->pos,
@@ -660,21 +710,21 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 		case NEW_ARRAY_PLACEHOLDER: {
 			mark(&node->new.arrayPlaceholder.itemCount, scope, context);
 			mark(&node->new.arrayPlaceholder.placeholderValue, scope, context);
-			if (node->new.type)
+			if (!node->new.type)
 			{
-				if (!Type_areCompatible(
-					node->new.type,
-					node->new.arrayPlaceholder.placeholderValue->retType
-				)) comptimeMessage(MESSAGE_ERRORN,
-					node->new.arrayPlaceholder.placeholderValue->pos,
-					"Incompatible type %s for %s",
-					Type_toString(node->new.arrayPlaceholder.placeholderValue->retType),
-					Type_toString(node->new.type)
-				);
-			}
-			else
 				node->new.type =
 					node->new.arrayPlaceholder.placeholderValue->retType;
+				break;
+			}
+			if (!Type_areCompatible(
+				node->new.type,
+				node->new.arrayPlaceholder.placeholderValue->retType
+			)) comptimeMessage(MESSAGE_ERRORN,
+				node->new.arrayPlaceholder.placeholderValue->pos,
+				"Incompatible type %s for %s",
+				Type_toString(node->new.arrayPlaceholder.placeholderValue->retType),
+				Type_toString(node->new.type)
+			);
 		} break;
 		}
 		node->retType = calloc(1, sizeof *node->retType);
