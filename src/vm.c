@@ -853,9 +853,9 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			.v_bool = value1.v_char != value2.v_char
 		});
 	} break;
-	case OP_JUMPF_IF:
+	case OP_JUMPF_IF_R:
 		arg1 = readSizeT(vm, chunk);
-		if (Stack_pop(&vm->stack).v_bool)
+		if (Stack_currentPtr(&vm->stack)->v_bool)
 			vm->pc += arg1 - sizeof(size_t);
 		break;
 	default:
