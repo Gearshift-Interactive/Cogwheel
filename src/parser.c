@@ -133,18 +133,18 @@ static double parseFloat(Token token)
 {
 	const char *data = token.pos.origin + token.pos.start;
 	size_t length = token.pos.length;
-	double result = 0.0f;
+	double result = 0.0;
 	size_t i = 0;
 	for (;i < length && data[i] >= '0' && data[i] <= '9'; i++)
-		result = result * 10.0f + (data[i] - '0');
+		result = result * 10.0 + (data[i] - '0');
 	if (i < length && data[i] == '.')
 	{
 		i++;
-		double factor = 0.1f;
+		double factor = 0.1;
 		while (i < length && data[i] >= '0' && data[i] <= '9')
 		{
 			result += (data[i] - '0') * factor;
-			factor *= 0.1f;
+			factor *= 0.1;
 			i++;
 		}
 	}
