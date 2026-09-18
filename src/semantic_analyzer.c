@@ -610,26 +610,59 @@ static void markImpl(Node *node, ScopeInfo *scope, Context *context)
 			comptimeMessage(MESSAGE_ERRORN, node->whileLoop.cond->pos,
 				"\"while\" condition can only accept boolean values");
 		node->retType = &TYPE_VOID_OBJ;
-		if (node->whileLoop.elseBlock)
-		{
-			if (!Type_areCompatible(node->whileLoop.elseBlock->retType, childContext.loop.retType))
-			{
-				comptimeMessage(MESSAGE_ERRORN, node->pos,
-					"\"while\" can't return values of multiple data types");
-			}
-			if (node->whileLoop.elseBlock->retType)
-				node->retType = node->whileLoop.elseBlock->retType;
-			else if (childContext.loop.retType)
-				node->retType = childContext.loop.retType;
-			else
-				node->retType = &TYPE_VOID_OBJ;
-		}
-		else
+		if (!node->whileLoop.elseBlock)
 		{
 			if (childContext.loop.retType)
 				comptimeMessage(MESSAGE_WARN, node->pos,
 					"\"break\" statements with values are ignored since there are no \"else\" block");
+			break;
 		}
+		if (
+			childContext.loop.retType == &TYPE_NULL_OBJ ||
+			node->whileLoop.elseBlock->retType == &TYPE_NULL_OBJ
+		) {
+			node->retType = calloc(1, sizeof *node->retType);
+			node->retType->kind = TYPE_OPTION;
+			if (childContext.loop.retType == &TYPE_NULL_OBJ)
+				node->retType->option.underlying =
+					node->whileLoop.elseBlock->retType;
+			else if (node->whileLoop.elseBlock->retType == &TYPE_NULL_OBJ)
+				node->retType->option.underlying =
+					childContext.loop.retType;
+			Bank_handOff(node->retType);
+			break;
+		}
+		if (
+			childContext.loop.retType->kind == TYPE_OPTION ||
+			node->whileLoop.elseBlock->retType->kind == TYPE_OPTION
+		) {
+			if (childContext.loop.retType->kind == TYPE_OPTION)
+			{
+				if (!Type_areCompatible(node->whileLoop.elseBlock->retType, childContext.loop.retType->option.underlying))
+					comptimeMessage(MESSAGE_ERRORN, node->whileLoop.elseBlock->pos,
+						"While loop can't return multiple data types at once");
+				node->retType = childContext.loop.retType;
+			}
+			else if (node->whileLoop.elseBlock->retType->kind == TYPE_OPTION)
+			{
+				if (!Type_areCompatible(childContext.loop.retType, node->whileLoop.elseBlock->retType->option.underlying))
+					comptimeMessage(MESSAGE_ERRORN, node->whileLoop.elseBlock->pos,
+						"While loop can't return multiple data types at once");
+				node->retType = node->whileLoop.elseBlock->retType;
+			}
+			break;
+		}
+		if (!Type_areCompatible(node->whileLoop.elseBlock->retType, childContext.loop.retType))
+		{
+			comptimeMessage(MESSAGE_ERRORN, node->pos,
+				"\"while\" can't return values of multiple data types");
+		}
+		if (node->whileLoop.elseBlock->retType)
+			node->retType = node->whileLoop.elseBlock->retType;
+		else if (childContext.loop.retType)
+			node->retType = childContext.loop.retType;
+		else
+			node->retType = &TYPE_VOID_OBJ;
 		break;
 	case NODE_BREAK:
 		operatingContext = Context_findParent(context, CONT_LOOP);
