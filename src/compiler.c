@@ -153,6 +153,28 @@ static size_t compileAssignment(Chunk *this, const Node *node, Context *context)
 static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 {
 	size_t resultSize = 0;
+	if (node->infix.type == INFIX_AND)
+	{
+		compileNode(this, node->infix.left, context);
+		PUSH_OP(OP_JUMPF_IFN);
+		size_t addr = this->instr.count;
+		PUSH_DATA(size_t, 0);
+		compileNode(this, node->infix.right, context);
+		*(size_t*)CHUNK_PTR(addr) = this->instr.count - addr;
+		PUSH_OP(OP_CLOAD_FALSE);
+		return resultSize;
+	}
+	if (node->infix.type == INFIX_OR)
+	{
+		compileNode(this, node->infix.left, context);
+		PUSH_OP(OP_JUMPF_IF);
+		size_t addr = this->instr.count;
+		PUSH_DATA(size_t, 0);
+		compileNode(this, node->infix.right, context);
+		*(size_t*)CHUNK_PTR(addr) = this->instr.count - addr;
+		PUSH_OP(OP_CLOAD_TRUE);
+		return resultSize;
+	}
 	if (node->infix.type != INFIX_ASSIGN && node->infix.type != INFIX_FUNC)
 	{
 		compileNode(this, node->infix.left, context);

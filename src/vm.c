@@ -853,6 +853,11 @@ static void runInstruction(VM *vm, const Chunk *chunk)
 			.v_bool = value1.v_char != value2.v_char
 		});
 	} break;
+	case OP_JUMPF_IF:
+		arg1 = readSizeT(vm, chunk);
+		if (Stack_pop(&vm->stack).v_bool)
+			vm->pc += arg1 - sizeof(size_t);
+		break;
 	default:
 		PANIC("Unsupported operation at %ld", vm->pc - 1);
 		break;
@@ -887,7 +892,6 @@ static void call(VM *vm, const Closure *closure, size_t argc)
 	execute(vm, closure->chunk);
 	if (vm->done) return;
 	Scope_exit(vm);
-
 	vm->pc    = oldPc;
 	vm->scope = oldScope;
 }
