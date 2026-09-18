@@ -27,25 +27,14 @@ static Context *Context_findParent(Context *this, ContextType type)
 	return NULL;
 }
 
-typedef struct {
-	Cog_TokenPosition name;
-	const Cog_Type *type;
-	bool mutable;
-} VarInfo;
-
-typedef struct {
-	const Cog_TokenPosition *name;
-	Cog_Type *type;
-} AliasInfo;
-
 typedef struct ScopeInfo {
 	struct ScopeInfo *parent;
 	struct {
-		VarInfo *items;
+		Cog_VarInfo *items;
 		size_t count, capacity;
 	} vars;
 	struct {
-		AliasInfo *items;
+		Cog_AliasInfo *items;
 		size_t count, capacity;
 	} aliases;
 } ScopeInfo;
@@ -58,14 +47,14 @@ static ScopeInfo *ScopeInfo_make()
 static bool ScopeInfo_isVarPresent(const ScopeInfo *this, const Cog_TokenPosition *name)
 {
 	for (const ScopeInfo *current = this; current; current = current->parent)
-		da_foreach(VarInfo, var, &current->vars)
+		da_foreach(Cog_VarInfo, var, &current->vars)
 			if (Cog_TokenPosition_eq(&var->name, name))
 				return true;
 	return false;
 }
 static bool ScopeInfo_isVarPresentShallow(const ScopeInfo *this, const Cog_TokenPosition *name)
 {
-	da_foreach(VarInfo, var, &this->vars)
+	da_foreach(Cog_VarInfo, var, &this->vars)
 		if (Cog_TokenPosition_eq(&var->name, name))
 			return true;
 	return false;
@@ -84,7 +73,7 @@ static size_t ScopeInfo_getVarDepth(const ScopeInfo *this, const Cog_TokenPositi
 	size_t depth = 0;
 	for (const ScopeInfo *current = this; current; current = current->parent)
 	{
-		da_foreach(VarInfo, var, &current->vars)
+		da_foreach(Cog_VarInfo, var, &current->vars)
 			if (Cog_TokenPosition_eq(&var->name, name))
 				return depth;
 		depth++;
@@ -92,7 +81,7 @@ static size_t ScopeInfo_getVarDepth(const ScopeInfo *this, const Cog_TokenPositi
 	// Cog_comptimeMessage(COG_MESSAGE_ERRORN, *name, "Undefined variable");
 	return 0;
 }
-static VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index, size_t depth)
+static Cog_VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index, size_t depth)
 {
 	const ScopeInfo *current = this;
 	for (size_t i = 0; i < depth; i++)
@@ -102,7 +91,7 @@ static VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index, size_t de
 static void ScopeInfo_declare(
 	ScopeInfo *this, const Cog_TokenPosition name, const Cog_Type *type, bool mutable
 ) {
-	VarInfo info = {
+	Cog_VarInfo info = {
 		.name = name,
 		.type = type,
 		.mutable = mutable,
@@ -111,7 +100,7 @@ static void ScopeInfo_declare(
 }
 static void ScopeInfo_declareAlias(ScopeInfo *this, const Cog_TokenPosition *name, Cog_Type *type)
 {
-	AliasInfo info = {
+	Cog_AliasInfo info = {
 		.name = name,
 		.type = type,
 	};
@@ -121,7 +110,7 @@ static bool ScopeInfo_aliasExists(ScopeInfo *this, const Cog_TokenPosition *name
 {
 	for (const ScopeInfo *current = this; current; current = current->parent)
 	{
-		da_foreach(AliasInfo, alias, &current->aliases)
+		da_foreach(Cog_AliasInfo, alias, &current->aliases)
 			if (Cog_TokenPosition_eq(alias->name, name))
 				return true;
 	}
@@ -131,7 +120,7 @@ static Cog_Type *ScopeInfo_getAliasType(ScopeInfo *this, const Cog_TokenPosition
 {
 	for (const ScopeInfo *current = this; current; current = current->parent)
 	{
-		da_foreach(AliasInfo, alias, &current->aliases)
+		da_foreach(Cog_AliasInfo, alias, &current->aliases)
 			if (Cog_TokenPosition_eq(alias->name, name))
 				return alias->type;
 	}
@@ -234,7 +223,7 @@ static void markImpl(Cog_Node *node, ScopeInfo *scope, Context *context)
 		}
 		size_t varIndex = ScopeInfo_getVarIndex(scope, &node->symbol.token.pos);
 		size_t varDepth = ScopeInfo_getVarDepth(scope, &node->symbol.token.pos);
-		VarInfo *varInfo = ScopeInfo_getInfo(scope, varIndex, varDepth);
+		Cog_VarInfo *varInfo = ScopeInfo_getInfo(scope, varIndex, varDepth);
 		node->retType = (Cog_Type*)varInfo->type;
 		node->symbol.scopeIndex = varIndex;
 		node->symbol.scopeDepth = varDepth;
@@ -271,7 +260,7 @@ static void markImpl(Cog_Node *node, ScopeInfo *scope, Context *context)
 		{
 			node->retType = node->infix.right->retType;
 			// printf(">>>>%s\n", Cog_Type_toString(node->infix.right->retType));
-			// VarInfo *info = ScopeInfo_getInfo(scope, left->symbol.scopeIndex, left->symbol.scopeDepth);
+			// Cog_VarInfo *info = ScopeInfo_getInfo(scope, left->symbol.scopeIndex, left->symbol.scopeDepth);
 			if (!Cog_Type_areCompatible(left->retType, right->retType))
 				Cog_comptimeMessage(COG_MESSAGE_ERRORN, right->pos,
 					"Can't assign a value of type \"%s\""

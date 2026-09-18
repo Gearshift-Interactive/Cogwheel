@@ -169,5 +169,6 @@ typedef struct Cog_Node {
 const char *Cog_InfixType_toString(const Cog_InfixType *);
 Cog_Node *Cog_Node_make(Cog_TokenPosition);
 Cog_Node *Cog_Node_makeRaw(void);
+void Cog_Node_printImpl(const Cog_Node *node, const size_t indent);
 void Cog_Node_print(const Cog_Node *);
 void Cog_Node_free(const Cog_Node *);

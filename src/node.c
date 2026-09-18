@@ -27,7 +27,7 @@ static void printIndent(const size_t indent)
 	for (size_t i = 0; i < indent; i++)
 		printf("    ");
 }
-static void Node_printImpl(const Cog_Node *node, const size_t indent)
+void Cog_Node_printImpl(const Cog_Node *node, const size_t indent)
 {
 	if (node->unreachable)
 		printf(":UNREACHABLE ");
@@ -52,10 +52,10 @@ static void Node_printImpl(const Cog_Node *node, const size_t indent)
 	case COG_NODE_INFIX:
 		printf("(%s\n", Cog_InfixType_toString(&node->infix.type));
 		printIndent(indent + 1);
-		Node_printImpl(node->infix.left, indent + 1);
+		Cog_Node_printImpl(node->infix.left, indent + 1);
 		printf("\n");
 		printIndent(indent + 1);
-		Node_printImpl(node->infix.right, indent + 1);
+		Cog_Node_printImpl(node->infix.right, indent + 1);
 		printf("\n");
 		printIndent(indent);
 		printf(")");
@@ -64,7 +64,7 @@ static void Node_printImpl(const Cog_Node *node, const size_t indent)
 		printf("(do\n");
 		da_foreach(Cog_Node*, child, &node->block) {
 			printIndent(indent + 1);
-			Node_printImpl(*child, indent + 1);
+			Cog_Node_printImpl(*child, indent + 1);
 			printf("\n");
 		}
 		printIndent(indent);
@@ -99,7 +99,7 @@ static void Node_printImpl(const Cog_Node *node, const size_t indent)
 		printf("(yield\n");
 single:
 		printIndent(indent + 1);
-		Node_printImpl(node->exit.value, indent + 1);
+		Cog_Node_printImpl(node->exit.value, indent + 1);
 		printf("\n");
 		printIndent(indent);
 		printf(")");
@@ -107,7 +107,7 @@ single:
 	case COG_NODE_CAST:
 		printf("(%s\n", Cog_Type_toString(node->cast.target));
 		printIndent(indent + 1);
-		Node_printImpl(node->cast.value, indent + 1);
+		Cog_Node_printImpl(node->cast.value, indent + 1);
 		printf("\n");
 		printIndent(indent);
 		printf(")");
@@ -115,7 +115,7 @@ single:
 	case COG_NODE_NEGATION:
 		printf("(-\n");
 		printIndent(indent + 1);
-		Node_printImpl(node->negation.value, indent + 1);
+		Cog_Node_printImpl(node->negation.value, indent + 1);
 		printf("\n");
 		printIndent(indent);
 		printf(")");
@@ -134,7 +134,7 @@ single:
 		Cog_TokenPosition_print(node->var_decl.name.pos);
 		printf("\n");
 		printIndent(indent + 1);
-		Node_printImpl(node->var_decl.value, indent + 1);
+		Cog_Node_printImpl(node->var_decl.value, indent + 1);
 		printf("\n");
 		printIndent(indent);
 		printf(")");
@@ -142,7 +142,7 @@ single:
 	case COG_NODE_SCOPE:
 		printf("(scope :ofsize %ld\n", node->scope.size);
 		printIndent(indent + 1);
-		Node_printImpl(node->scope.child, indent + 1);
+		Cog_Node_printImpl(node->scope.child, indent + 1);
 		printf("\n");
 		printIndent(indent);
 		printf(")");
@@ -156,15 +156,15 @@ single:
 	case COG_NODE_IF:
 		printf("(if\n");
 		printIndent(indent + 1);
-		Node_printImpl(node->ifelse.cond, indent + 1);
+		Cog_Node_printImpl(node->ifelse.cond, indent + 1);
 		printf("\n");
 		printIndent(indent + 1);
-		Node_printImpl(node->ifelse.truthy, indent + 1);
+		Cog_Node_printImpl(node->ifelse.truthy, indent + 1);
 		printf("\n");
 		if (node->ifelse.falsy)
 		{
 			printIndent(indent + 1);
-			Node_printImpl(node->ifelse.falsy, indent + 1);
+			Cog_Node_printImpl(node->ifelse.falsy, indent + 1);
 			printf("\n");
 		}
 		printIndent(indent);
@@ -173,15 +173,15 @@ single:
 	case COG_NODE_WHILE:
 		printf("(while\n");
 		printIndent(indent + 1);
-		Node_printImpl(node->whileLoop.cond, indent + 1);
+		Cog_Node_printImpl(node->whileLoop.cond, indent + 1);
 		printf("\n");
 		printIndent(indent + 1);
-		Node_printImpl(node->whileLoop.body, indent + 1);
+		Cog_Node_printImpl(node->whileLoop.body, indent + 1);
 		printf("\n");
 		if (node->whileLoop.elseBlock)
 		{
 			printIndent(indent + 1);
-			Node_printImpl(node->whileLoop.elseBlock, indent + 1);
+			Cog_Node_printImpl(node->whileLoop.elseBlock, indent + 1);
 			printf("\n");
 		}
 		printIndent(indent);
@@ -197,10 +197,10 @@ single:
 		case COG_NEW_ARRAY_PLACEHOLDER:
 			printf("withDefault\n");
 			printIndent(indent + 1);
-			Node_printImpl(node->new.arrayPlaceholder.itemCount, indent + 1);
+			Cog_Node_printImpl(node->new.arrayPlaceholder.itemCount, indent + 1);
 			printf("\n");
 			printIndent(indent + 1);
-			Node_printImpl(node->new.arrayPlaceholder.placeholderValue, indent + 1);
+			Cog_Node_printImpl(node->new.arrayPlaceholder.placeholderValue, indent + 1);
 			printf("\n");
 			printIndent(indent);
 			break;
@@ -209,7 +209,7 @@ single:
 			da_foreach(Cog_Node*, child, &node->new.arrayItems)
 			{
 				printIndent(indent + 1);
-				Node_printImpl(*child, indent + 1);
+				Cog_Node_printImpl(*child, indent + 1);
 				printf("\n");
 			}
 			printIndent(indent);
@@ -220,10 +220,10 @@ single:
 	case COG_NODE_SUBSCRIPT:
 		printf("(index\n");
 		printIndent(indent + 1);
-		Node_printImpl(node->subscript.value, indent + 1);
+		Cog_Node_printImpl(node->subscript.value, indent + 1);
 		printf("\n");
 		printIndent(indent + 1);
-		Node_printImpl(node->subscript.index, indent + 1);
+		Cog_Node_printImpl(node->subscript.index, indent + 1);
 		printf("\n");
 		printIndent(indent);
 		printf(")");
@@ -231,7 +231,7 @@ single:
 	case COG_NODE_SIZEOF:
 		printf("(sizeof\n");
 		printIndent(indent + 1);
-		Node_printImpl(node->sizeOf.value, indent + 1);
+		Cog_Node_printImpl(node->sizeOf.value, indent + 1);
 		printf("\n");
 		printIndent(indent);
 		printf(")");
@@ -248,7 +248,7 @@ single:
 		printf("(\n");
 		da_foreach(Cog_Node*, child, &node->tuple) {
 			printIndent(indent + 1);
-			Node_printImpl(*child, indent + 1);
+			Cog_Node_printImpl(*child, indent + 1);
 			printf("\n");
 		}
 		printIndent(indent);
@@ -267,10 +267,10 @@ single:
 	case COG_NODE_CALL:
 		printf("(call\n");
 		printIndent(indent + 1);
-		Node_printImpl(node->call.function, indent + 1);
+		Cog_Node_printImpl(node->call.function, indent + 1);
 		printf("\n");
 		printIndent(indent + 1);
-		Node_printImpl(node->call.args, indent + 1);
+		Cog_Node_printImpl(node->call.args, indent + 1);
 		printf("\n");
 		printIndent(indent);
 		printf(")");
@@ -302,13 +302,13 @@ single:
 	case COG_NODE_REALLOC:
 		printf("(realloc\n");
 		printIndent(indent + 1);
-		Node_printImpl(node->realloc.array, indent + 1);
+		Cog_Node_printImpl(node->realloc.array, indent + 1);
 		printf("\n");
 		printIndent(indent + 1);
-		Node_printImpl(node->realloc.newSize, indent + 1);
+		Cog_Node_printImpl(node->realloc.newSize, indent + 1);
 		printf("\n");
 		printIndent(indent + 1);
-		Node_printImpl(node->realloc.fillValue, indent + 1);
+		Cog_Node_printImpl(node->realloc.fillValue, indent + 1);
 		printf("\n");
 		printIndent(indent);
 		printf(")");
@@ -318,7 +318,7 @@ single:
 		printf(" -> %s", Cog_Type_toString(node->retType));
 }
 void Cog_Node_print(const Cog_Node *node) { assert(node);
-	Node_printImpl(node, 0);
+	Cog_Node_printImpl(node, 0);
 }
 void Cog_Node_free(const Cog_Node *node)
 {

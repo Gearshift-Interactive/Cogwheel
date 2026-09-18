@@ -8,6 +8,7 @@
 #include "error.h"
 #include "bank.h"
 #include "globals.h"
+#include "module.h"
 
 #ifdef COG_STANDALONE
 
@@ -111,82 +112,30 @@ int main(int argc, char **argv)
 	Cog_Globals globals = {0};
 	buildStd(&globals);
 	assert(argc == 2);
-	String_Builder sb = {0};
-	read_entire_file(argv[1], &sb);
-	da_append(&sb, 0);
 
-	//////////////////
-	//// TOKENIZE ////
-	//////////////////
-	Cog_TokenStream tokens = Cog_tokenize(nob_sv_from_parts(sb.items, sb.count), argv[1]);
+	Cog_Module *module = Cog_loadModule(argv[1]);
+	Cog_Module_print(module);
 
-#	ifdef COG_DEBUG
-	da_foreach(Cog_Token, i, &tokens)
-	{
-		Cog_Token_print(*i);
-		printf("\n");
-	}
-#	endif
+	Cog_Node *ast = Cog_finalizeModule(module, &globals);
 
-	///////////////
-	//// PARSE ////
-	///////////////
-	Cog_Node *ast = Cog_parse(tokens);
-
-#	ifdef COG_DEBUG
-	printf("//// AST ////\n");
-	Cog_Node_print(ast);
-	printf("\n");
-	fflush(stdout);
-#	endif
-
-	//////////////////////////////
-	//// SEMANTICALLY ANALYZE ////
-	//////////////////////////////
-	Cog_analyzeAndMark(&ast, &globals);
-
-#	ifdef COG_DEBUG
-	printf("//// MARKED AST ////\n");
-	Cog_Node_print(ast);
-	printf("\n");
-	fflush(stdout);
-#	endif
-	if (Cog_errorOccured)
-	{
-		free(sb.items);
-		Cog_Node_free(ast);
-		Cog_Bank_freeAll();
-		free(globals.items);
-		return EXIT_FAILURE;
-	}
-
-	/////////////////
-	//// COMPILE ////
-	/////////////////
 	Cog_Chunk code = Cog_compile(ast);
 
 #	ifdef COG_DEBUG
 	printf("//// BYTECODE ////\n");
 	Cog_Chunk_print(&code);
 	fflush(stdout);
-	printf("//// EXECUTION ////\n");
 #	endif
-	free(sb.items);
 
-	// Cog_Chunk_free(&code);
-	// return 0;
+	Cog_Module_freeAll();
 
-	/////////////
-	//// RUN ////
-	/////////////
+#	ifdef COG_DEBUG
+	printf("//// EXECUTION ////\n");
 	int result = Cog_run(&code, &globals);
-
+#	endif
 	Cog_Bank_freeAll();
 	free(globals.items);
 	printf("RESULT: %d\n", result);
 	return result;
 }
-
-// i had hard time reading this shit
 
 #endif

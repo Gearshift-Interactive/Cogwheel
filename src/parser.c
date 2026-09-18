@@ -498,15 +498,15 @@ static Cog_Node *parseVarDecl(Cog_TokenStream *tokens)
 	result->var_decl.isMutable = mut;
 	return result;
 }
-static Cog_Node *parseBlockInside(Cog_TokenStream *tokens, bool fileRoot)
+static Cog_Node *parseBlockInside(Cog_TokenStream *tokens)
 {
 	Cog_Node *block = Cog_Node_makeRaw();
 	block->type = COG_NODE_BLOCK;
 	block->block.items = NULL;
 	block->block.count = 0;
 	block->block.capacity = 0;
-	if (fileRoot)
-		block->block.type = COG_BLOCK_FILE_ROOT;
+	// if (fileRoot)
+	// 	block->block.type = COG_BLOCK_FILE_ROOT;
 	while (Cog_TokenStream_peek(tokens) && Cog_TokenStream_peek(tokens)->type != COG_TOKEN_EOF)
 	{
 		Cog_Token *token = Cog_TokenStream_peek(tokens);
@@ -519,7 +519,7 @@ static Cog_Node *parseBlockInside(Cog_TokenStream *tokens, bool fileRoot)
 static Cog_Node *parseBlock(Cog_TokenStream *tokens)
 {
 	Cog_Token start = TokenStream_consumeExpect(tokens, COG_TOKEN_LBRACE);
-	Cog_Node *result = parseBlockInside(tokens, false);
+	Cog_Node *result = parseBlockInside(tokens);
 	result->pos = start.pos;
 	result->block.posEnd = TokenStream_consumeExpect(tokens, COG_TOKEN_RBRACE).pos;
 	return result;
@@ -886,7 +886,7 @@ static Cog_Node *parseExpr(Cog_TokenStream *tokens, float parentBind)
 }
 Cog_Node *Cog_parse(Cog_TokenStream tokens)
 {
-	Cog_Node *result = parseBlockInside(&tokens, true);
+	Cog_Node *result = parseBlockInside(&tokens);
 	// Cog_Node *result = Cog_Node_make();
 	// result->type = COG_NODE_EXIT;
 	// result->exit.value = parseExpr(&tokens, 0);
