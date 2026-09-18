@@ -87,6 +87,7 @@
 	/* jumps */ \
 	X(JUMPF, sizeof(size_t)) \
 	X(JUMPF_IF_R, sizeof(size_t)) \
+	X(JUMPF_IFN_R, sizeof(size_t)) \
 	X(JUMPF_IFN, sizeof(size_t)) \
 	X(JUMPB, sizeof(size_t)) \
 	/* heap objects */ \

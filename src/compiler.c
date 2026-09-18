@@ -156,12 +156,12 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 	if (node->infix.type == INFIX_AND)
 	{
 		compileNode(this, node->infix.left, context);
-		PUSH_OP(OP_JUMPF_IFN);
+		PUSH_OP(OP_JUMPF_IFN_R);
 		size_t addr = this->instr.count;
 		PUSH_DATA(size_t, 0);
+		PUSH_OP(OP_POP);
 		compileNode(this, node->infix.right, context);
 		*(size_t*)CHUNK_PTR(addr) = this->instr.count - addr;
-		// PUSH_OP(OP_CLOAD_FALSE);
 		return resultSize;
 	}
 	if (node->infix.type == INFIX_OR)
@@ -170,6 +170,7 @@ static size_t compileInfix(Chunk *this, const Node *node, Context *context)
 		PUSH_OP(OP_JUMPF_IF_R);
 		size_t addr = this->instr.count;
 		PUSH_DATA(size_t, 0);
+		PUSH_OP(OP_POP);
 		compileNode(this, node->infix.right, context);
 		*(size_t*)CHUNK_PTR(addr) = this->instr.count - addr;
 		// PUSH_OP(OP_CLOAD_TRUE);
