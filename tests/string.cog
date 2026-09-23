@@ -23,3 +23,5 @@ public var println = (String... strs) -> {
     };
     putChar('\n');
 };
+
+println("fromStrieng");

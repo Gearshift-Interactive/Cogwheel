@@ -3,7 +3,7 @@ import string;
 mut var i = 0u;
 var some = () -> {
     var result = (float)i / 2f == 0f;
-    string::println(if (result) 't' else 'f');
+    putChar(if (result) 't' else 'f');
     putChar('\n');
     i = i + 1u;
     yield result;
