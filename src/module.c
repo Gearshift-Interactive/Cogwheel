@@ -154,11 +154,15 @@ Cog_Node *Cog_finalizeModule(Cog_Module *module,  Cog_Globals *globals)
 #ifdef COG_DEBUG
 	printf("\n//// ASSEMBLED_AST ////\n");
 	Cog_Node_print(root);
+	putchar('\n');
 #endif
 	Cog_analyzeAndMark(&root, globals);
 #ifdef COG_DEBUG
 	printf("\n//// ASSEMBLED_AST_ANALYZED ////\n");
 	Cog_Node_print(root);
+	putchar('\n');
 #endif
+	if (Cog_errorOccured)
+		exit(1);
 	return root;
 }
