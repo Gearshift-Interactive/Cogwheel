@@ -51,16 +51,16 @@ static const BindingPower BINDING_POWERS[] = {
 	// { COG_TOKEN_LPAREN,    11.0f, 11.1f },
 	// { COG_TOKEN_RPAREN,    11.0f, 11.1f },
 
-	{ COG_TOKEN_NP_ACCESS, 12.0f, 12.0f },
+	{ COG_TOKEN_NP_ACCESS, 13.0f, 13.0f },
 };
 static const PrefixBindingPower PREFIX_POWERS[] = {
 	{ COG_TOKEN_NOT, 3.5f },
 	{ COG_TOKEN_SUB, 8.0f },
 };
 static const float CAST_BINDING_POWER = 15.0f;
-static const float SIZEOF_BINDING_POWER = 11.1f;
-static const float TOSTRING_BINDING_POWER = 11.2f;
-static const float CALL_BINDING_POWER = 11.0f;
+static const float SIZEOF_BINDING_POWER = 11.0f;
+static const float TOSTRING_BINDING_POWER = 11.5f;
+static const float CALL_BINDING_POWER = 12.0f;
 // static const float UNWRAP_BINDING_POWER = 11.0f;
 static const Cog_TokenType TAIL_TOKENS[] = {
 	COG_TOKEN_SEMICOLON, COG_TOKEN_RPAREN, COG_TOKEN_ELSE, COG_TOKEN_RBRACKET, COG_TOKEN_COMMA, COG_TOKEN_RBRACE,
