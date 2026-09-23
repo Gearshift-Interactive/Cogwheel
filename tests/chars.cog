@@ -1,5 +1,3 @@
-import chars;
-
 alias String = char[];
 
 public var print = (String... strs) -> {
@@ -16,14 +14,4 @@ public var print = (String... strs) -> {
         j = j + 1u;
     };
 };
-public var println = (String... strs) -> {
-    mut var i = 0u;
-    while (i < sizeof strs)
-    {
-        print(strs[i]);
-        i = i + 1u;
-    };
-    putChar('\n');
-};
-
-println("fromStrieng");
+print("fromchar\n");

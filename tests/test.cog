@@ -1,4 +1,5 @@
 import string;
+import chars;
 
 mut var i = 0u;
 var some = () -> {
