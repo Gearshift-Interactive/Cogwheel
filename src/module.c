@@ -1,4 +1,6 @@
 #include "module.h"
+#include "error.h"
+#include "bank.h"
 
 struct AllModules Cog_allModules = {0};
 
@@ -31,24 +33,24 @@ void Cog_Module_print(Cog_Module *this)
 {
 	printf("MODULE: %s\nAST:\n    ", this->filePath);
 	Cog_Node_printImpl(this->ast, 1);
-	printf("\nPUBLIC_VARS:\n");
-	nob_da_foreach(Cog_VarInfo, var, &this->publicVariables)
-	{
-		printf("    ");
-		if (var->mutable)
-			printf("mut ");
-		printf("%s ", Cog_Type_toString(var->type));
-		Cog_TokenPosition_print(var->name);
-		putchar('\n');
-	}
-	printf("PUBLIC_ALIASES:\n");
-	nob_da_foreach(Cog_AliasInfo, alias, &this->publicAliases)
-	{
-		printf("    alias ");
-		Cog_TokenPosition_print(*alias->name);
-		printf(" = %s\n", Cog_Type_toString(alias->type));
-	}
-	printf("IMPORTED:\n");
+	// printf("\nPUBLIC_VARS:\n");
+	// nob_da_foreach(Cog_VarInfo, var, &this->publicVariables)
+	// {
+	// 	printf("    ");
+	// 	if (var->mutable)
+	// 		printf("mut ");
+	// 	printf("%s ", Cog_Type_toString(var->type));
+	// 	Cog_TokenPosition_print(var->name);
+	// 	putchar('\n');
+	// }
+	// printf("PUBLIC_ALIASES:\n");
+	// nob_da_foreach(Cog_AliasInfo, alias, &this->publicAliases)
+	// {
+	// 	printf("    alias ");
+	// 	Cog_TokenPosition_print(*alias->name);
+	// 	printf(" = %s\n", Cog_Type_toString(alias->type));
+	// }
+	printf("\nIMPORTED:\n");
 	nob_da_foreach(Cog_Module*, module, &this->importedModules)
 		printf("    %s\n", (*module)->filePath);
 }
@@ -58,30 +60,60 @@ void Cog_Module_free(Cog_Module *this)
 	// 	Cog_Node_free(this->ast);
 	if (this->fileContent.items)
 		free(this->fileContent.items);
-	if (this->publicVariables.items)
-		free(this->publicVariables.items);
-	if (this->publicAliases.items)
-		free(this->publicAliases.items);
+	// if (this->publicVariables.items)
+	// 	free(this->publicVariables.items);
+	// if (this->publicAliases.items)
+	// 	free(this->publicAliases.items);
 	if (this->importedModules.items)
 		free(this->importedModules.items);
+	free(this);
 }
 void Cog_Module_freeAll(void)
 {
-	nob_da_foreach(Cog_Module, module, &Cog_allModules)
-		Cog_Module_free(module);
+	nob_da_foreach(Cog_Module*, module, &Cog_allModules)
+		Cog_Module_free(*module);
 	free(Cog_allModules.items);
+}
+static Cog_Module *resolveModulePath(Cog_Module *this, Cog_Node* path)
+{
+	if (path->type != COG_NODE_SYMBOL)
+		Cog_comptimeMessage(COG_MESSAGE_ERROR, path->pos,
+			"Invalid syntax for module path");
+	Nob_String_Builder sb = {0};
+	nob_da_append_many(&sb, this->filePath, strlen(this->filePath));
+	while (sb.count && sb.items[sb.count-1] != '/')
+		sb.count--;
+	Cog_TokenPosition tokenPos = path->symbol.token.pos;
+	nob_sb_append_buf(&sb, tokenPos.origin + tokenPos.start, tokenPos.length);
+	nob_sb_append_cstr(&sb, ".cog");
+	nob_sb_append_null(&sb);
+	Cog_Bank_handOff(sb.items);
+	nob_da_foreach(Cog_Module*, module, &Cog_allModules)
+		if (!strcmp((*module)->filePath, sb.items))
+			return *module;
+	return Cog_loadModule(sb.items);
+}
+static void Cog_Module_collectImports(Cog_Module *this)
+{
+	nob_da_foreach(Cog_Node*, childNode, &this->ast->block)
+		if ((*childNode)->type == COG_NODE_IMPORT)
+			nob_da_append(
+				&this->importedModules,
+				resolveModulePath(this, (*childNode)->import.value)
+			);
 }
 Cog_Module *Cog_loadModule(char *filePath)
 {
-	Cog_Module module = {
-		.filePath = filePath,
-	};
-	nob_read_entire_file(filePath, &module.fileContent);
-	nob_da_append(&module.fileContent, 0);
+	Cog_Module *module = calloc(1, sizeof *module);
+	module->filePath = filePath;
+	if (!nob_file_exists(filePath))
+		COG_PANIC("Module \"%s\" doesn't exist", filePath);
+	nob_read_entire_file(filePath, &module->fileContent);
+	nob_da_append(&module->fileContent, 0);
 	Cog_TokenStream tokens = Cog_tokenize(
 		nob_sv_from_parts(
-			module.fileContent.items,
-			module.fileContent.count
+			module->fileContent.items,
+			module->fileContent.count
 		),
 		filePath
 	);
@@ -94,13 +126,14 @@ Cog_Module *Cog_loadModule(char *filePath)
 	// 	printf("\n");
 	// }
 #endif
-	module.ast = Cog_parse(tokens);
+	module->ast = Cog_parse(tokens);
 #ifdef COG_DEBUG
 	// printf("  AST:    \n");
-	// Cog_Node_printImpl(module.ast, 1);
+	// Cog_Node_printImpl(module->ast, 1);
 #endif
 	nob_da_append(&Cog_allModules, module);
-	return Cog_allModules.items + Cog_allModules.count - 1;
+	Cog_Module_collectImports(module);
+	return module;
 }
 static void Cog_Module_append(Cog_Module *this, Cog_Node *root)
 {

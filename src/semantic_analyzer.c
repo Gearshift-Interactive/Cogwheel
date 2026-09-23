@@ -27,6 +27,12 @@ static Context *Context_findParent(Context *this, ContextType type)
 	return NULL;
 }
 
+// typedef struct ScopeInfo {
+// 	Cog_TokenPosition name;
+// 	Cog_TokenPosition pseudoName;
+// 	bool isPseudoNamed;
+// } NamespaceInfo;
+
 typedef struct ScopeInfo {
 	struct {
 		Cog_VarInfo *items;
@@ -36,6 +42,10 @@ typedef struct ScopeInfo {
 		Cog_AliasInfo *items;
 		size_t count, capacity;
 	} aliases;
+	// struct {
+	// 	Cog_AliasInfo *items;
+	// 	size_t count, capacity;
+	// } namespaces;
 	struct ScopeInfo *parent;
 	bool isGlobals;
 } ScopeInfo;

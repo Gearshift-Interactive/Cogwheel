@@ -114,7 +114,8 @@ int main(int argc, char **argv)
 	assert(argc == 2);
 	Cog_Module *module = Cog_loadModule(argv[1]);
 #ifdef COG_DEBUG
-	Cog_Module_print(module);
+	nob_da_foreach(Cog_Module*, module, &Cog_allModules)
+		Cog_Module_print(*module);
 #endif
 	Cog_Node *ast = Cog_finalizeModule(module, &globals);
 	Cog_Module_freeAll();

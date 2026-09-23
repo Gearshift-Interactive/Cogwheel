@@ -29,6 +29,7 @@
 	COG_X(ELT) \
 	COG_X(NEQ) \
 	COG_X(NOT) \
+	COG_X(NP_ACCESS) \
 	/* punctuation */ \
 	COG_X(LPAREN) \
 	COG_X(RPAREN) \
@@ -66,6 +67,7 @@
 	COG_X(ALIAS) \
 	COG_X(REALLOC) \
 	COG_X(PUBLIC) \
+	COG_X(IMPORT) \
 
 
 typedef enum {

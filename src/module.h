@@ -4,18 +4,20 @@
 #include "parser.h"
 #include "semantic_analyzer.h"
 
+typedef uint16_t Cog_ModuleId;
+
 typedef struct Cog_Module {
 	const char *filePath;
 	Nob_String_Builder fileContent;
 	Cog_Node *ast;
-	struct {
-		Cog_VarInfo *items;
-		size_t capacity, count;
-	} publicVariables;
-	struct {
-		Cog_AliasInfo *items;
-		size_t capacity, count;
-	} publicAliases;
+	// struct {
+	// 	Cog_VarInfo *items;
+	// 	size_t capacity, count;
+	// } publicVariables;
+	// struct {
+	// 	Cog_AliasInfo *items;
+	// 	size_t capacity, count;
+	// } publicAliases;
 	struct {
 		struct Cog_Module **items;
 		size_t capacity, count;
@@ -24,7 +26,7 @@ typedef struct Cog_Module {
 } Cog_Module;
 
 struct AllModules {
-	Cog_Module *items;
+	Cog_Module **items;
 	size_t capacity, count;
 };
 

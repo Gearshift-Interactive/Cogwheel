@@ -12,6 +12,7 @@ typedef struct {
 // longer first
 static const SymbolInfo PUNCTUATION[] = {
 	{ "...", COG_TOKEN_ELIPSIS },
+	{ "::", COG_TOKEN_NP_ACCESS },
 	{ "->", COG_TOKEN_ARROW },
 	{ "==", COG_TOKEN_EQ },
 	{ "!=", COG_TOKEN_NEQ },
@@ -65,6 +66,7 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "alias", COG_TOKEN_ALIAS },
 	// { "realloc", COG_TOKEN_REALLOC },
 	{ "public", COG_TOKEN_PUBLIC },
+	{ "import", COG_TOKEN_IMPORT },
 };
 static const char LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char LETTERS_AND_NUMBERS[] =

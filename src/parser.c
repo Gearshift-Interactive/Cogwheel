@@ -26,30 +26,32 @@ static const struct {
 	{ COG_TOKEN_CHAR_T, &COG_TYPE_CHAR_OBJ },
 };
 static const BindingPower BINDING_POWERS[] = {
-	{ COG_TOKEN_ARROW,  0.5f,  0.6f  },
+	{ COG_TOKEN_ARROW,     0.5f,  0.6f  },
 
-	{ COG_TOKEN_ASSIGN, 1.0f,  1.1f  },
+	{ COG_TOKEN_ASSIGN,    1.0f,  1.1f  },
 
-	{ COG_TOKEN_OR,     2.0f,  2.1f  },
+	{ COG_TOKEN_NP_ACCESS, 1.5f,  1.5f  },
 
-	{ COG_TOKEN_AND,    3.0f,  3.1f  },
+	{ COG_TOKEN_OR,        2.0f,  2.1f  },
 
-	{ COG_TOKEN_EQ,     4.0f,  4.0f  },
-	{ COG_TOKEN_NEQ,    4.0f,  4.0f  },
+	{ COG_TOKEN_AND,       3.0f,  3.1f  },
 
-	{ COG_TOKEN_GT,     5.0f,  5.0f  },
-	{ COG_TOKEN_LT,     5.0f,  5.0f  },
-	{ COG_TOKEN_EGT,    5.0f,  5.0f  },
-	{ COG_TOKEN_ELT,    5.0f,  5.0f  },
+	{ COG_TOKEN_EQ,        4.0f,  4.0f  },
+	{ COG_TOKEN_NEQ,       4.0f,  4.0f  },
 
-	{ COG_TOKEN_ADD,    6.0f,  6.1f  },
-	{ COG_TOKEN_SUB,    6.0f,  6.1f  },
-	{ COG_TOKEN_MUL,    7.0f,  7.1f  },
-	{ COG_TOKEN_DIV,    7.0f,  7.1f  },
-	{ COG_TOKEN_POW,    10.1f, 10.0f },
+	{ COG_TOKEN_GT,        5.0f,  5.0f  },
+	{ COG_TOKEN_LT,        5.0f,  5.0f  },
+	{ COG_TOKEN_EGT,       5.0f,  5.0f  },
+	{ COG_TOKEN_ELT,       5.0f,  5.0f  },
 
-	{ COG_TOKEN_LPAREN, 12.0f, 12.1f },
-	{ COG_TOKEN_RPAREN, 12.0f, 12.1f },
+	{ COG_TOKEN_ADD,       6.0f,  6.1f  },
+	{ COG_TOKEN_SUB,       6.0f,  6.1f  },
+	{ COG_TOKEN_MUL,       7.0f,  7.1f  },
+	{ COG_TOKEN_DIV,       7.0f,  7.1f  },
+	{ COG_TOKEN_POW,       10.1f, 10.0f },
+
+	{ COG_TOKEN_LPAREN,    12.0f, 12.1f },
+	{ COG_TOKEN_RPAREN,    12.0f, 12.1f },
 };
 static const PrefixBindingPower PREFIX_POWERS[] = {
 	{ COG_TOKEN_NOT, 3.5f },
@@ -58,6 +60,7 @@ static const PrefixBindingPower PREFIX_POWERS[] = {
 static const float CAST_BINDING_POWER = 15.0f;
 static const float SIZEOF_BINDING_POWER = 11.1f;
 static const float TOSTRING_BINDING_POWER = 11.2f;
+static const float CALL_BINDING_POWER = 0.75f;
 // static const float UNWRAP_BINDING_POWER = 11.0f;
 static const Cog_TokenType TAIL_TOKENS[] = {
 	COG_TOKEN_SEMICOLON, COG_TOKEN_RPAREN, COG_TOKEN_ELSE, COG_TOKEN_RBRACKET, COG_TOKEN_COMMA, COG_TOKEN_RBRACE,
@@ -300,6 +303,7 @@ static Cog_InfixType getInfixType(Cog_Token t)
 		case COG_TOKEN_ELT: return COG_INFIX_ELT;
 		case COG_TOKEN_NEQ: return COG_INFIX_NEQ;
 		case COG_TOKEN_ARROW: return COG_INFIX_FUNC;
+		case COG_TOKEN_NP_ACCESS: return COG_INFIX_NAMESPACE;
 		default: {
 			Cog_comptimeMessage(COG_MESSAGE_ERROR, t.pos, "Unexpected infix operator");
 			return 0;
@@ -821,6 +825,14 @@ parseWith:
 		compactTuple(&result->public.value);
 		return result;
 	}
+	else if (peek->type == COG_TOKEN_IMPORT)
+	{
+		Cog_Node *result = Cog_Node_make(Cog_TokenStream_consume(tokens).pos);
+		result->type = COG_NODE_IMPORT;
+		result->public.value = parseExpr(tokens, 0);
+		compactTuple(&result->public.value);
+		return result;
+	}
 	return parseAtom(tokens);
 }
 static Cog_Node *parseExprTail(Cog_TokenStream *tokens, float parentBind, Cog_Node *left)
@@ -862,6 +874,8 @@ static Cog_Node *parseExprTail(Cog_TokenStream *tokens, float parentBind, Cog_No
 		}
 		else if (op->type == COG_TOKEN_LPAREN)
 		{
+			if (CALL_BINDING_POWER < parentBind)
+				break;
 			Cog_Token token = Cog_TokenStream_consume(tokens);
 			Cog_Node *newLeft = Cog_Node_make(token.pos);
 			newLeft->type = COG_NODE_CALL;
