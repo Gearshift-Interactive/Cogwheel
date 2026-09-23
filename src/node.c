@@ -95,6 +95,9 @@ void Cog_Node_printImpl(const Cog_Node *node, const size_t indent)
 	case COG_NODE_TOSTRING:
 		printf("(to-string\n");
 		goto single;
+	case COG_NODE_PUBLIC:
+		printf("(public\n");
+		goto single;
 	case COG_NODE_YIELD:
 		printf("(yield\n");
 single:
@@ -336,6 +339,7 @@ void Cog_Node_free(const Cog_Node *node)
 	case COG_NODE_UNWRAP:
 	case COG_NODE_CHECK:
 	case COG_NODE_TOSTRING:
+	case COG_NODE_PUBLIC:
 		Cog_Node_free(node->exit.value);
 		break;
 	case COG_NODE_INFIX:

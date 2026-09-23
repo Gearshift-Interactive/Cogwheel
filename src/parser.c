@@ -813,6 +813,14 @@ parseWith:
 		compactTuple(&result->toString.value);
 		return result;
 	}
+	else if (peek->type == COG_TOKEN_PUBLIC)
+	{
+		Cog_Node *result = Cog_Node_make(Cog_TokenStream_consume(tokens).pos);
+		result->type = COG_NODE_PUBLIC;
+		result->public.value = parseExpr(tokens, 0);
+		compactTuple(&result->public.value);
+		return result;
+	}
 	return parseAtom(tokens);
 }
 static Cog_Node *parseExprTail(Cog_TokenStream *tokens, float parentBind, Cog_Node *left)

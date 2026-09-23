@@ -2,6 +2,31 @@
 
 struct AllModules Cog_allModules = {0};
 
+// Cog_Node *Cog_Module_reassembled(const Cog_Module *this)
+// {
+// 	Cog_Node *result = Cog_Node_makeRaw();
+// 	result->type = COG_NODE_BLOCK;
+// 	Cog_Node *currentBlock = NULL;
+// 	nob_da_foreach(Cog_Node*, child, &this->ast->block)
+// 	{
+// 		if ((*child)->type == COG_NODE_PUBLIC)
+// 		{
+// 			if (currentBlock)
+// 				nob_da_append(&result->block, currentBlock);
+// 			currentBlock = NULL;
+// 			nob_da_append(&result->block, (*child)->public.value);
+// 			continue;
+// 		}
+// 		if (!currentBlock)
+// 		{
+// 			currentBlock = Cog_Node_makeRaw();
+// 			currentBlock->type = COG_NODE_BLOCK;
+// 		}
+// 		nob_da_append(&currentBlock->block, *child);
+// 		continue;
+// 	}
+// 	return result;
+// }
 void Cog_Module_print(Cog_Module *this)
 {
 	printf("MODULE: %s\nAST:\n    ", this->filePath);
@@ -83,20 +108,15 @@ static void Cog_Module_append(Cog_Module *this, Cog_Node *root)
 		return;
 	nob_da_foreach(Cog_Module*, childModule, &this->importedModules)
 		Cog_Module_append(*childModule, root);
+	// nob_da_append(&root->block, Cog_Module_reassembled(this));
 	nob_da_append(&root->block, this->ast);
 	this->placed = true;
 }
 Cog_Node *Cog_finalizeModule(Cog_Module *module,  Cog_Globals *globals)
 {
-	Cog_Node *root;
-	if (module->importedModules.count)
-	{
-		root = Cog_Node_makeRaw();
-		root->type = COG_NODE_BLOCK;
-		Cog_Module_append(module, root);
-	}
-	else
-		root = module->ast;
+	Cog_Node *root = Cog_Node_makeRaw();
+	root->type = COG_NODE_BLOCK;
+	Cog_Module_append(module, root);
 	root->block.type = COG_BLOCK_FILE_ROOT;
 #ifdef COG_DEBUG
 	printf("\n//// ASSEMBLED_AST ////\n");

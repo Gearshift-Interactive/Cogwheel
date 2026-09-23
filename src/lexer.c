@@ -64,6 +64,7 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "with", COG_TOKEN_WITH },
 	{ "alias", COG_TOKEN_ALIAS },
 	// { "realloc", COG_TOKEN_REALLOC },
+	{ "public", COG_TOKEN_PUBLIC },
 };
 static const char LETTERS[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char LETTERS_AND_NUMBERS[] =

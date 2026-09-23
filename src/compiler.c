@@ -642,10 +642,6 @@ static size_t compileNode(Cog_Chunk *this, const Cog_Node *node, Context *contex
 		compileNode(this, node->check.value, context);
 		PUSH_OP(COG_OP_OPT_CHECK);
 		break;
-	case COG_NODE_PARAMETER:
-		COG_PANIC("Illegal parameter");
-	case COG_NODE_TUPLE:
-		COG_PANIC("Illegal tuple");
 	case COG_NODE_CALL:
 		if (node->call.function->retType->function.isNative)
 		{
@@ -690,8 +686,6 @@ static size_t compileNode(Cog_Chunk *this, const Cog_Node *node, Context *contex
 		else
 			PUSH_DATA(size_t, node->call.args->tuple.count);
 		break;
-	case COG_NODE_ALIAS:
-		COG_PANIC("Unexpected alias node in marked AST");
 	case COG_NODE_CHAR:
 		da_append(&this->charConsts, node->charLit.value);
 		PUSH_OP(COG_OP_CLOAD_CHAR);
@@ -738,6 +732,12 @@ static size_t compileNode(Cog_Chunk *this, const Cog_Node *node, Context *contex
 				Cog_Type_toString(node->toString.value->retType));
 			break;
 		}
+		break;
+	case COG_NODE_ALIAS:
+	case COG_NODE_PARAMETER:
+	case COG_NODE_TUPLE:
+	case COG_NODE_PUBLIC:
+		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Illegal node");
 	}
 	return resultSize;
 }

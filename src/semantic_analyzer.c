@@ -28,7 +28,6 @@ static Context *Context_findParent(Context *this, ContextType type)
 }
 
 typedef struct ScopeInfo {
-	struct ScopeInfo *parent;
 	struct {
 		Cog_VarInfo *items;
 		size_t count, capacity;
@@ -37,6 +36,8 @@ typedef struct ScopeInfo {
 		Cog_AliasInfo *items;
 		size_t count, capacity;
 	} aliases;
+	struct ScopeInfo *parent;
+	bool isGlobals;
 } ScopeInfo;
 
 static ScopeInfo *ScopeInfo_make()
@@ -55,6 +56,15 @@ static bool ScopeInfo_isVarPresent(const ScopeInfo *this, const Cog_TokenPositio
 static bool ScopeInfo_isVarPresentShallow(const ScopeInfo *this, const Cog_TokenPosition *name)
 {
 	da_foreach(Cog_VarInfo, var, &this->vars)
+		if (Cog_TokenPosition_eq(&var->name, name))
+			return true;
+	return false;
+}
+static bool ScopeInfo_isVarPresentPublic(const ScopeInfo *this, const Cog_TokenPosition *name)
+{
+	const ScopeInfo *current;
+	for (current = this; current->parent; current = current->parent);
+	da_foreach(Cog_VarInfo, var, &current->vars)
 		if (Cog_TokenPosition_eq(&var->name, name))
 			return true;
 	return false;
@@ -89,14 +99,18 @@ static Cog_VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index, size_
 	return current->vars.items + index;
 }
 static void ScopeInfo_declare(
-	ScopeInfo *this, const Cog_TokenPosition name, const Cog_Type *type, bool mutable
+	ScopeInfo *this, const Cog_TokenPosition name, const Cog_Type *type,
+	bool mutable, bool public
 ) {
+	ScopeInfo *current = this;
+	while (public && current->parent && !current->parent->isGlobals)
+		current = current->parent;
 	Cog_VarInfo info = {
 		.name = name,
 		.type = type,
 		.mutable = mutable,
 	};
-	da_append(&this->vars, info);
+	da_append(&current->vars, info);
 }
 static void ScopeInfo_declareAlias(ScopeInfo *this, const Cog_TokenPosition *name, Cog_Type *type)
 {
@@ -194,6 +208,52 @@ static void resolveAlias(ScopeInfo *scope, Cog_Type **type)
 #undef COG_X
 			{}
 	}
+}
+static void markVarDecl(Cog_Node *node, ScopeInfo *scope, Context *context, bool public)
+{
+	mark(&node->var_decl.value, scope, context);
+	node->retType = node->var_decl.value->retType;
+	if (node->var_decl.type)
+		resolveAlias(scope, &node->var_decl.type);
+	else
+		node->var_decl.type = node->var_decl.value->retType;
+	if (!Cog_Type_areCompatible(node->var_decl.type, node->var_decl.value->retType))
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->var_decl.value->pos,
+			"Can't assign a value of type \"%s\" to a variable of type \"%s\"",
+			Cog_Type_toString(node->var_decl.value->retType),
+			Cog_Type_toString(node->var_decl.type)
+		);
+	if (public && ScopeInfo_isVarPresentPublic(scope, &node->var_decl.name.pos))
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->var_decl.name.pos,
+			"Public variable is already declared");
+	else if (ScopeInfo_isVarPresentShallow(scope, &node->var_decl.name.pos))
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->var_decl.name.pos,
+			"Variable is already declared");
+	// printf("%s\n", Cog_Type_toString(node->var_decl.type));
+	ScopeInfo_declare(scope,
+		node->var_decl.name.pos,
+		node->var_decl.type,
+		node->var_decl.isMutable,
+		public
+	);
+	node->var_decl.scopeIndex = ScopeInfo_getVarIndex(scope, &node->var_decl.name.pos);
+	node->var_decl.scopeDepth = ScopeInfo_getVarDepth(scope, &node->var_decl.name.pos);
+}
+static Cog_Node *markPublic(Cog_Node *node, ScopeInfo *scope, Context *context)
+{
+	if (node->public.value->type != COG_NODE_VAR_DECL)
+	{
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->public.value->pos,
+			"This can't be public");
+		goto result;
+	}
+	markVarDecl(node->public.value, scope, context, true);
+result:
+	do {
+		Cog_Node *result = node->public.value;
+		free(node);
+		return result;
+	} while (0);
 }
 static void markImpl(Cog_Node *node, ScopeInfo *scope, Context *context)
 {
@@ -300,7 +360,8 @@ static void markImpl(Cog_Node *node, ScopeInfo *scope, Context *context)
 					ScopeInfo_declare(childScope,
 						(*arg)->funcParam.name.pos,
 						type,
-						(*arg)->funcParam.isMutable
+						(*arg)->funcParam.isMutable,
+						false
 					);
 					gotVarArg = true;
 					continue;
@@ -309,7 +370,8 @@ static void markImpl(Cog_Node *node, ScopeInfo *scope, Context *context)
 					ScopeInfo_declare(childScope,
 						(*arg)->funcParam.name.pos,
 						(*arg)->funcParam.type,
-						(*arg)->funcParam.isMutable
+						(*arg)->funcParam.isMutable,
+						false
 					);
 				if (gotVarArg)
 				{
@@ -471,29 +533,7 @@ static void markImpl(Cog_Node *node, ScopeInfo *scope, Context *context)
 		node->retType = node->negation.value->retType;
 		break;
 	case COG_NODE_VAR_DECL:
-		mark(&node->var_decl.value, scope, context);
-		node->retType = node->var_decl.value->retType;
-		if (node->var_decl.type)
-			resolveAlias(scope, &node->var_decl.type);
-		else
-			node->var_decl.type = node->var_decl.value->retType;
-		if (!Cog_Type_areCompatible(node->var_decl.type, node->var_decl.value->retType))
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->var_decl.value->pos,
-				"Can't assign a value of type \"%s\" to a variable of type \"%s\"",
-				Cog_Type_toString(node->var_decl.value->retType),
-				Cog_Type_toString(node->var_decl.type)
-			);
-		if (ScopeInfo_isVarPresentShallow(scope, &node->var_decl.name.pos))
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->var_decl.name.pos,
-				"Variable is already declared");
-		// printf("%s\n", Cog_Type_toString(node->var_decl.type));
-		ScopeInfo_declare(scope,
-			node->var_decl.name.pos,
-			node->var_decl.type,
-			node->var_decl.isMutable
-		);
-		node->var_decl.scopeIndex = ScopeInfo_getVarIndex(scope, &node->var_decl.name.pos);
-		node->var_decl.scopeDepth = ScopeInfo_getVarDepth(scope, &node->var_decl.name.pos);
+		markVarDecl(node, scope, context, false);
 		break;
 	case COG_NODE_SCOPE:
 		COG_PANIC("Node of type SCOPE should not be present in not analyzed ast");
@@ -868,12 +908,16 @@ static void markImpl(Cog_Node *node, ScopeInfo *scope, Context *context)
 		mark(&node->toString.value, scope, context);
 		node->retType = &COG_TYPE_STRING_OBJ;
 		break;
+	case COG_NODE_PUBLIC:
+		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Illegal node");
 	}
 }
 static void mark(Cog_Node **node, ScopeInfo *scope, Context *context)
 {
 	if ((*node)->type == COG_NODE_BLOCK)
 		*node = markScope(*node, scope, context);
+	else if ((*node)->type == COG_NODE_PUBLIC)
+		*node = markPublic(*node, scope, context);
 	else
 		markImpl(*node, scope, context);
 }
@@ -907,6 +951,7 @@ static bool isNodeFinal(Cog_Node *node)
 	case COG_NODE_STRING:
 	case COG_NODE_REALLOC:
 	case COG_NODE_TOSTRING:
+	case COG_NODE_PUBLIC:
 		return false;
 	case COG_NODE_EXIT:
 	case COG_NODE_YIELD:
@@ -1192,17 +1237,21 @@ static void analyze(Cog_Node *node)
 	case COG_NODE_ALIAS:
 	case COG_NODE_CHAR:
 	case COG_NODE_STRING:
-	{}
+		break;
+	case COG_NODE_PUBLIC:
+		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Illegal node");
 	}
 }
 void Cog_analyzeAndMark(Cog_Node **node, Cog_Globals *globals)
 {
 	Context context = {0};
-	ScopeInfo scope = {0};
+	ScopeInfo scope = {
+		.isGlobals = true,
+	};
 	da_foreach(Cog_GlobalValue, value, globals)
 		ScopeInfo_declare(
 			&scope, Cog_TokenPosition_fromString(value->name),
-			value->type, value->isMutable
+			value->type, value->isMutable, false
 		);
 	*node = markScope(*node, &scope, &context);
 	analyze(*node);

@@ -55,7 +55,7 @@
 //     yield result;
 // };
 mut var i = 0u;
-var some = () -> {
+public var some = () -> {
     var result = (float)i / 2f == 0f;
     putChar(if (result) 't' else 'f');
     putChar('\n');

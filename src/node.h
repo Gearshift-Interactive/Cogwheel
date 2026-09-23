@@ -59,6 +59,7 @@ typedef enum {
 	COG_X(STRING) \
 	COG_X(REALLOC) \
 	COG_X(TOSTRING) \
+	COG_X(PUBLIC) \
 
 typedef enum {
 #define COG_X(NAME) COG_NODE_##NAME,
@@ -97,7 +98,7 @@ typedef struct Cog_Node {
 		} let;
 		struct {
 			struct Cog_Node *value;
-		} exit, negation, yield, not, loopBreak, sizeOf, unwrap, check, toString;
+		} exit, negation, yield, not, loopBreak, sizeOf, unwrap, check, toString, public;
 		struct {
 			struct Cog_Node *value;
 			Cog_Type *target;

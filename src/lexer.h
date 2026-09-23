@@ -65,6 +65,7 @@
 	COG_X(WITH) \
 	COG_X(ALIAS) \
 	COG_X(REALLOC) \
+	COG_X(PUBLIC) \
 
 
 typedef enum {
