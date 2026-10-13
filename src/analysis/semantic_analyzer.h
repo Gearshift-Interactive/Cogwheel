@@ -3,7 +3,7 @@
 #include "parsing/parser.h"
 #include "globals.h"
 #include "type.h"
-#include "lexing/lexer.h"
+#include "lexing/token.h"
 
 typedef struct {
 	Cog_TokenPosition name;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "nob.h"
-#include "lexing/lexer.h"
+#include "lexing/token.h"
 
 #define COG_TYPE_KINDS  \
 	COG_X(VOID, void)   \

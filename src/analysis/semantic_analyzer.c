@@ -1,5 +1,4 @@
 #include "semantic_analyzer.h"
-#include "lexing/lexer.h"
 #include "error.h"
 #include "bank.h"
 

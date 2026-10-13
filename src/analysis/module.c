@@ -1,6 +1,7 @@
 #include "module.h"
 #include "error.h"
 #include "bank.h"
+#include "lexing/lexer.h"
 
 struct AllModules Cog_allModules = {0};
 

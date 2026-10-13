@@ -1,7 +1,7 @@
 #pragma once
 
 #include "analysis/type.h"
-#include "lexing/lexer.h"
+#include "lexing/token.h"
 
 #define COG_INFIX_TYPE \
 	COG_X(ASSIGN, =) \
