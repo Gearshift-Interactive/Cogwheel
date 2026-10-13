@@ -919,6 +919,9 @@ static void markImpl(Cog_Node *node, ScopeInfo *scope, Context *context)
 		break;
 	case COG_NODE_PUBLIC:
 		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Illegal node");
+		break;
+	case COG_NODE_IMPORT:
+		{}
 	}
 }
 static void mark(Cog_Node **node, ScopeInfo *scope, Context *context)
@@ -961,6 +964,7 @@ static bool isNodeFinal(Cog_Node *node)
 	case COG_NODE_REALLOC:
 	case COG_NODE_TOSTRING:
 	case COG_NODE_PUBLIC:
+	case COG_NODE_IMPORT:
 		return false;
 	case COG_NODE_EXIT:
 	case COG_NODE_YIELD:
@@ -1246,6 +1250,7 @@ static void analyze(Cog_Node *node)
 	case COG_NODE_ALIAS:
 	case COG_NODE_CHAR:
 	case COG_NODE_STRING:
+	case COG_NODE_IMPORT:
 		break;
 	case COG_NODE_PUBLIC:
 		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Illegal node");

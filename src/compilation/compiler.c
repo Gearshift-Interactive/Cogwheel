@@ -401,6 +401,9 @@ static size_t compileInfix(Cog_Chunk *this, const Cog_Node *node, Context *conte
 			break;
 		}
 		break;
+	case COG_INFIX_NAMESPACE:
+		COG_PANIC("Unimplemented");
+		break;
 	}
 	return resultSize;
 }
@@ -738,6 +741,8 @@ static size_t compileNode(Cog_Chunk *this, const Cog_Node *node, Context *contex
 	case COG_NODE_TUPLE:
 	case COG_NODE_PUBLIC:
 		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Illegal node");
+	case COG_NODE_IMPORT:
+		{}
 	}
 	return resultSize;
 }
