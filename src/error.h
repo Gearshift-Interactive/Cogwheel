@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lexer.h"
+#include "lexing/lexer.h"
 
 #define COG_PANIC(...) do{ fflush(stdout); COG_PANIC_IMPL(__VA_ARGS__); }while(0)
 

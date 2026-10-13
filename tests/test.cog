@@ -4,8 +4,7 @@ import chars;
 mut var i = 0u;
 var some = () -> {
     var result = (float)i / 2f == 0f;
-    putChar(if (result) 't' else 'f');
-    putChar('\n');
+    println(if (result) "t" else "f");
     i = i + 1u;
     yield result;
 };

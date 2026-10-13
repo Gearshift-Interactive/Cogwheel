@@ -1,14 +1,14 @@
 #include "stdio.h"
 
-#include "lexer.h"
-#include "parser.h"
-#include "vm.h"
-#include "compiler.h"
-#include "semantic_analyzer.h"
+#include "lexing/lexer.h"
+#include "parsing/parser.h"
+#include "vm/vm.h"
+#include "compilation/compiler.h"
+#include "analysis/semantic_analyzer.h"
 #include "error.h"
 #include "bank.h"
 #include "globals.h"
-#include "module.h"
+#include "analysis/module.h"
 
 #ifdef COG_STANDALONE
 

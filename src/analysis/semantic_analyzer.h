@@ -1,9 +1,9 @@
 #pragma once
 
-#include "parser.h"
+#include "parsing/parser.h"
 #include "globals.h"
 #include "type.h"
-#include "lexer.h"
+#include "lexing/lexer.h"
 
 typedef struct {
 	Cog_TokenPosition name;

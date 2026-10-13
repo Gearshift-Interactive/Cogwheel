@@ -1,7 +1,7 @@
 #pragma once
 
-#include "value.h"
-#include "type.h"
+#include "vm/value.h"
+#include "analysis/type.h"
 
 typedef struct {
 	Cog_Value value;

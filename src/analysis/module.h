@@ -1,7 +1,7 @@
 #pragma once
 
-#include "node.h"
-#include "parser.h"
+#include "parsing/node.h"
+#include "parsing/parser.h"
 #include "semantic_analyzer.h"
 
 typedef uint16_t Cog_ModuleId;
