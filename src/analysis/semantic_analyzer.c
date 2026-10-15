@@ -1,6 +1,7 @@
 #include "semantic_analyzer.h"
 #include "error.h"
 #include "bank.h"
+#include "var_info.h"
 
 typedef enum {
 	CONT_NULL = 0,

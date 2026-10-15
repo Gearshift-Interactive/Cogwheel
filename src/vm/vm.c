@@ -6,7 +6,7 @@
 #include <inttypes.h>
 
 #ifdef COG_DEBUG
-#	include "parser.h"
+#	include "parsing/parser.h"
 #endif
 
 typedef struct Scope {

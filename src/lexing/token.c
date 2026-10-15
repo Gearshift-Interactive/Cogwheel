@@ -28,6 +28,13 @@ bool Cog_TokenPosition_eq(const Cog_TokenPosition *a, const Cog_TokenPosition *b
 		return false;
 	return !memcmp(a->origin + a->start, b->origin + b->start, a->length);
 }
+bool Cog_TokenPosition_contains(const Cog_TokenPosition *this, char character)
+{
+	for (size_t i = 0; i < this->length; i++)
+		if (*(char*)(this->origin + this->start + i) == character)
+			return true;
+	return false;
+}
 char *Cog_TokenPosition_toString(const Cog_TokenPosition *tp)
 {
 	char *result = calloc(tp->length + 1, sizeof *result);
@@ -41,6 +48,6 @@ Cog_TokenPosition Cog_TokenPosition_fromString(const char *chars)
 		.origin = chars,
 		.start = 0,
 		.length = strlen(chars),
-		"src",
+		"inline",
 	};
 }

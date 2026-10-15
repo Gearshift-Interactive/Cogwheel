@@ -1,5 +1,5 @@
 #define NOB_IMPLEMENTATION
-#include "nob.h"
+#include "nob_util.h"
 
 #include "string.h"
 
@@ -17,11 +17,7 @@
 #define ARGS_NOB "gcc", "-x", "c", "-DNOB_IMPLEMENTATION", "-c", "nob.h"
 #define ARGS_DEBUG "-ggdb", "-fsanitize=address", "-DCOG_DEBUG"
 
-struct {
-	char **items;
-	size_t count;
-	size_t capacity;
-} filesToBuild;
+struct { NOBU_DA(char *) } filesToBuild;
 
 Cmd cmd = {0};
 

@@ -93,5 +93,6 @@ const char *Cog_TokenType_toString(const Cog_TokenType);
 void Cog_TokenPosition_print(const Cog_TokenPosition);
 void Cog_Token_print(const Cog_Token);
 bool Cog_TokenPosition_eq(const Cog_TokenPosition *, const Cog_TokenPosition *);
+bool Cog_TokenPosition_contains(const Cog_TokenPosition *, char);
 char *Cog_TokenPosition_toString(const Cog_TokenPosition *);
 Cog_TokenPosition Cog_TokenPosition_fromString(const char *);
