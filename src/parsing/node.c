@@ -323,12 +323,12 @@ single:
 	if (node->retType)
 		printf(" -> %s", Cog_Type_toString(node->retType));
 }
-void Cog_Node_print(const Cog_Node *node) { assert(node);
-	Cog_Node_printImpl(node, 0);
-}
-void Cog_Node_free(const Cog_Node *node)
-{
-	assert(node);
+static void Cog_Node_visitChildren(
+	Cog_Node *node,
+	Cog_Node_VisitCallback callback,
+	void *userdata,
+	void (*traversalFunction)(Cog_Node *, Cog_Node_VisitCallback, void *userdata)
+) {
 	switch (node->type)
 	{
 	case COG_NODE_CAST:
@@ -344,33 +344,32 @@ void Cog_Node_free(const Cog_Node *node)
 	case COG_NODE_TOSTRING:
 	case COG_NODE_PUBLIC:
 	case COG_NODE_IMPORT:
-		Cog_Node_free(node->exit.value);
+		traversalFunction(node->exit.value, callback, userdata);
 		break;
 	case COG_NODE_INFIX:
 	case COG_NODE_SUBSCRIPT:
-		Cog_Node_free(node->infix.left);
-		Cog_Node_free(node->infix.right);
+		traversalFunction(node->infix.left, callback, userdata);
+		traversalFunction(node->infix.right, callback, userdata);
 		break;
 	case COG_NODE_BLOCK:
 		da_foreach(Cog_Node*, child, &node->block)
-			Cog_Node_free(*child);
-		free(node->block.items);
+			traversalFunction(*child, callback, userdata);
 		break;
 	case COG_NODE_IF:
-		Cog_Node_free(node->ifelse.cond);
-		Cog_Node_free(node->ifelse.truthy);
+		traversalFunction(node->ifelse.cond, callback, userdata);
+		traversalFunction(node->ifelse.truthy, callback, userdata);
 		if (node->ifelse.falsy)
-			Cog_Node_free(node->ifelse.falsy);
+			traversalFunction(node->ifelse.falsy, callback, userdata);
 		break;
 	case COG_NODE_WHILE:
-		Cog_Node_free(node->whileLoop.cond);
-		Cog_Node_free(node->whileLoop.body);
+		traversalFunction(node->whileLoop.cond, callback, userdata);
+		traversalFunction(node->whileLoop.body, callback, userdata);
 		if (node->whileLoop.elseBlock)
-			Cog_Node_free(node->whileLoop.elseBlock);
+			traversalFunction(node->whileLoop.elseBlock, callback, userdata);
 		break;
 	case COG_NODE_BREAK:
 		if (node->loopBreak.value)
-			Cog_Node_free(node->loopBreak.value);
+			traversalFunction(node->loopBreak.value, callback, userdata);
 		break;
 	case COG_NODE_NEW:
 		switch (node->new.kind)
@@ -381,32 +380,26 @@ void Cog_Node_free(const Cog_Node *node)
 			if (!node->new.arrayItems.items)
 				break;
 			da_foreach(Cog_Node*, child, &node->new.arrayItems)
-				Cog_Node_free(*child);
-			free(node->new.arrayItems.items);
+				traversalFunction(*child, callback, userdata);
 			break;
 		case COG_NEW_ARRAY_PLACEHOLDER:
-			Cog_Node_free(node->new.arrayPlaceholder.itemCount);
-			Cog_Node_free(node->new.arrayPlaceholder.placeholderValue);
+			traversalFunction(node->new.arrayPlaceholder.itemCount, callback, userdata);
+			traversalFunction(node->new.arrayPlaceholder.placeholderValue, callback, userdata);
 			break;
 		}
 		break;
 	case COG_NODE_CALL:
-		Cog_Node_free(node->call.function);
-		Cog_Node_free(node->call.args);
+		traversalFunction(node->call.function, callback, userdata);
+		traversalFunction(node->call.args, callback, userdata);
 		break;
 	case COG_NODE_TUPLE:
 		da_foreach(Cog_Node*, child, &node->tuple)
-			Cog_Node_free(*child);
-		free(node->tuple.items);
-		break;
-	case COG_NODE_STRING:
-		if (node->stringLit.items)
-			free(node->stringLit.items);
+			traversalFunction(*child, callback, userdata);
 		break;
 	case COG_NODE_REALLOC:
-		Cog_Node_free(node->realloc.array);
-		Cog_Node_free(node->realloc.newSize);
-		Cog_Node_free(node->realloc.fillValue);
+		traversalFunction(node->realloc.array, callback, userdata);
+		traversalFunction(node->realloc.newSize, callback, userdata);
+		traversalFunction(node->realloc.fillValue, callback, userdata);
 		break;
 	case COG_NODE_NUMBER_LIT:
 	case COG_NODE_UNUMBER_LIT:
@@ -418,7 +411,43 @@ void Cog_Node_free(const Cog_Node *node)
 	case COG_NODE_PARAMETER:
 	case COG_NODE_ALIAS:
 	case COG_NODE_CHAR:
+	case COG_NODE_STRING:
 		{}
 	}
+}
+void Cog_Node_print(const Cog_Node *node) { assert(node);
+	Cog_Node_printImpl(node, 0);
+}
+void Cog_Node_preOrderTraversal(Cog_Node *this, Cog_Node_VisitCallback callback, void *userdata)
+{
+	if (!this) return;
+	Cog_Node_VisitResult visitResult = callback(this, userdata);
+	Cog_Node_visitChildren(this, callback, visitResult.userdata, Cog_Node_preOrderTraversal);
+}
+void Cog_Node_postOrderTraversal(Cog_Node *this, Cog_Node_VisitCallback callback, void *userdata)
+{
+	if (!this) return;
+	Cog_Node_visitChildren(this, callback, userdata, Cog_Node_postOrderTraversal);
+	callback(this, userdata);
+}
+static Cog_Node_VisitResult freeCallback(Cog_Node *node, void *userdata)
+{
+	NOB_UNUSED(userdata);
+	if (node->type == COG_NODE_BLOCK)
+		free(node->block.items);
+	else if (node->type == COG_NODE_NEW)
+	{
+		if (node->new.kind == COG_NEW_ARRAY)
+			free(node->new.arrayItems.items);
+	}
+	else if (node->type == COG_NODE_TUPLE)
+		free(node->tuple.items);
+	else if (node->type == COG_NODE_STRING)
+		free(node->stringLit.items);
 	free((void*)node);
+	return (Cog_Node_VisitResult){ COG_NODE_VISIT_CONTINUE };
+}
+void Cog_Node_free(const Cog_Node *node)
+{
+	Cog_Node_postOrderTraversal((Cog_Node*)node, freeCallback, NULL);
 }
