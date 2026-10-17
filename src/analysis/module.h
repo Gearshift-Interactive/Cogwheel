@@ -8,7 +8,6 @@ typedef struct Cog_Module {
 	const char *filePath;
 	Nob_String_Builder fileContent;
 	Cog_Node *ast;
-	Cog_Namespace *namespace;
 	struct {
 		struct Cog_Module **items;
 		size_t capacity, count;

@@ -1,5 +1,4 @@
-#pragma once
+#include "namespace.h"
+#include "parsing/node.h"
 
-#include "module.h"
-
-void Cog_Module_buildNamespace(Cog_Module *);
+Cog_Namespace *Cog_buildNamespaceTree(const Cog_Node *);

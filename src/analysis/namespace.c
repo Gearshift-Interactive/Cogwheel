@@ -36,5 +36,9 @@ void Cog_Namespace_free(Cog_Namespace *this)
 {
 	nob_da_foreach(Cog_Namespace *, child, &this->children)
 		Cog_Namespace_free(*child);
+	if (this->children.items)
+		free(this->children.items);
+	if (this->items.items)
+		free(this->items.items);
 	free(this);
 }

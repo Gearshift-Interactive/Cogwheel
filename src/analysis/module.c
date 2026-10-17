@@ -4,7 +4,6 @@
 #include "lexing/lexer.h"
 #include "parsing/parser.h"
 #include "semantic_analyzer.h"
-#include "namespace_builder.h"
 
 struct Cog_AllModules Cog_allModules = {0};
 
@@ -35,9 +34,7 @@ struct Cog_AllModules Cog_allModules = {0};
 // }
 void Cog_Module_print(Cog_Module *this)
 {
-	printf("MODULE: %s\nNAMESPACE:\n", this->filePath);
-	Cog_Namespace_printImpl(this->namespace, 1);
-	printf("AST:\n    ");
+	printf("MODULE: %s\nAST:\n    ", this->filePath);
 	Cog_Node_printImpl(this->ast, 1);
 	// printf("\nPUBLIC_VARS:\n");
 	// nob_da_foreach(Cog_VarInfo, var, &this->publicVariables)
@@ -72,7 +69,6 @@ void Cog_Module_free(Cog_Module *this)
 	// 	free(this->publicAliases.items);
 	if (this->importedModules.items)
 		free(this->importedModules.items);
-	Cog_Namespace_free(this->namespace);
 	free(this);
 }
 void Cog_Module_freeAll(void)
@@ -134,7 +130,7 @@ Cog_Module *Cog_loadModule(char *filePath)
 	// }
 #endif
 	module->ast = Cog_parse(tokens);
-	Cog_Module_buildNamespace(module);
+	// Cog_Module_buildNamespace(module);
 #ifdef COG_DEBUG
 	// printf("  AST:    \n");
 	// Cog_Node_printImpl(module->ast, 1);
