@@ -841,184 +841,203 @@ static void analyzeRealloc(Cog_Node *node, Context context)
 		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->realloc.array->pos,
 			"Can't realloc an immutable array");
 }
+static void analyzeNumberLit(Cog_Node *node, Context context) {
+	NOB_UNUSED(context);
+	node->retType = &COG_TYPE_INT_OBJ;
+}
+static void analyzeUNumberLit(Cog_Node *node, Context context) {
+	NOB_UNUSED(context);
+	node->retType = &COG_TYPE_UINT_OBJ;
+}
+static void analyzeFNumberLit(Cog_Node *node, Context context) {
+	NOB_UNUSED(context);
+	node->retType = &COG_TYPE_FLOAT_OBJ;
+}
+static void analyzeSymbol(Cog_Node *node, Context context)
+{
+	if (!ScopeInfo_isVarPresent(context.scope, &node->symbol.token.pos))
+	{
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->symbol.token.pos,
+			"Undefined variable");
+		node->retType = &COG_TYPE_VOID_OBJ;
+		return;
+	}
+	size_t varIndex = ScopeInfo_getVarIndex(context.scope, &node->symbol.token.pos);
+	size_t varDepth = ScopeInfo_getVarDepth(context.scope, &node->symbol.token.pos);
+	Cog_VarInfo *varInfo = ScopeInfo_getInfo(context.scope, varIndex, varDepth);
+	node->retType = (Cog_Type*)varInfo->type;
+	node->symbol.scopeIndex = varIndex;
+	node->symbol.scopeDepth = varDepth;
+	node->symbol.isMutable = varInfo->mutable;
+}
+static void analyzeExit(Cog_Node *node, Context context)
+{
+	analyze(&node->exit.value, context);
+	node->retType = &COG_TYPE_VOID_OBJ;
+	if (node->exit.value->retType->kind != COG_TYPE_INT)
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->exit.value->pos,
+			"Can't exit with non-int value");
+}
+static void analyzeNegation(Cog_Node *node, Context context)
+{
+	NOB_UNUSED(context);
+	analyze(&node->negation.value, context);
+	node->retType = node->negation.value->retType;
+	if (node->negation.value->retType->kind != COG_TYPE_INT &&
+		node->negation.value->retType->kind != COG_TYPE_FLOAT)
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->negation.value->pos,
+			"Cannot negate %s", Cog_Type_toString(node->retType));
+}
+static void analyzeBool(Cog_Node *node, Context context)
+{
+	NOB_UNUSED(context);
+	node->retType = &COG_TYPE_BOOL_OBJ;
+}
+static void analyzeNot(Cog_Node *node, Context context)
+{
+	NOB_UNUSED(context);
+	analyze(&node->not.value, context);
+	if (node->not.value->retType != &COG_TYPE_BOOL_OBJ)
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->not.value->pos,
+			"\"not\" can only accept boolean values");
+	node->retType = &COG_TYPE_BOOL_OBJ;
+}
+static void analyzeSizeof(Cog_Node *node, Context context)
+{
+	NOB_UNUSED(context);
+	analyze(&node->sizeOf.value, context);
+	node->retType = &COG_TYPE_UINT_OBJ;
+	if (node->sizeOf.value->retType->kind != COG_TYPE_ARRAY)
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->sizeOf.value->pos,
+			"Can't get the size of non-array value");
+}
+static void analyzeNull(Cog_Node *node, Context context)
+{
+	NOB_UNUSED(context);
+	node->retType = &COG_TYPE_NULL_OBJ;
+}
+static void analyzeUnwrap(Cog_Node *node, Context context)
+{
+	NOB_UNUSED(context);
+	analyze(&node->unwrap.value, context);
+	if (node->unwrap.value->retType->kind != COG_TYPE_OPTION)
+	{
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->unwrap.value->pos,
+			"Can't unwrap non-option value");
+		node->retType = &COG_TYPE_VOID_OBJ;
+		return;
+	}
+	// node->retType = Cog_Type_copy(node->unwrap.value->retType);
+	// node->retType->nullable = false;
+	node->retType = node->unwrap.value->retType->option.underlying;
+}
+static void analyzeCheck(Cog_Node *node, Context context)
+{
+	analyze(&node->check.value, context);
+	if (node->unwrap.value->retType->kind != COG_TYPE_OPTION)
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->unwrap.value->pos,
+			"Can't check non-option value");
+	node->retType = &COG_TYPE_BOOL_OBJ;
+}
+static void analyzeTuple(Cog_Node *node, Context context)
+{
+	NOB_UNUSED(context);
+	node->retType = &COG_TYPE_VOID_OBJ;
+	da_foreach(Cog_Node*, child, &node->tuple)
+		analyze(child, context);
+}
+static void analyzeParameter(Cog_Node *node, Context context)
+{
+	NOB_UNUSED(context);
+	node->retType = &COG_TYPE_VOID_OBJ;
+}
+static void analyzeAlias(Cog_Node *node, Context context)
+{
+	NOB_UNUSED(context);
+	if (ScopeInfo_aliasExists(context.scope, &node->alias.name.pos))
+	{
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->alias.name.pos,
+			"Alias %s already exists",
+			Cog_TokenPosition_toString(&node->alias.name.pos));
+		return;
+	}
+	resolveAlias(context.scope, &node->alias.type);
+	ScopeInfo_declareAlias(context.scope, &node->alias.name.pos, node->alias.type);
+	node->unreachable = true;
+	node->retType = &COG_TYPE_VOID_OBJ;
+}
+static void analyzeChar(Cog_Node *node, Context context) {
+	NOB_UNUSED(context);
+	node->retType = &COG_TYPE_CHAR_OBJ;
+}
+static void analyzeString(Cog_Node *node, Context context)
+{
+	NOB_UNUSED(context);
+	// node->retType = calloc(1, sizeof *node->retType);
+	// node->retType->kind = COG_TYPE_ARRAY;
+	// node->retType->array.underlying = &COG_TYPE_CHAR_OBJ;
+	// node->retType->array.size = node->stringLit.count;
+	// Cog_Bank_handOff(node->retType);
+	node->retType = &COG_TYPE_STRING_OBJ;
+}
+static void analyzeToString(Cog_Node *node, Context context)
+{
+	analyze(&node->toString.value, context);
+	node->retType = &COG_TYPE_STRING_OBJ;
+	if (!(
+		node->toString.value->retType->kind == COG_TYPE_INT ||
+		node->toString.value->retType->kind == COG_TYPE_UINT ||
+		node->toString.value->retType->kind == COG_TYPE_FLOAT ||
+		node->toString.value->retType->kind == COG_TYPE_BOOL
+	)) Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->toString.value->pos,
+		"Can't parse %s to string",
+		Cog_Type_toString(node->toString.value->retType));
+}
+static void analyzeNamespace(Cog_Node *node, Context context)
+{
+	analyze(&node->namespace.value, context);
+	node->retType = node->namespace.value->retType;
+}
 static void analyzeImpl(Cog_Node *node, Context context)
 {
 	node->retType = &COG_TYPE_VOID_OBJ;
 	switch (node->type)
 	{
-	case COG_NODE_NUMBER_LIT:
-		node->retType = &COG_TYPE_INT_OBJ;
-		// printf("!!!%d\n", COG_TYPE_INT_OBJ.nullable);
-		break;
-	case COG_NODE_UNUMBER_LIT:
-		node->retType = &COG_TYPE_UINT_OBJ;
-		break;
-	case COG_NODE_FNUMBER_LIT:
-		node->retType = &COG_TYPE_FLOAT_OBJ;
-		break;
-	case COG_NODE_SYMBOL:
-		if (!ScopeInfo_isVarPresent(context.scope, &node->symbol.token.pos))
-		{
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->symbol.token.pos,
-				"Undefined variable");
-			node->retType = &COG_TYPE_VOID_OBJ;
-			break;
-		}
-		size_t varIndex = ScopeInfo_getVarIndex(context.scope, &node->symbol.token.pos);
-		size_t varDepth = ScopeInfo_getVarDepth(context.scope, &node->symbol.token.pos);
-		Cog_VarInfo *varInfo = ScopeInfo_getInfo(context.scope, varIndex, varDepth);
-		node->retType = (Cog_Type*)varInfo->type;
-		node->symbol.scopeIndex = varIndex;
-		node->symbol.scopeDepth = varDepth;
-		node->symbol.isMutable = varInfo->mutable;
-		break;
-	case COG_NODE_BLOCK:
-		analyzeBlock(node, context);
-		break;
-	case COG_NODE_INFIX:
-		analyzeInfix(node, context);
-		break;
-	case COG_NODE_EXIT:
-		analyze(&node->exit.value, context);
-		node->retType = &COG_TYPE_VOID_OBJ;
-		if (node->exit.value->retType->kind != COG_TYPE_INT)
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->exit.value->pos,
-				"Can't exit with non-int value");
-		break;
-	case COG_NODE_CAST:
-		analyzeCast(node, context);
-		break;
-	case COG_NODE_NEGATION:
-		analyze(&node->negation.value, context);
-		node->retType = node->negation.value->retType;
-		if (node->negation.value->retType->kind != COG_TYPE_INT &&
-			node->negation.value->retType->kind != COG_TYPE_FLOAT)
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->negation.value->pos,
-				"Cannot negate %s", Cog_Type_toString(node->retType));
-		break;
-	case COG_NODE_VAR_DECL:
-		analyzeVarDecl(node, context, false);
-		break;
-	case COG_NODE_SCOPE:
-		COG_PANIC("Node of type SCOPE should not be present in not analyzed ast");
+	case COG_NODE_NUMBER_LIT: analyzeNumberLit(node, context); break;
+	case COG_NODE_UNUMBER_LIT: analyzeUNumberLit(node, context); break;
+	case COG_NODE_FNUMBER_LIT: analyzeFNumberLit(node, context); break;
+	case COG_NODE_SYMBOL: analyzeSymbol(node, context); break;
+	case COG_NODE_BLOCK: analyzeBlock(node, context); break;
+	case COG_NODE_INFIX: analyzeInfix(node, context); break;
+	case COG_NODE_EXIT: analyzeExit(node, context); break;
+	case COG_NODE_CAST: analyzeCast(node, context); break;
+	case COG_NODE_NEGATION: analyzeNegation(node, context); break;
+	case COG_NODE_VAR_DECL: analyzeVarDecl(node, context, false); break;
+	case COG_NODE_SCOPE: COG_PANIC("Node of type SCOPE should not be present in not analyzed ast");
 	case COG_NODE_FALSE_:
-	case COG_NODE_TRUE_:
-		node->retType = &COG_TYPE_BOOL_OBJ;
-		break;
-	case COG_NODE_YIELD:
-		analyzeYield(node, context);
-		break;
-	case COG_NODE_IF:
-		analyzeIf(node, context);
-		break;
-	case COG_NODE_NOT:
-		analyze(&node->not.value, context);
-		if (node->not.value->retType != &COG_TYPE_BOOL_OBJ)
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->not.value->pos,
-				"\"not\" can only accept boolean values");
-		node->retType = &COG_TYPE_BOOL_OBJ;
-		break;
-	case COG_NODE_WHILE:
-		analyzeWhile(node, context);
-		break;
-	case COG_NODE_BREAK:
-		analyzeBreak(node, context);
-		break;
-	case COG_NODE_NEW:
-		analyzeNew(node, context);
-		break;
-	case COG_NODE_SUBSCRIPT:
-		analyzeSubscript(node, context);
-		break;
-	case COG_NODE_SIZEOF:
-		analyze(&node->sizeOf.value, context);
-		node->retType = &COG_TYPE_UINT_OBJ;
-		if (node->sizeOf.value->retType->kind != COG_TYPE_ARRAY)
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->sizeOf.value->pos,
-				"Can't get the size of non-array value");
-		break;
-	case COG_NODE_NULL:
-		node->retType = &COG_TYPE_NULL_OBJ;
-		break;
-	case COG_NODE_UNWRAP:
-		analyze(&node->unwrap.value, context);
-		if (node->unwrap.value->retType->kind != COG_TYPE_OPTION)
-		{
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->unwrap.value->pos,
-				"Can't unwrap non-option value");
-			node->retType = &COG_TYPE_VOID_OBJ;
-			break;
-		}
-		// node->retType = Cog_Type_copy(node->unwrap.value->retType);
-		// node->retType->nullable = false;
-		node->retType = node->unwrap.value->retType->option.underlying;
-		break;
-	case COG_NODE_CHECK:
-		analyze(&node->check.value, context);
-		if (node->unwrap.value->retType->kind != COG_TYPE_OPTION)
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->unwrap.value->pos,
-				"Can't check non-option value");
-		node->retType = &COG_TYPE_BOOL_OBJ;
-		break;
-	case COG_NODE_TUPLE:
-		node->retType = &COG_TYPE_VOID_OBJ;
-		da_foreach(Cog_Node*, child, &node->tuple)
-			analyze(child, context);
-		break;
-	case COG_NODE_PARAMETER:
-		node->retType = &COG_TYPE_VOID_OBJ;
-		break;
-	case COG_NODE_CALL:
-		analyzeCall(node, context);
-		break;
-	case COG_NODE_ALIAS:
-		if (ScopeInfo_aliasExists(context.scope, &node->alias.name.pos))
-		{
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->alias.name.pos,
-				"Alias %s already exists",
-				Cog_TokenPosition_toString(&node->alias.name.pos));
-			break;
-		}
-		resolveAlias(context.scope, &node->alias.type);
-		ScopeInfo_declareAlias(context.scope, &node->alias.name.pos, node->alias.type);
-		node->unreachable = true;
-		node->retType = &COG_TYPE_VOID_OBJ;
-		break;
-	case COG_NODE_CHAR:
-		node->retType = &COG_TYPE_CHAR_OBJ;
-		break;
-	case COG_NODE_STRING:
-		// node->retType = calloc(1, sizeof *node->retType);
-		// node->retType->kind = COG_TYPE_ARRAY;
-		// node->retType->array.underlying = &COG_TYPE_CHAR_OBJ;
-		// node->retType->array.size = node->stringLit.count;
-		// Cog_Bank_handOff(node->retType);
-		node->retType = &COG_TYPE_STRING_OBJ;
-		break;
-	case COG_NODE_REALLOC:
-		analyzeRealloc(node, context);
-		break;
-	case COG_NODE_TOSTRING:
-		analyze(&node->toString.value, context);
-		node->retType = &COG_TYPE_STRING_OBJ;
-		if (!(
-			node->toString.value->retType->kind == COG_TYPE_INT ||
-			node->toString.value->retType->kind == COG_TYPE_UINT ||
-			node->toString.value->retType->kind == COG_TYPE_FLOAT ||
-			node->toString.value->retType->kind == COG_TYPE_BOOL
-		)) Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->toString.value->pos,
-			"Can't parse %s to string",
-			Cog_Type_toString(node->toString.value->retType));
-		break;
-	case COG_NODE_PUBLIC:
-		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Illegal node");
-		break;
-	case COG_NODE_NAMESPACE:
-		analyze(&node->namespace.value, context);
-		node->retType = node->namespace.value->retType;
-		break;
-	case COG_NODE_IMPORT:
-		{}
+	case COG_NODE_TRUE_: analyzeBool(node, context); break;
+	case COG_NODE_YIELD: analyzeYield(node, context); break;
+	case COG_NODE_IF: analyzeIf(node, context); break;
+	case COG_NODE_NOT: analyzeNot(node, context); break;
+	case COG_NODE_WHILE: analyzeWhile(node, context); break;
+	case COG_NODE_BREAK: analyzeBreak(node, context); break;
+	case COG_NODE_NEW: analyzeNew(node, context); break;
+	case COG_NODE_SUBSCRIPT: analyzeSubscript(node, context); break;
+	case COG_NODE_SIZEOF: analyzeSizeof(node, context); break;
+	case COG_NODE_NULL: analyzeNull(node, context); break;
+	case COG_NODE_UNWRAP: analyzeUnwrap(node, context); break;
+	case COG_NODE_CHECK: analyzeCheck(node, context); break;
+	case COG_NODE_TUPLE: analyzeTuple(node, context); break;
+	case COG_NODE_PARAMETER: analyzeParameter(node, context); break;
+	case COG_NODE_CALL: analyzeCall(node, context); break;
+	case COG_NODE_ALIAS: analyzeAlias(node, context); break;
+	case COG_NODE_CHAR: analyzeChar(node, context); break;
+	case COG_NODE_STRING: analyzeString(node, context); break;
+	case COG_NODE_REALLOC: analyzeRealloc(node, context); break;
+	case COG_NODE_TOSTRING: analyzeToString(node, context); break;
+	case COG_NODE_PUBLIC: Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Illegal node"); break;
+	case COG_NODE_NAMESPACE: analyzeNamespace(node, context); break;
+	case COG_NODE_IMPORT: break;
 	}
 }
 static void analyze(Cog_Node **node, Context context)
