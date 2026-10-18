@@ -10,6 +10,7 @@ Cogwheel is a general purpose programming language which is:
 - strongly typed
 - strictly typed
 - bytecode-compiled
+
 This language was designed to be used for scripting, modding and developing high level applications
 while still being relatively fast and flexible.
 
