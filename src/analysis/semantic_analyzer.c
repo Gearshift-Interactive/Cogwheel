@@ -198,7 +198,7 @@ static void analyzeVarDecl(Cog_Node *node, Context context, bool public)
 		nob_sb_appendf(&sb, "%.*s", (int)oldName.length, oldName.origin + oldName.start);
 		nob_sb_append_null(&sb);
 		Cog_Bank_handOff(sb.items);
-		varInfo.name = Cog_TokenPosition_fromString(sb.items);
+		varInfo.name = node->var_decl.name.pos = Cog_TokenPosition_fromString(sb.items);
 	}
 	ScopeInfo_declare(scope, varInfo, public);
 	node->var_decl.scopeIndex = ScopeInfo_getVarIndex(scope, &node->var_decl.name.pos);
@@ -877,10 +877,22 @@ static void analyzeSymbol(Cog_Node *node, Context context)
 {
 	if (!ScopeInfo_isVarPresent(context.scope, &node->symbol.token.pos))
 	{
-		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->symbol.token.pos,
-			"Undefined variable");
-		node->retType = &COG_TYPE_VOID_OBJ;
-		return;
+		Cog_Namespace *foundIn =
+			Cog_Namespace_searchItem(context.namespace, node->symbol.token.pos);
+		if (!foundIn)
+		{
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->symbol.token.pos,
+				"Undefined variable");
+			node->retType = &COG_TYPE_VOID_OBJ;
+			return;
+		}
+		Nob_String_Builder sb = {0};
+		appendNamespaces(&sb, foundIn);
+		Cog_TokenPosition oldName = node->symbol.token.pos;
+		nob_sb_append_buf(&sb, oldName.origin + oldName.start, (int)oldName.length);
+		nob_sb_append_null(&sb);
+		Cog_Bank_handOff(sb.items);
+		node->symbol.token.pos = Cog_TokenPosition_fromString(sb.items);
 	}
 	size_t varIndex = ScopeInfo_getVarIndex(context.scope, &node->symbol.token.pos);
 	size_t varDepth = ScopeInfo_getVarDepth(context.scope, &node->symbol.token.pos);
@@ -1096,8 +1108,7 @@ static Cog_Node *clampNamespace(Cog_Node *node, Context context)
 			.type = COG_TOKEN_SYMBOL,
 			.pos = Cog_TokenPosition_fromString(sb.items),
 		};
-		free(left);
-		free(node);
+		Cog_Node_free(node);
 		return result;
 	}
 	free(result);

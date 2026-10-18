@@ -18,7 +18,7 @@ public var println = (String... strs) -> {
     mut var i = 0u;
     while (i < sizeof strs)
     {
-        string::print(strs[i]);
+        print(strs[i]);
         i = i + 1u;
     };
     putChar('\n');
