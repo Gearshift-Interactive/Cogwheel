@@ -4,10 +4,12 @@
 #include "var_info.h"
 #include "block_context.h"
 #include "scope_info.h"
+#include "namespace.h"
 
 typedef struct {
 	ScopeInfo *scope;
 	Cog_BlockContext *blockContext;
+	Cog_Namespace *namespace;
 } Context;
 
 static bool isNodeFinal(Cog_Node *node)
@@ -151,6 +153,15 @@ static void resolveAlias(ScopeInfo *scope, Cog_Type **type)
 			{}
 	}
 }
+static void appendNamespaces(Nob_String_Builder *sb, Cog_Namespace *namespace)
+{
+	if (namespace->parent && namespace->parent->parent)
+		appendNamespaces(sb, namespace->parent);
+	nob_sb_appendf(sb, "%.*s::",
+		(int)namespace->name.length,
+		namespace->name.origin + namespace->name.start
+	);
+}
 static void analyzeVarDecl(Cog_Node *node, Context context, bool public)
 {
 	ScopeInfo *scope = context.scope;
@@ -173,12 +184,23 @@ static void analyzeVarDecl(Cog_Node *node, Context context, bool public)
 		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->var_decl.name.pos,
 			"Variable is already declared");
 	// printf("%s\n", Cog_Type_toString(node->var_decl.type));
-	ScopeInfo_declare(scope,
-		node->var_decl.name.pos,
-		node->var_decl.type,
-		node->var_decl.isMutable,
-		public
-	);
+	Cog_VarInfo varInfo = {
+		.name = node->var_decl.name.pos,
+		.type = node->var_decl.type,
+		.mutable = node->var_decl.isMutable,
+	};
+	if (public)
+	{
+		Cog_Namespace_addItem(context.namespace, varInfo);
+		Cog_TokenPosition oldName = node->var_decl.name.pos;
+		Nob_String_Builder sb = {0};
+		appendNamespaces(&sb, context.namespace);
+		nob_sb_appendf(&sb, "%.*s", (int)oldName.length, oldName.origin + oldName.start);
+		nob_sb_append_null(&sb);
+		Cog_Bank_handOff(sb.items);
+		varInfo.name = Cog_TokenPosition_fromString(sb.items);
+	}
+	ScopeInfo_declare(scope, varInfo, public);
 	node->var_decl.scopeIndex = ScopeInfo_getVarIndex(scope, &node->var_decl.name.pos);
 	node->var_decl.scopeDepth = ScopeInfo_getVarDepth(scope, &node->var_decl.name.pos);
 	if (
@@ -294,22 +316,20 @@ static void analyzeInfix(Cog_Node *node, Context context)
 				type->kind = COG_TYPE_ARRAY;
 				type->array.underlying = (*arg)->funcParam.type;
 				Cog_Bank_handOff(type);
-				ScopeInfo_declare(childScope,
-					(*arg)->funcParam.name.pos,
-					type,
-					(*arg)->funcParam.isMutable,
-					false
-				);
+				ScopeInfo_declare(childScope, (Cog_VarInfo){
+					.name = (*arg)->funcParam.name.pos,
+					.type = type,
+					.mutable = (*arg)->funcParam.isMutable,
+				}, false);
 				gotVarArg = true;
 				continue;
 			}
 			else
-				ScopeInfo_declare(childScope,
-					(*arg)->funcParam.name.pos,
-					(*arg)->funcParam.type,
-					(*arg)->funcParam.isMutable,
-					false
-				);
+				ScopeInfo_declare(childScope, (Cog_VarInfo){
+					.name = (*arg)->funcParam.name.pos,
+					.type = (*arg)->funcParam.type,
+					.mutable = (*arg)->funcParam.isMutable,
+				}, false);
 			if (gotVarArg)
 			{
 				Cog_comptimeMessage(COG_MESSAGE_ERRORN, (*arg)->pos,
@@ -995,7 +1015,12 @@ static void analyzeToString(Cog_Node *node, Context context)
 }
 static void analyzeNamespace(Cog_Node *node, Context context)
 {
-	analyze(&node->namespace.value, context);
+	Cog_Namespace *childNamespace =
+		Cog_Namespace_make(node->namespace.name, context.namespace);
+	Cog_Namespace_addChild(context.namespace, childNamespace);
+	Context childContext = context;
+	childContext.namespace = childNamespace;
+	analyze(&node->namespace.value, childContext);
 	node->retType = node->namespace.value->retType;
 }
 static void analyzeImpl(Cog_Node *node, Context context)
@@ -1040,12 +1065,57 @@ static void analyzeImpl(Cog_Node *node, Context context)
 	case COG_NODE_IMPORT: break;
 	}
 }
+static Cog_Node *clampNamespace(Cog_Node *node, Context context)
+{
+	NOB_UNUSED(context);
+	Cog_Node *left = node->infix.left;
+	Cog_Node *right = node->infix.right;
+	if (left->type != COG_NODE_SYMBOL)
+	{
+		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->infix.left->pos,
+			"Invalid syntax, expected a valid namespace name");
+		return NULL;
+	}
+	Cog_Node *result = Cog_Node_make(node->pos);
+	result->type = COG_NODE_SYMBOL;
+	Nob_String_Builder sb = {0};
+	Cog_TokenPosition parentName = left->symbol.token.pos;
+	nob_sb_appendf(&sb, "%.*s::", (int)parentName.length, parentName.origin + parentName.start);
+	if (
+		right->type == COG_NODE_INFIX &&
+		right->infix.type == COG_INFIX_NAMESPACE
+	)
+		right = clampNamespace(right, context);
+	if (right->type == COG_NODE_SYMBOL)
+	{
+		Cog_TokenPosition childName = right->symbol.token.pos;
+		nob_sb_appendf(&sb, "%.*s", (int)childName.length, childName.origin + childName.start);
+		nob_sb_append_null(&sb);
+		Cog_Bank_handOff(sb.items);
+		result->symbol.token = (Cog_Token){
+			.type = COG_TOKEN_SYMBOL,
+			.pos = Cog_TokenPosition_fromString(sb.items),
+		};
+		free(left);
+		free(node);
+		return result;
+	}
+	free(result);
+	Cog_comptimeMessage(COG_MESSAGE_ERROR, node->infix.right->pos,
+		"Invalid syntax, expected a namespace access or a valid namespace member name");
+	return NULL;
+}
 static void analyze(Cog_Node **node, Context context)
 {
 	if ((*node)->type == COG_NODE_BLOCK)
 		*node = analyzeScope(*node, context);
 	else if ((*node)->type == COG_NODE_PUBLIC)
 		*node = analyzePublic(*node, context);
+	else if ((*node)->type == COG_NODE_INFIX && (*node)->infix.type == COG_INFIX_NAMESPACE)
+	{
+		*node = clampNamespace(*node, context);
+		analyze(node, context);
+	}
 	else
 		analyzeImpl(*node, context);
 }
@@ -1057,13 +1127,22 @@ void Cog_analyze(Cog_Node **node, Cog_Globals *globals)
 	};
 	da_foreach(Cog_GlobalValue, value, globals)
 		ScopeInfo_declare(
-			&scope, Cog_TokenPosition_fromString(value->name),
-			value->type, value->isMutable, false
+			&scope, (Cog_VarInfo){
+				.name = Cog_TokenPosition_fromString(value->name),
+				.type = value->type,
+				.mutable = value->isMutable,
+			}, false
 		);
 	Context context = {
 		.scope = &scope,
 		.blockContext = &blockContext,
+		.namespace = Cog_Namespace_make(Cog_TokenPosition_fromString("root"), NULL),
 	};
 	*node = analyzeScope(*node, context);
+#ifdef COG_DEBUG
+	printf("//// NAMESPACE TREE ////\n");
+	Cog_Namespace_print(context.namespace);
+#endif
+	Cog_Namespace_free(context.namespace);
 	free(scope.vars.items);
 }

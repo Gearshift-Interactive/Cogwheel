@@ -1,10 +1,17 @@
 #include "namespace.h"
 
-Cog_Namespace *Cog_Namespace_make(Cog_TokenPosition name)
+Cog_Namespace *Cog_Namespace_make(Cog_TokenPosition name, Cog_Namespace *parent)
 {
 	Cog_Namespace *result = calloc(1, sizeof(Cog_Namespace));
 	result->name = name;
+	result->parent = parent;
 	return result;
+}
+void Cog_Namespace_addChild(Cog_Namespace *this, Cog_Namespace *child) {
+	nob_da_append(&this->children, child);
+}
+void Cog_Namespace_addItem(Cog_Namespace *this, Cog_VarInfo item) {
+	nob_da_append(&this->items, item);
 }
 static void printIndent(size_t indent)
 {

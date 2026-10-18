@@ -58,18 +58,15 @@ Cog_VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index, size_t depth
 		current = current->parent;
 	return current->vars.items + index;
 }
-void ScopeInfo_declare(
-	ScopeInfo *this, const Cog_TokenPosition name, const Cog_Type *type,
-	bool mutable, bool public
-) {
+// void ScopeInfo_declare(
+// 	ScopeInfo *this, const Cog_TokenPosition name, const Cog_Type *type,
+// 	bool mutable, bool public
+// ) {
+void ScopeInfo_declare(ScopeInfo *this, Cog_VarInfo info, bool public)
+{
 	ScopeInfo *current = this;
 	while (public && current->parent && !current->parent->isGlobals)
 		current = current->parent;
-	Cog_VarInfo info = {
-		.name = name,
-		.type = type,
-		.mutable = mutable,
-	};
 	da_append(&current->vars, info);
 }
 void ScopeInfo_declareAlias(ScopeInfo *this, const Cog_TokenPosition *name, Cog_Type *type)
