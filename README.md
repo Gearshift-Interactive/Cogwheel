@@ -392,7 +392,7 @@ import string;
 string::println("Hello, World!");
 ```
 In this example module `main.cog` imports `string.cog` module with `import` keyword. In `string.cog`
-functoins `print` and `println` are declared as `public`, that means, that they can be accessed from
+functions `print` and `println` are declared `public`, that means, that they can be accessed from
 outside of this module. All imported modules are namespaced, so you need to prefix modules public
 values with it's name.
 
