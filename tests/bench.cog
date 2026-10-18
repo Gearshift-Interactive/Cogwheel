@@ -40,6 +40,4 @@ while (i < ITERATIONS)
     i = i + 1;
 };
 
-println("Arithmetic checksum: ");
-println($sum);
-println("\n");
+println("Arithmetic checksum: ", $sum);
