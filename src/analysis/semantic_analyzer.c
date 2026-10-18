@@ -2,163 +2,12 @@
 #include "error.h"
 #include "bank.h"
 #include "var_info.h"
-
-typedef enum {
-	CONT_NULL = 0,
-	CONT_BLOCK,
-	CONT_LOOP,
-} BlockContextType;
-
-typedef struct BlockContext {
-	BlockContextType type;
-	union {
-		struct {
-			Cog_Type *retType;
-		} block, loop;
-	};
-	struct BlockContext *parent;
-} BlockContext;
-
-static BlockContext *BlockContext_findParent(BlockContext *this, BlockContextType type)
-{
-	for (BlockContext *current = this; current; current = current->parent)
-		if (current->type == type)
-			return current;
-	return NULL;
-}
-
-// typedef struct ScopeInfo {
-// 	Cog_TokenPosition name;
-// 	Cog_TokenPosition pseudoName;
-// 	bool isPseudoNamed;
-// } NamespaceInfo;
-
-typedef struct ScopeInfo {
-	struct {
-		Cog_VarInfo *items;
-		size_t count, capacity;
-	} vars;
-	struct {
-		Cog_AliasInfo *items;
-		size_t count, capacity;
-	} aliases;
-	// struct {
-	// 	Cog_AliasInfo *items;
-	// 	size_t count, capacity;
-	// } namespaces;
-	struct ScopeInfo *parent;
-	bool isGlobals;
-} ScopeInfo;
-
-static ScopeInfo *ScopeInfo_make()
-{
-	ScopeInfo *result = calloc(1, sizeof *result);
-	return result;
-}
-static bool ScopeInfo_isVarPresent(const ScopeInfo *this, const Cog_TokenPosition *name)
-{
-	for (const ScopeInfo *current = this; current; current = current->parent)
-		da_foreach(Cog_VarInfo, var, &current->vars)
-			if (Cog_TokenPosition_eq(&var->name, name))
-				return true;
-	return false;
-}
-static bool ScopeInfo_isVarPresentShallow(const ScopeInfo *this, const Cog_TokenPosition *name)
-{
-	da_foreach(Cog_VarInfo, var, &this->vars)
-		if (Cog_TokenPosition_eq(&var->name, name))
-			return true;
-	return false;
-}
-static bool ScopeInfo_isVarPresentPublic(const ScopeInfo *this, const Cog_TokenPosition *name)
-{
-	const ScopeInfo *current;
-	for (current = this; current->parent; current = current->parent);
-	da_foreach(Cog_VarInfo, var, &current->vars)
-		if (Cog_TokenPosition_eq(&var->name, name))
-			return true;
-	return false;
-}
-static size_t ScopeInfo_getVarIndex(const ScopeInfo *this, const Cog_TokenPosition *name)
-{
-	for (const ScopeInfo *current = this; current; current = current->parent)
-		for (size_t i = 0; i < current->vars.count; i++)
-			if (Cog_TokenPosition_eq(&(current->vars.items + i)->name, name))
-				return i;
-	// Cog_comptimeMessage(COG_MESSAGE_ERRORN, *name, "Undefined variable");
-	return 0;
-}
-static size_t ScopeInfo_getVarDepth(const ScopeInfo *this, const Cog_TokenPosition *name)
-{
-	size_t depth = 0;
-	for (const ScopeInfo *current = this; current; current = current->parent)
-	{
-		da_foreach(Cog_VarInfo, var, &current->vars)
-			if (Cog_TokenPosition_eq(&var->name, name))
-				return depth;
-		depth++;
-	}
-	// Cog_comptimeMessage(COG_MESSAGE_ERRORN, *name, "Undefined variable");
-	return 0;
-}
-static Cog_VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index, size_t depth)
-{
-	const ScopeInfo *current = this;
-	for (size_t i = 0; i < depth; i++)
-		current = current->parent;
-	return current->vars.items + index;
-}
-static void ScopeInfo_declare(
-	ScopeInfo *this, const Cog_TokenPosition name, const Cog_Type *type,
-	bool mutable, bool public
-) {
-	ScopeInfo *current = this;
-	while (public && current->parent && !current->parent->isGlobals)
-		current = current->parent;
-	Cog_VarInfo info = {
-		.name = name,
-		.type = type,
-		.mutable = mutable,
-	};
-	da_append(&current->vars, info);
-}
-static void ScopeInfo_declareAlias(ScopeInfo *this, const Cog_TokenPosition *name, Cog_Type *type)
-{
-	Cog_AliasInfo info = {
-		.name = name,
-		.type = type,
-	};
-	da_append(&this->aliases, info);
-}
-static bool ScopeInfo_aliasExists(ScopeInfo *this, const Cog_TokenPosition *name)
-{
-	for (const ScopeInfo *current = this; current; current = current->parent)
-	{
-		da_foreach(Cog_AliasInfo, alias, &current->aliases)
-			if (Cog_TokenPosition_eq(alias->name, name))
-				return true;
-	}
-	return false;
-}
-static Cog_Type *ScopeInfo_getAliasType(ScopeInfo *this, const Cog_TokenPosition *name)
-{
-	for (const ScopeInfo *current = this; current; current = current->parent)
-	{
-		da_foreach(Cog_AliasInfo, alias, &current->aliases)
-			if (Cog_TokenPosition_eq(alias->name, name))
-				return alias->type;
-	}
-	return NULL;
-}
-static void ScopeInfo_free(const ScopeInfo *this)
-{
-	if (this->vars.items) free(this->vars.items);
-	if (this->aliases.items) free(this->aliases.items);
-}
+#include "block_context.h"
+#include "scope_info.h"
 
 typedef struct {
 	ScopeInfo *scope;
-	BlockContext *blockContext;
+	Cog_BlockContext *blockContext;
 } Context;
 
 static void mark(Cog_Node **node, Context context);
@@ -276,8 +125,8 @@ result:
 static void markImpl(Cog_Node *node, Context context)
 {
 	struct Cog_Node *left, *right;
-	BlockContext childBlockContext;
-	BlockContext *operatingBlockContext;
+	Cog_BlockContext childBlockContext;
+	Cog_BlockContext *operatingBlockContext;
 	Context childContext;
 	node->retType = &COG_TYPE_VOID_OBJ;
 	switch (node->type)
@@ -311,7 +160,7 @@ static void markImpl(Cog_Node *node, Context context)
 	case COG_NODE_BLOCK:
 		if (node->block.type == COG_BLOCK_REGULAR)
 		{
-			childBlockContext = (BlockContext){
+			childBlockContext = (Cog_BlockContext){
 				.type = CONT_BLOCK,
 				.parent = context.blockContext,
 			};
@@ -358,7 +207,7 @@ static void markImpl(Cog_Node *node, Context context)
 					"Can't create a function with non-tuple args list");
 				break;
 			}
-			BlockContext childBlockContext = {0};
+			Cog_BlockContext childBlockContext = {0};
 			ScopeInfo *childScope = ScopeInfo_make();
 			childScope->parent = context.scope;
 			bool gotVarArg = false;
@@ -566,7 +415,7 @@ static void markImpl(Cog_Node *node, Context context)
 		break;
 	case COG_NODE_YIELD:
 		mark(&node->yield.value, context);
-		operatingBlockContext = BlockContext_findParent(context.blockContext, CONT_BLOCK);
+		operatingBlockContext = Cog_BlockContext_findParent(context.blockContext, CONT_BLOCK);
 		if (!operatingBlockContext)
 		{
 			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
@@ -648,7 +497,7 @@ static void markImpl(Cog_Node *node, Context context)
 		mark(&node->whileLoop.cond, context);
 		if (node->whileLoop.elseBlock)
 			mark(&node->whileLoop.elseBlock, context);
-		childBlockContext = (BlockContext){
+		childBlockContext = (Cog_BlockContext){
 			.type = CONT_LOOP,
 			.parent = context.blockContext,
 		};
@@ -719,7 +568,7 @@ static void markImpl(Cog_Node *node, Context context)
 			node->retType = &COG_TYPE_VOID_OBJ;
 		break;
 	case COG_NODE_BREAK:
-		operatingBlockContext = BlockContext_findParent(context.blockContext, CONT_LOOP);
+		operatingBlockContext = Cog_BlockContext_findParent(context.blockContext, CONT_LOOP);
 		if (!operatingBlockContext)
 		{
 			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
@@ -936,6 +785,10 @@ static void markImpl(Cog_Node *node, Context context)
 	case COG_NODE_PUBLIC:
 		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Illegal node");
 		break;
+	case COG_NODE_NAMESPACE:
+		mark(&node->namespace.value, context);
+		node->retType = node->namespace.value->retType;
+		break;
 	case COG_NODE_IMPORT:
 		{}
 	}
@@ -981,6 +834,7 @@ static bool isNodeFinal(Cog_Node *node)
 	case COG_NODE_TOSTRING:
 	case COG_NODE_PUBLIC:
 	case COG_NODE_IMPORT:
+	case COG_NODE_NAMESPACE:
 		return false;
 	case COG_NODE_EXIT:
 	case COG_NODE_YIELD:
@@ -1026,6 +880,7 @@ static bool checkMutable(Cog_Node *node)
 }
 static Cog_Node_VisitResult analyzeCallback(Cog_Node *node, void *userdata)
 {
+	NOB_UNUSED(userdata);
 	switch (node->type)
 	{
 	case COG_NODE_BLOCK:
@@ -1081,6 +936,8 @@ static Cog_Node_VisitResult analyzeCallback(Cog_Node *node, void *userdata)
 				);
 		break;
 	case COG_NODE_CALL:
+		// printf(">>>>%p\n", node->call.function->retType);
+		// fflush(stdout);
 		if (node->call.function->retType->kind != COG_TYPE_FUNCTION)
 			break;
 		if (node->call.function->retType->function.args.count > node->call.args->tuple.count)
@@ -1184,10 +1041,12 @@ static Cog_Node_VisitResult analyzeCallback(Cog_Node *node, void *userdata)
 	case COG_NODE_BREAK:
 	case COG_NODE_SUBSCRIPT:
 	case COG_NODE_TUPLE:
+	case COG_NODE_NAMESPACE:
 		break;
 	case COG_NODE_PUBLIC:
 		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Illegal node");
 	}
+	return (Cog_Node_VisitResult){ COG_NODE_VISIT_CONTINUE };
 }
 static void analyze(Cog_Node *node)
 {
@@ -1195,7 +1054,7 @@ static void analyze(Cog_Node *node)
 }
 void Cog_analyzeAndMark(Cog_Node **node, Cog_Globals *globals)
 {
-	BlockContext blockContext = {0};
+	Cog_BlockContext blockContext = {0};
 	ScopeInfo scope = {
 		.isGlobals = true,
 	};
