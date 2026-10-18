@@ -1,5 +1,17 @@
 # Cogwheel
-Cogwheel is a programming language that is currently WIP
+Cogwheel is a general purpose programming language which is:
+- fast
+- modern
+- type-safe
+- null-safe
+- embeddable
+- interpreted
+- multiparadigm
+- strongly typed
+- strictly typed
+- bytecode-compiled
+This language was designed to be used for scripting, modding and developing high level applications
+while still being relatively fast and flexible.
 
 ## Hello World example
 
