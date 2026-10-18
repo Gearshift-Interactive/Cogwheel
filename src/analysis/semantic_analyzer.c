@@ -10,6 +10,82 @@ typedef struct {
 	Cog_BlockContext *blockContext;
 } Context;
 
+static bool isNodeFinal(Cog_Node *node)
+{
+	bool foundFinal = false;
+	switch (node->type)
+	{
+	case COG_NODE_NUMBER_LIT:
+	case COG_NODE_UNUMBER_LIT:
+	case COG_NODE_FNUMBER_LIT:
+	case COG_NODE_SYMBOL:
+	case COG_NODE_INFIX:
+	case COG_NODE_NEGATION:
+	case COG_NODE_CAST:
+	case COG_NODE_VAR_DECL:
+	case COG_NODE_TRUE_:
+	case COG_NODE_FALSE_:
+	case COG_NODE_NOT:
+	case COG_NODE_NEW:
+	case COG_NODE_SUBSCRIPT:
+	case COG_NODE_SIZEOF:
+	case COG_NODE_NULL:
+	case COG_NODE_UNWRAP:
+	case COG_NODE_CHECK:
+	case COG_NODE_TUPLE:
+	case COG_NODE_PARAMETER:
+	case COG_NODE_CALL:
+	case COG_NODE_ALIAS:
+	case COG_NODE_CHAR:
+	case COG_NODE_STRING:
+	case COG_NODE_REALLOC:
+	case COG_NODE_TOSTRING:
+	case COG_NODE_PUBLIC:
+	case COG_NODE_IMPORT:
+	case COG_NODE_NAMESPACE:
+		return false;
+	case COG_NODE_EXIT:
+	case COG_NODE_YIELD:
+	case COG_NODE_BREAK:
+		return true;
+	case COG_NODE_SCOPE:
+		return isNodeFinal(node->scope.child);
+	case COG_NODE_IF:
+		if (node->ifelse.falsy)
+			return isNodeFinal(node->ifelse.falsy);
+		return false;
+	case COG_NODE_WHILE:
+		if (node->whileLoop.elseBlock)
+			return isNodeFinal(node->whileLoop.elseBlock);
+		return false;
+	case COG_NODE_BLOCK:
+		da_foreach(Cog_Node*, child, &node->block)
+			if (foundFinal)
+				(*child)->unreachable = true;
+			else
+				foundFinal = isNodeFinal(*child);
+		return foundFinal;
+	}
+	return false;
+}
+static bool checkAssignable(Cog_Node *node)
+{
+	switch (node->type)
+	{
+		case COG_NODE_SYMBOL:    return true;
+		case COG_NODE_SUBSCRIPT: return checkAssignable(node->subscript.value);
+		default:                 return false;
+	}
+}
+static bool checkMutable(Cog_Node *node)
+{
+	switch (node->type)
+	{
+		case COG_NODE_SYMBOL:    return node->symbol.isMutable;
+		case COG_NODE_SUBSCRIPT: return checkMutable(node->subscript.value);
+		default:                 return true;
+	}
+}
 static void mark(Cog_Node **node, Context context);
 static void markImpl(Cog_Node *node, Context context);
 static Cog_Node *markScopeExt(Cog_Node *node, Context context)
@@ -105,6 +181,12 @@ static void markVarDecl(Cog_Node *node, Context context, bool public)
 	);
 	node->var_decl.scopeIndex = ScopeInfo_getVarIndex(scope, &node->var_decl.name.pos);
 	node->var_decl.scopeDepth = ScopeInfo_getVarDepth(scope, &node->var_decl.name.pos);
+	if (
+		node->var_decl.isMutable &&
+		!checkMutable(node->var_decl.value) &&
+		Cog_Type_isRef(node->var_decl.value->retType)
+	) Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->var_decl.value->pos,
+		"Can't assign a refference value of an immutable variable to a mutable variable");
 }
 static Cog_Node *markPublic(Cog_Node *node, Context context)
 {
@@ -179,6 +261,9 @@ static void markImpl(Cog_Node *node, Context context)
 				mark(child, context);
 			node->retType = &COG_TYPE_VOID_OBJ;
 		}
+		if (!isNodeFinal(node) && node->retType != &COG_TYPE_VOID_OBJ)
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->block.posEnd,
+				"Missing yield statement");
 		break;
 	case COG_NODE_INFIX:
 		mark(&node->infix.left, context);
@@ -198,6 +283,21 @@ static void markImpl(Cog_Node *node, Context context)
 					Cog_Type_toString(right->retType),
 					Cog_Type_toString(left->retType)
 				);
+			if (!checkAssignable(node->infix.left))
+			{
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->infix.left->pos,
+					"Can't assign to non-variable");
+				break;
+			}
+			if (!checkMutable(node->infix.left))
+				Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
+					"Can't assign to immutable variable");
+			if (
+				checkMutable(node->infix.left) &&
+				!checkMutable(node->infix.right) &&
+				Cog_Type_isRef(node->infix.right->retType)
+			) Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
+				"Can't assign a refference value of an immutable variable to a mutable variable");
 		}
 		else if (node->infix.type == COG_INFIX_FUNC)
 		{
@@ -385,6 +485,9 @@ static void markImpl(Cog_Node *node, Context context)
 	case COG_NODE_EXIT:
 		mark(&node->exit.value, context);
 		node->retType = &COG_TYPE_VOID_OBJ;
+		if (node->exit.value->retType->kind != COG_TYPE_INT)
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->exit.value->pos,
+				"Can't exit with non-int value");
 		break;
 	case COG_NODE_CAST:
 		mark(&node->cast.value, context);
@@ -399,10 +502,19 @@ static void markImpl(Cog_Node *node, Context context)
 				Cog_Type_toString(node->cast.value->retType)
 			);
 		node->retType = node->cast.target;
+		if (node->retType->kind == node->cast.value->retType->kind)
+			Cog_comptimeMessage(COG_MESSAGE_WARN, node->cast.value->pos,
+				"Casting %s to %s is not necessary",
+				Cog_Type_toString(node->retType),
+				Cog_Type_toString(node->cast.value->retType));
 		break;
 	case COG_NODE_NEGATION:
 		mark(&node->negation.value, context);
 		node->retType = node->negation.value->retType;
+		if (node->negation.value->retType->kind != COG_TYPE_INT &&
+			node->negation.value->retType->kind != COG_TYPE_FLOAT)
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->negation.value->pos,
+				"Cannot negate %s", Cog_Type_toString(node->retType));
 		break;
 	case COG_NODE_VAR_DECL:
 		markVarDecl(node, context, false);
@@ -669,6 +781,13 @@ static void markImpl(Cog_Node *node, Context context)
 		node->retType->array.underlying = node->new.type;
 		if (node->new.kind == COG_NEW_ARRAY)
 			node->retType->array.size = node->new.arrayItems.count;
+		if (node->new.kind == COG_NEW_ARRAY_PLACEHOLDER)
+			if (node->new.arrayPlaceholder.itemCount->retType != &COG_TYPE_UINT_OBJ)
+				Cog_comptimeMessage(
+					COG_MESSAGE_ERRORN,
+					node->new.arrayPlaceholder.itemCount->pos,
+					"Array size can only be of type uint"
+				);
 		break;
 	case COG_NODE_SUBSCRIPT:
 		mark(&node->subscript.value, context);
@@ -734,210 +853,6 @@ static void markImpl(Cog_Node *node, Context context)
 			break;
 		}
 		node->retType = node->call.function->retType->function.retType;
-		break;
-	case COG_NODE_ALIAS:
-		if (ScopeInfo_aliasExists(context.scope, &node->alias.name.pos))
-		{
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->alias.name.pos,
-				"Alias %s already exists",
-				Cog_TokenPosition_toString(&node->alias.name.pos));
-			break;
-		}
-		resolveAlias(context.scope, &node->alias.type);
-		ScopeInfo_declareAlias(context.scope, &node->alias.name.pos, node->alias.type);
-		node->unreachable = true;
-		node->retType = &COG_TYPE_VOID_OBJ;
-		break;
-	case COG_NODE_CHAR:
-		node->retType = &COG_TYPE_CHAR_OBJ;
-		break;
-	case COG_NODE_STRING:
-		// node->retType = calloc(1, sizeof *node->retType);
-		// node->retType->kind = COG_TYPE_ARRAY;
-		// node->retType->array.underlying = &COG_TYPE_CHAR_OBJ;
-		// node->retType->array.size = node->stringLit.count;
-		// Cog_Bank_handOff(node->retType);
-		node->retType = &COG_TYPE_STRING_OBJ;
-		break;
-	case COG_NODE_REALLOC:
-		mark(&node->realloc.array, context);
-		mark(&node->realloc.newSize, context);
-		mark(&node->realloc.fillValue, context);
-		node->retType = Cog_Type_copy(node->realloc.array->retType);
-		if (node->realloc.array->retType->kind != COG_TYPE_ARRAY)
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->realloc.array->pos,
-				"Can't reallocate non-array value");
-		else
-			node->retType->array.size = 0;
-		if (node->realloc.newSize->retType->kind != COG_TYPE_UINT)
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->realloc.newSize->pos,
-				"Can't reallocate an array with non-uint new size");
-		if (!Cog_Type_areCompatible(
-			node->realloc.array->retType->array.underlying,
-			node->realloc.fillValue->retType
-		)) Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->realloc.newSize->pos,
-			"Can't reallocate an array with incompatible fill items");
-		break;
-	case COG_NODE_TOSTRING:
-		mark(&node->toString.value, context);
-		node->retType = &COG_TYPE_STRING_OBJ;
-		break;
-	case COG_NODE_PUBLIC:
-		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Illegal node");
-		break;
-	case COG_NODE_NAMESPACE:
-		mark(&node->namespace.value, context);
-		node->retType = node->namespace.value->retType;
-		break;
-	case COG_NODE_IMPORT:
-		{}
-	}
-}
-static void mark(Cog_Node **node, Context context)
-{
-	if ((*node)->type == COG_NODE_BLOCK)
-		*node = markScope(*node, context);
-	else if ((*node)->type == COG_NODE_PUBLIC)
-		*node = markPublic(*node, context);
-	else
-		markImpl(*node, context);
-}
-static bool isNodeFinal(Cog_Node *node)
-{
-	bool foundFinal = false;
-	switch (node->type)
-	{
-	case COG_NODE_NUMBER_LIT:
-	case COG_NODE_UNUMBER_LIT:
-	case COG_NODE_FNUMBER_LIT:
-	case COG_NODE_SYMBOL:
-	case COG_NODE_INFIX:
-	case COG_NODE_NEGATION:
-	case COG_NODE_CAST:
-	case COG_NODE_VAR_DECL:
-	case COG_NODE_TRUE_:
-	case COG_NODE_FALSE_:
-	case COG_NODE_NOT:
-	case COG_NODE_NEW:
-	case COG_NODE_SUBSCRIPT:
-	case COG_NODE_SIZEOF:
-	case COG_NODE_NULL:
-	case COG_NODE_UNWRAP:
-	case COG_NODE_CHECK:
-	case COG_NODE_TUPLE:
-	case COG_NODE_PARAMETER:
-	case COG_NODE_CALL:
-	case COG_NODE_ALIAS:
-	case COG_NODE_CHAR:
-	case COG_NODE_STRING:
-	case COG_NODE_REALLOC:
-	case COG_NODE_TOSTRING:
-	case COG_NODE_PUBLIC:
-	case COG_NODE_IMPORT:
-	case COG_NODE_NAMESPACE:
-		return false;
-	case COG_NODE_EXIT:
-	case COG_NODE_YIELD:
-	case COG_NODE_BREAK:
-		return true;
-	case COG_NODE_SCOPE:
-		return isNodeFinal(node->scope.child);
-	case COG_NODE_IF:
-		if (node->ifelse.falsy)
-			return isNodeFinal(node->ifelse.falsy);
-		return false;
-	case COG_NODE_WHILE:
-		if (node->whileLoop.elseBlock)
-			return isNodeFinal(node->whileLoop.elseBlock);
-		return false;
-	case COG_NODE_BLOCK:
-		da_foreach(Cog_Node*, child, &node->block)
-			if (foundFinal)
-				(*child)->unreachable = true;
-			else
-				foundFinal = isNodeFinal(*child);
-		return foundFinal;
-	}
-	return false;
-}
-static bool checkAssignable(Cog_Node *node)
-{
-	switch (node->type)
-	{
-		case COG_NODE_SYMBOL:    return true;
-		case COG_NODE_SUBSCRIPT: return checkAssignable(node->subscript.value);
-		default:                 return false;
-	}
-}
-static bool checkMutable(Cog_Node *node)
-{
-	switch (node->type)
-	{
-		case COG_NODE_SYMBOL:    return node->symbol.isMutable;
-		case COG_NODE_SUBSCRIPT: return checkMutable(node->subscript.value);
-		default:                 return true;
-	}
-}
-static Cog_Node_VisitResult analyzeCallback(Cog_Node *node, void *userdata)
-{
-	NOB_UNUSED(userdata);
-	switch (node->type)
-	{
-	case COG_NODE_BLOCK:
-		if (!isNodeFinal(node) && node->retType != &COG_TYPE_VOID_OBJ)
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->block.posEnd,
-				"Missing yield statement");
-		break;
-	case COG_NODE_INFIX:
-		if (node->infix.type == COG_INFIX_ASSIGN)
-		{
-			if (!checkAssignable(node->infix.left))
-			{
-				Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->infix.left->pos,
-					"Can't assign to non-variable");
-				break;
-			}
-			if (!checkMutable(node->infix.left))
-				Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
-					"Can't assign to immutable variable");
-			if (
-				checkMutable(node->infix.left) &&
-				!checkMutable(node->infix.right) &&
-				Cog_Type_isRef(node->infix.right->retType)
-			) Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->pos,
-				"Can't assign a refference value of an immutable variable to a mutable variable");
-		}
-		break;
-	case COG_NODE_EXIT:
-		if (node->exit.value->retType->kind != COG_TYPE_INT)
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->exit.value->pos,
-				"Can't exit with non-int value");
-		break;
-	case COG_NODE_CAST:
-		if (node->retType->kind == node->cast.value->retType->kind)
-			Cog_comptimeMessage(COG_MESSAGE_WARN, node->cast.value->pos,
-				"Casting %s to %s is not necessary",
-				Cog_Type_toString(node->retType),
-				Cog_Type_toString(node->cast.value->retType));
-		break;
-	case COG_NODE_NEGATION:
-		if (node->negation.value->retType->kind != COG_TYPE_INT &&
-			node->negation.value->retType->kind != COG_TYPE_FLOAT)
-			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->negation.value->pos,
-				"Cannot negate %s", Cog_Type_toString(node->retType));
-		break;
-	case COG_NODE_NEW:
-		if (node->new.kind == COG_NEW_ARRAY_PLACEHOLDER)
-			if (node->new.arrayPlaceholder.itemCount->retType != &COG_TYPE_UINT_OBJ)
-				Cog_comptimeMessage(
-					COG_MESSAGE_ERRORN,
-					node->new.arrayPlaceholder.itemCount->pos,
-					"Array size can only be of type uint"
-				);
-		break;
-	case COG_NODE_CALL:
-		// printf(">>>>%p\n", node->call.function->retType);
-		// fflush(stdout);
 		if (node->call.function->retType->kind != COG_TYPE_FUNCTION)
 			break;
 		if (node->call.function->retType->function.args.count > node->call.args->tuple.count)
@@ -995,12 +910,55 @@ static Cog_Node_VisitResult analyzeCallback(Cog_Node *node, void *userdata)
 				);
 		}
 		break;
+	case COG_NODE_ALIAS:
+		if (ScopeInfo_aliasExists(context.scope, &node->alias.name.pos))
+		{
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->alias.name.pos,
+				"Alias %s already exists",
+				Cog_TokenPosition_toString(&node->alias.name.pos));
+			break;
+		}
+		resolveAlias(context.scope, &node->alias.type);
+		ScopeInfo_declareAlias(context.scope, &node->alias.name.pos, node->alias.type);
+		node->unreachable = true;
+		node->retType = &COG_TYPE_VOID_OBJ;
+		break;
+	case COG_NODE_CHAR:
+		node->retType = &COG_TYPE_CHAR_OBJ;
+		break;
+	case COG_NODE_STRING:
+		// node->retType = calloc(1, sizeof *node->retType);
+		// node->retType->kind = COG_TYPE_ARRAY;
+		// node->retType->array.underlying = &COG_TYPE_CHAR_OBJ;
+		// node->retType->array.size = node->stringLit.count;
+		// Cog_Bank_handOff(node->retType);
+		node->retType = &COG_TYPE_STRING_OBJ;
+		break;
 	case COG_NODE_REALLOC:
+		mark(&node->realloc.array, context);
+		mark(&node->realloc.newSize, context);
+		mark(&node->realloc.fillValue, context);
+		node->retType = Cog_Type_copy(node->realloc.array->retType);
+		if (node->realloc.array->retType->kind != COG_TYPE_ARRAY)
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->realloc.array->pos,
+				"Can't reallocate non-array value");
+		else
+			node->retType->array.size = 0;
+		if (node->realloc.newSize->retType->kind != COG_TYPE_UINT)
+			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->realloc.newSize->pos,
+				"Can't reallocate an array with non-uint new size");
+		if (!Cog_Type_areCompatible(
+			node->realloc.array->retType->array.underlying,
+			node->realloc.fillValue->retType
+		)) Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->realloc.newSize->pos,
+			"Can't reallocate an array with incompatible fill items");
 		if (!checkMutable(node->realloc.array))
 			Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->realloc.array->pos,
 				"Can't realloc an immutable array");
 		break;
 	case COG_NODE_TOSTRING:
+		mark(&node->toString.value, context);
+		node->retType = &COG_TYPE_STRING_OBJ;
 		if (!(
 			node->toString.value->retType->kind == COG_TYPE_INT ||
 			node->toString.value->retType->kind == COG_TYPE_UINT ||
@@ -1010,47 +968,25 @@ static Cog_Node_VisitResult analyzeCallback(Cog_Node *node, void *userdata)
 			"Can't parse %s to string",
 			Cog_Type_toString(node->toString.value->retType));
 		break;
-	case COG_NODE_VAR_DECL:
-		if (
-			node->var_decl.isMutable &&
-			!checkMutable(node->var_decl.value) &&
-			Cog_Type_isRef(node->var_decl.value->retType)
-		) Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->var_decl.value->pos,
-			"Can't assign a refference value of an immutable variable to a mutable variable");
-		break;
-	case COG_NODE_NUMBER_LIT:
-	case COG_NODE_UNUMBER_LIT:
-	case COG_NODE_FNUMBER_LIT:
-	case COG_NODE_SYMBOL:
-	case COG_NODE_TRUE_:
-	case COG_NODE_FALSE_:
-	case COG_NODE_NULL:
-	case COG_NODE_PARAMETER:
-	case COG_NODE_ALIAS:
-	case COG_NODE_CHAR:
-	case COG_NODE_STRING:
-	case COG_NODE_IMPORT:
-	case COG_NODE_SCOPE:
-	case COG_NODE_YIELD:
-	case COG_NODE_NOT:
-	case COG_NODE_SIZEOF:
-	case COG_NODE_UNWRAP:
-	case COG_NODE_CHECK:
-	case COG_NODE_IF:
-	case COG_NODE_WHILE:
-	case COG_NODE_BREAK:
-	case COG_NODE_SUBSCRIPT:
-	case COG_NODE_TUPLE:
-	case COG_NODE_NAMESPACE:
-		break;
 	case COG_NODE_PUBLIC:
 		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Illegal node");
+		break;
+	case COG_NODE_NAMESPACE:
+		mark(&node->namespace.value, context);
+		node->retType = node->namespace.value->retType;
+		break;
+	case COG_NODE_IMPORT:
+		{}
 	}
-	return (Cog_Node_VisitResult){ COG_NODE_VISIT_CONTINUE };
 }
-static void analyze(Cog_Node *node)
+static void mark(Cog_Node **node, Context context)
 {
-	Cog_Node_postOrderTraversal(node, analyzeCallback, NULL);
+	if ((*node)->type == COG_NODE_BLOCK)
+		*node = markScope(*node, context);
+	else if ((*node)->type == COG_NODE_PUBLIC)
+		*node = markPublic(*node, context);
+	else
+		markImpl(*node, context);
 }
 void Cog_analyzeAndMark(Cog_Node **node, Cog_Globals *globals)
 {
@@ -1068,6 +1004,5 @@ void Cog_analyzeAndMark(Cog_Node **node, Cog_Globals *globals)
 		.blockContext = &blockContext,
 	};
 	*node = markScope(*node, context);
-	analyze(*node);
 	free(scope.vars.items);
 }
