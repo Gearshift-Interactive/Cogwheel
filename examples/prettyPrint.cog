@@ -1,34 +1,11 @@
-alias String = char[];
+import util;
 
-var print = (String... strs) -> {
-    mut var j = 0u;
-    while (j < sizeof strs)
-    {
-        var str = strs[j];
-        mut var i = 0u;
-        while (i < sizeof str)
-        {
-            putChar(str[i]);
-            i = i + 1u;
-        };
-        j = j + 1u;
-    };
-};
-var println = (String... strs) -> {
-    mut var i = 0u;
-    while (i < sizeof strs)
-    {
-        print(strs[i]);
-        i = i + 1u;
-    };
-    putChar('\n');
-};
 var arrayPrettyPrint = (int?[] array) -> {
-    println("[");
+    util::println("[");
     mut var i = 0u;
     while (i < sizeof array)
     {
-        print("  ", $array[i]!,
+        util::print("  ", $array[i]!,
             if (i == sizeof array - 1u)
                 "\n"
             else
@@ -36,7 +13,7 @@ var arrayPrettyPrint = (int?[] array) -> {
         );
         i = i + 1u;
     };
-    println("]");
+    util::println("]");
 };
 var arrayPrettyString = (int?[] array) -> {
     mut var result = "";
@@ -56,4 +33,4 @@ var arrayPrettyString = (int?[] array) -> {
 };
 var array = new [ 12, 43, 65, 745, 43 ];
 arrayPrettyPrint(array);
-print(arrayPrettyString(array));
+util::print(arrayPrettyString(array));
