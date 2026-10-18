@@ -62,6 +62,7 @@ typedef enum {
 	COG_X(TOSTRING) \
 	COG_X(PUBLIC) \
 	COG_X(IMPORT) \
+	COG_X(NAMESPACE) \
 
 typedef enum {
 #define COG_X(NAME) COG_NODE_##NAME,
@@ -164,6 +165,10 @@ typedef struct Cog_Node {
 		struct {
 			struct Cog_Node *array, *newSize, *fillValue;
 		} realloc;
+		struct {
+			struct Cog_Node *value;
+			Cog_TokenPosition name;
+		} namespace;
 	};
 	Cog_Type *retType;
 	bool unreachable;
@@ -176,9 +181,10 @@ typedef struct {
 		COG_NODE_VISIT_SKIP,  // Skips the traversal of child nodes
 				 // for pre-order traversal only
 		COG_NODE_VISIT_STOP,  // Completely stops the entire traversal
-	} result;
+	} status;
 	void *userdata;  // This updated userdata will be passed to child nodes
 			 // for pre-order traversal only
+	void *result;  // this value will be returned from traversal function
 } Cog_Node_VisitResult;
 
 typedef Cog_Node_VisitResult (*Cog_Node_VisitCallback)(Cog_Node *, void *userdata);
@@ -188,10 +194,10 @@ Cog_Node *Cog_Node_make(Cog_TokenPosition);
 Cog_Node *Cog_Node_makeRaw(void);
 void Cog_Node_printImpl(const Cog_Node *node, const size_t indent);
 void Cog_Node_print(const Cog_Node *);
-void Cog_Node_preOrderTraversal(Cog_Node *, Cog_Node_VisitCallback, void *userdata);
+void *Cog_Node_preOrderTraversal(Cog_Node *, Cog_Node_VisitCallback, void *userdata);
 // 1. Visit the current node (call callback)
 // 2. Recursively traverse current node's subtrees
-void Cog_Node_postOrderTraversal(Cog_Node *, Cog_Node_VisitCallback, void *userdata);
+void *Cog_Node_postOrderTraversal(Cog_Node *, Cog_Node_VisitCallback, void *userdata);
 // 1. Recursively traverse current node's subtrees
 // 2. Visit the current node (call callback)
 void Cog_Node_free(const Cog_Node *);

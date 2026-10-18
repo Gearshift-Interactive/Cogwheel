@@ -101,6 +101,12 @@ void Cog_Node_printImpl(const Cog_Node *node, const size_t indent)
 	case COG_NODE_IMPORT:
 		printf("(import\n");
 		goto single;
+	case COG_NODE_NAMESPACE:
+		printf("(namespace %.*s\n",
+			(int) node->namespace.name.length,
+			node->namespace.name.origin + node->namespace.name.start
+		);
+		goto single;
 	case COG_NODE_YIELD:
 		printf("(yield\n");
 single:
@@ -327,7 +333,7 @@ static void Cog_Node_visitChildren(
 	Cog_Node *node,
 	Cog_Node_VisitCallback callback,
 	void *userdata,
-	void (*traversalFunction)(Cog_Node *, Cog_Node_VisitCallback, void *userdata)
+	void *(*traversalFunction)(Cog_Node *, Cog_Node_VisitCallback, void *userdata)
 ) {
 	switch (node->type)
 	{
@@ -344,6 +350,7 @@ static void Cog_Node_visitChildren(
 	case COG_NODE_TOSTRING:
 	case COG_NODE_PUBLIC:
 	case COG_NODE_IMPORT:
+	case COG_NODE_NAMESPACE:
 		traversalFunction(node->exit.value, callback, userdata);
 		break;
 	case COG_NODE_INFIX:
@@ -418,17 +425,19 @@ static void Cog_Node_visitChildren(
 void Cog_Node_print(const Cog_Node *node) { assert(node);
 	Cog_Node_printImpl(node, 0);
 }
-void Cog_Node_preOrderTraversal(Cog_Node *this, Cog_Node_VisitCallback callback, void *userdata)
+void *Cog_Node_preOrderTraversal(Cog_Node *this, Cog_Node_VisitCallback callback, void *userdata)
 {
-	if (!this) return;
+	if (!this) return NULL;
 	Cog_Node_VisitResult visitResult = callback(this, userdata);
 	Cog_Node_visitChildren(this, callback, visitResult.userdata, Cog_Node_preOrderTraversal);
+	return visitResult.result;
 }
-void Cog_Node_postOrderTraversal(Cog_Node *this, Cog_Node_VisitCallback callback, void *userdata)
+void *Cog_Node_postOrderTraversal(Cog_Node *this, Cog_Node_VisitCallback callback, void *userdata)
 {
-	if (!this) return;
+	if (!this) return NULL;
 	Cog_Node_visitChildren(this, callback, userdata, Cog_Node_postOrderTraversal);
-	callback(this, userdata);
+	Cog_Node_VisitResult visitResult = callback(this, userdata);
+	return visitResult.result;
 }
 static Cog_Node_VisitResult freeCallback(Cog_Node *node, void *userdata)
 {

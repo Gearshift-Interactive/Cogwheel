@@ -146,7 +146,19 @@ static void Cog_Module_append(Cog_Module *this, Cog_Node *root)
 	nob_da_foreach(Cog_Module*, childModule, &this->importedModules)
 		Cog_Module_append(*childModule, root);
 	// nob_da_append(&root->block, Cog_Module_reassembled(this));
-	nob_da_append(&root->block, this->ast);
+	Cog_TokenPosition namespaceName = Cog_TokenPosition_fromString(this->filePath);
+	namespaceName.length -= 4;
+	while (Cog_TokenPosition_contains(&namespaceName, '/'))
+	{
+		namespaceName.start++;
+		namespaceName.length--;
+	}
+	Cog_Node *namespaceNode = Cog_Node_makeRaw();
+	namespaceNode->type = COG_NODE_NAMESPACE;
+	namespaceNode->namespace.name = namespaceName;
+	namespaceNode->namespace.value = this->ast;
+	nob_da_append(&root->block, namespaceNode);
+	// nob_da_append(&root->block, this->ast);
 	this->placed = true;
 }
 Cog_Node *Cog_finalizeModule(Cog_Module *module,  Cog_Globals *globals)

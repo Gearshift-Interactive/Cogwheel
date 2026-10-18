@@ -741,6 +741,10 @@ static size_t compileNode(Cog_Chunk *this, const Cog_Node *node, Context *contex
 	case COG_NODE_TUPLE:
 	case COG_NODE_PUBLIC:
 		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Illegal node");
+		break;
+	case COG_NODE_NAMESPACE:
+		compileNode(this, node->namespace.value, context);
+		break;
 	case COG_NODE_IMPORT:
 		{}
 	}
