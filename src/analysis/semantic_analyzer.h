@@ -3,4 +3,4 @@
 #include "parsing/parser.h"
 #include "globals.h"
 
-void Cog_analyzeAndMark(Cog_Node **, Cog_Globals *);
+void Cog_analyze(Cog_Node **, Cog_Globals *);
