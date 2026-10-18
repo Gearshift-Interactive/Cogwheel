@@ -356,6 +356,46 @@ var sum = (int a, int... values) -> {
 ```
 Variadic argument must be the last argument.
 
+#### Modules
+
+You can separate your project into multiple different files. Each file is a module.
+```
+// string.cog
+alias String = char[];
+public var print = (String... strs) -> {
+    mut var j = 0u;
+    while (j < sizeof strs)
+    {
+        var str = strs[j];
+        mut var i = 0u;
+        while (i < sizeof str)
+        {
+            putChar(str[i]);
+            i = i + 1u;
+        };
+        j = j + 1u;
+    };
+};
+public var println = (String... strs) -> {
+    mut var i = 0u;
+    while (i < sizeof strs)
+    {
+        print(strs[i]);
+        i = i + 1u;
+    };
+    putChar('\n');
+};
+```
+```
+// main.cog
+import string;
+string::println("Hello, World!");
+```
+In this example module `main.cog` imports `string.cog` module with `import` keyword. In `string.cog`
+functoins `print` and `println` are declared as `public`, that means, that they can be accessed from
+outside of this module. All imported modules are namespaced, so you need to prefix modules public
+values with it's name.
+
 ### Keywords
 
 #### `exit`
