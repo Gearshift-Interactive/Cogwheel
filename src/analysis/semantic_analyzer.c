@@ -1098,23 +1098,71 @@ static Cog_Node *clampNamespace(Cog_Node *node, Context context)
 		right->infix.type == COG_INFIX_NAMESPACE
 	)
 		right = clampNamespace(right, context);
-	if (right->type == COG_NODE_SYMBOL)
+	if (right->type != COG_NODE_SYMBOL)
 	{
-		Cog_TokenPosition childName = right->symbol.token.pos;
-		nob_sb_appendf(&sb, "%.*s", (int)childName.length, childName.origin + childName.start);
-		nob_sb_append_null(&sb);
-		Cog_Bank_handOff(sb.items);
-		result->symbol.token = (Cog_Token){
-			.type = COG_TOKEN_SYMBOL,
-			.pos = Cog_TokenPosition_fromString(sb.items),
-		};
-		Cog_Node_free(node);
-		return result;
+		free(result);
+		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->infix.right->pos,
+			"Invalid syntax, expected a namespace access or a valid namespace member name");
+		return NULL;
 	}
-	free(result);
-	Cog_comptimeMessage(COG_MESSAGE_ERROR, node->infix.right->pos,
-		"Invalid syntax, expected a namespace access or a valid namespace member name");
-	return NULL;
+	Cog_TokenPosition childName = right->symbol.token.pos;
+	nob_sb_appendf(&sb, "%.*s", (int)childName.length, childName.origin + childName.start);
+	nob_sb_append_null(&sb);
+	Cog_Bank_handOff(sb.items);
+	result->symbol.token = (Cog_Token){
+		.type = COG_TOKEN_SYMBOL,
+		.pos = Cog_TokenPosition_fromString(sb.items),
+	};
+	free(node->infix.left);
+	free(right);
+	free(node);
+	return result;
+}
+static bool isValidNamespace(Cog_Node *node, Cog_Namespace *currentNamespace, bool isFreestanding)
+{
+	if (node->infix.left->type != COG_NODE_SYMBOL)
+	{
+		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->infix.left->pos,
+			"Invalid syntax, expected a valid namespace name");
+		return false;
+	}
+	Cog_Namespace *foundNamespace = Cog_Namespace_searchChild
+		(currentNamespace, node->infix.left->symbol.token.pos, isFreestanding);
+	if (!foundNamespace)
+	{
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->infix.left->pos,
+			"Undefined namespace");
+		return false;
+	}
+	if (
+		node->infix.right->type == COG_NODE_INFIX &&
+		node->infix.right->infix.type == COG_INFIX_NAMESPACE
+	)
+		return isValidNamespace(node->infix.right, foundNamespace, false);
+	if (node->infix.right->type != COG_NODE_SYMBOL)
+	{
+		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->infix.right->pos,
+			"Invalid syntax, expected a namespace access or"
+			" a valid namespace member name");
+		return false;
+	}
+	// wow
+	bool itemPresent = (bool)Cog_Namespace_searchItemData
+		(foundNamespace, node->infix.right->symbol.token.pos);
+	if (!itemPresent)
+		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->infix.right->pos,
+			"Undefined variable");
+	return itemPresent;
+}
+static void analyzeNamespaceAccess(Cog_Node **node, Context context)
+{
+	if (!isValidNamespace(*node, context.namespace, true))
+	{
+		(*node)->retType = &COG_TYPE_VOID_OBJ;
+		return;
+	}
+	*node = clampNamespace(*node, context);
+	analyze(node, context);
 }
 static void analyze(Cog_Node **node, Context context)
 {
@@ -1123,10 +1171,7 @@ static void analyze(Cog_Node **node, Context context)
 	else if ((*node)->type == COG_NODE_PUBLIC)
 		*node = analyzePublic(*node, context);
 	else if ((*node)->type == COG_NODE_INFIX && (*node)->infix.type == COG_INFIX_NAMESPACE)
-	{
-		*node = clampNamespace(*node, context);
-		analyze(node, context);
-	}
+		analyzeNamespaceAccess(node, context);
 	else
 		analyzeImpl(*node, context);
 }

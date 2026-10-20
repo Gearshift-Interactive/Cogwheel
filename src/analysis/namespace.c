@@ -47,6 +47,26 @@ Cog_Namespace *Cog_Namespace_searchItem(Cog_Namespace *this, Cog_TokenPosition i
 				return current;
 	return NULL;
 }
+Cog_Namespace *Cog_Namespace_searchChild(Cog_Namespace *this, Cog_TokenPosition childName, bool visitParents)
+{
+	Cog_Namespace *current = this;
+	do {
+		nob_da_foreach(Cog_Namespace *, child, &current->children)
+		if (Cog_TokenPosition_eq(&(*child)->name, &childName))
+			return *child;
+		if (!visitParents)
+		break;
+	}
+	while (current->parent && (current = current->parent));
+	return NULL;
+}
+Cog_VarInfo *Cog_Namespace_searchItemData(Cog_Namespace *this, Cog_TokenPosition itemName)
+{
+	nob_da_foreach(Cog_VarInfo, item, &this->items)
+		if (Cog_TokenPosition_eq(&itemName, &item->name))
+			return item;
+	return NULL;
+}
 void Cog_Namespace_free(Cog_Namespace *this)
 {
 	nob_da_foreach(Cog_Namespace *, child, &this->children)

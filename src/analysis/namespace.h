@@ -17,4 +17,8 @@ void Cog_Namespace_addItem(Cog_Namespace *, Cog_VarInfo item);
 void Cog_Namespace_printImpl(const Cog_Namespace *, size_t indent);
 void Cog_Namespace_print(const Cog_Namespace *);
 Cog_Namespace *Cog_Namespace_searchItem(Cog_Namespace *, Cog_TokenPosition itemName);
+// returns the namespace with the given item found
+Cog_Namespace *Cog_Namespace_searchChild(Cog_Namespace *, Cog_TokenPosition childName, bool visitParents);
+// returns the found child namespace
+Cog_VarInfo *Cog_Namespace_searchItemData(Cog_Namespace *, Cog_TokenPosition itemName);
 void Cog_Namespace_free(Cog_Namespace *);
