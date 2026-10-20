@@ -42,7 +42,7 @@ void Cog_Namespace_print(const Cog_Namespace *this)
 Cog_Namespace *Cog_Namespace_searchItem(Cog_Namespace *this, Cog_TokenPosition itemName)
 {
 	for (Cog_Namespace *current = this; current->parent; current = current->parent)
-		nob_da_foreach(Cog_VarInfo, item, &this->items)
+		nob_da_foreach(Cog_VarInfo, item, &current->items)
 			if (Cog_TokenPosition_eq(&itemName, &item->name))
 				return current;
 	return NULL;
