@@ -129,8 +129,6 @@ typedef enum {
 void Cog_Chunk_free(const Cog_Chunk *);
 void Cog_Chunk_print(const Cog_Chunk *);
 int Cog_run(const Cog_Chunk *, Cog_Globals *);
-// void VM_init(VM *);
-// void VM_stackFree(VM *);
 void VM_push(VM *, Cog_Value value);
 Cog_Value *VM_pop(VM *);
 Cog_Value *VM_current(VM *);
