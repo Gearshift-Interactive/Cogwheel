@@ -160,7 +160,8 @@ int main(int argc, char **argv)
 {
 	Cog_Bank_init();
 	char *module = NULL;
-	bool benchmark, help = false;
+	bool benchmark = false;
+	bool help = false;
 	for (size_t i = 1; i < (size_t)argc; i++)
 	{
 		if (module)
