@@ -4,18 +4,17 @@
 #include "bank.h"
 #include "globals.h"
 #include "analysis/module.h"
+#include "time.h"
 
-#ifdef COG_STANDALONE
-
-void printInt_f(Cog_Stack *stack, __attribute__((unused)) size_t argc)
+static void printInt_f(Cog_Stack *stack, __attribute__((unused)) size_t argc)
 {
 	printf("%ld", Cog_Stack_pop(stack).v_int);
 }
-void printFloat_f(Cog_Stack *stack, __attribute__((unused)) size_t argc)
+static void printFloat_f(Cog_Stack *stack, __attribute__((unused)) size_t argc)
 {
 	printf("%f", Cog_Stack_pop(stack).v_float);
 }
-void printChar_f(Cog_Stack *stack, __attribute__((unused)) size_t argc)
+static void printChar_f(Cog_Stack *stack, __attribute__((unused)) size_t argc)
 {
 	Cog_Value v = Cog_Stack_pop(stack);
 	uint8_t charSize = nob_bytes_for_utf8[*(uint8_t*)&v.v_char];
@@ -23,7 +22,7 @@ void printChar_f(Cog_Stack *stack, __attribute__((unused)) size_t argc)
 		putchar((v.v_char >> (i * 8)) & 0xff);
 }
 
-void buildStd(Cog_Globals *globals)
+static void buildStd(Cog_Globals *globals)
 {
 	Cog_GlobalValue printInt = {
 		.value = (Cog_Value) {
@@ -101,13 +100,22 @@ void buildStd(Cog_Globals *globals)
 	da_append(globals, PI);
 }
 
-int main(int argc, char **argv)
+#ifdef COG_STANDALONE
+
+static void printHelp(void)
 {
-	Cog_Bank_init();
+	printf(
+		"Usage: cogwheel [--help] [--time] <file>\n"
+		"Options:\n"
+		"  --help   Display this information.\n"
+		"  --time   Measure program execution time.\n"
+	);
+}
+static int runModule(char *file, bool benchmark)
+{
 	Cog_Globals globals = {0};
 	buildStd(&globals);
-	assert(argc == 2);
-	Cog_Module *module = Cog_loadModule(argv[1]);
+	Cog_Module *module = Cog_loadModule(file);
 #ifdef COG_DEBUG
 	nob_da_foreach(Cog_Module*, module, &Cog_allModules)
 		Cog_Module_print(*module);
@@ -123,11 +131,49 @@ int main(int argc, char **argv)
 #	ifdef COG_DEBUG
 	printf("//// EXECUTION ////\n");
 #	endif
+	clock_t start, end;
+	if (benchmark)
+		start = clock();
 	int result = Cog_run(&code, &globals);
+	if (benchmark)
+		end = clock();
 	Cog_Bank_freeAll();
 	free(globals.items);
-	printf("RESULT: %d\n", result);
+#	ifdef COG_DEBUG
+	printf("[Result: %d]\n", result);
+#	endif
+	if (benchmark)
+		printf("[Program executed in %f seconds]\n", (float)(end - start) / CLOCKS_PER_SEC);
 	return result;
+}
+
+int main(int argc, char **argv)
+{
+	Cog_Bank_init();
+	char *module = NULL;
+	bool benchmark, help = false;
+	for (size_t i = 1; i < (size_t)argc; i++)
+	{
+		if (module)
+		{
+			printf("Unexpected CLI argument after file \"%s\"\n", argv[i]);
+			return 1;
+		}
+		if (!strcmp(argv[i], "--help"))
+			help = true;
+		else if (!strcmp(argv[i], "--time"))
+			benchmark = true;
+		else
+			module = argv[i];
+	}
+	if (help)
+		printHelp();
+	if (!module && !help)
+	{
+		printf("File not specified\n");
+		return 1;
+	}
+	return module ? runModule(module, benchmark) : 0;
 }
 
 #endif
