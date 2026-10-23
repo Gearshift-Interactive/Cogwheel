@@ -168,12 +168,12 @@ int main(int argc, char **argv)
 	}
 	if (help)
 		printHelp();
-	if (!module && !help)
+	if (!module)
 	{
 		printf("File not specified\n");
-		return 1;
+		return help? 0 : 1;
 	}
-	return module ? runModule(module, benchmark) : 0;
+	return runModule(module, benchmark);
 }
 
 #endif
