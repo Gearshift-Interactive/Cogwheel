@@ -275,28 +275,12 @@ static Cog_Value cstrToCogstr(VM *vm, const char *cstr, size_t length)
 }
 static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 {
-#ifdef COG_DEBUG
-#	define INFIX(TYPE, FIELD, OP)               \
-		do {                                     \
-			Cog_Value rhs = Cog_Stack_pop(&vm->stack);   \
-			Cog_Value lhs = Cog_Stack_pop(&vm->stack);   \
-			Cog_Value result = {                     \
-				.type = (TYPE),                  \
-				.FIELD = lhs.FIELD OP rhs.FIELD, \
-			};                                   \
-			Cog_Stack_push(&vm->stack, result);      \
-		} while (0)
-#else
-#	define INFIX(TYPE, FIELD, OP)               \
-		do {                                     \
-			Cog_Value rhs = Cog_Stack_pop(&vm->stack);   \
-			Cog_Value lhs = Cog_Stack_pop(&vm->stack);   \
-			Cog_Value result = {                     \
-				.FIELD = lhs.FIELD OP rhs.FIELD, \
-			};                                   \
-			Cog_Stack_push(&vm->stack, result);      \
-		} while (0)
-#endif
+#define INFIX(TYPE, FIELD, OP) \
+	do { \
+		Cog_Value *lhs = vm->stack.values + vm->stack.count - 2; \
+		lhs->FIELD = lhs->FIELD OP (vm->stack.values + vm->stack.count - 1)->FIELD; \
+		vm->stack.count--; \
+	} while(0);
 	Cog_Opcode current = (Cog_Opcode)chunk->instr.code[vm->pc];
 	size_t arg1, arg2;
 	vm->pc++;
