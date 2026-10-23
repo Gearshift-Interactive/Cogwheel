@@ -2,6 +2,7 @@
 
 #include "value.h"
 #include "globals.h"
+#include "vm_dec.h"
 
 #include "nob.h"
 
@@ -123,26 +124,14 @@ typedef enum {
 	COG_OP_COUNT
 } Cog_Opcode;
 
-#define COG_CONST_ARRAY(T) struct { size_t count, capacity; T *items; }
-
-typedef struct Cog_Chunk {
-	COG_CONST_ARRAY(int64_t) intConsts;
-	COG_CONST_ARRAY(uint64_t) uintConsts;
-	COG_CONST_ARRAY(double) floatConsts;
-	COG_CONST_ARRAY(struct Cog_Chunk) functions;
-	COG_CONST_ARRAY(uint32_t) charConsts;
-	struct {
-		union { size_t count, length; };
-		size_t capacity;
-		union { uint8_t *code, *items; };
-	} instr;
-	size_t refCount;
-} Cog_Chunk;
-
-typedef struct Cog_Closure Cog_Closure;
-
 #undef COG_CONST_ARRAY
 
 void Cog_Chunk_free(const Cog_Chunk *);
 void Cog_Chunk_print(const Cog_Chunk *);
 int Cog_run(const Cog_Chunk *, Cog_Globals *);
+// void VM_init(VM *);
+// void VM_stackFree(VM *);
+void VM_push(VM *, Cog_Value value);
+Cog_Value *VM_pop(VM *);
+Cog_Value *VM_current(VM *);
+Cog_Value *VM_countBack(VM *, size_t number);

@@ -12,7 +12,7 @@ typedef struct Cog_Stack {
 #ifdef COG_DEBUG
 void Cog_Stack_print(const Cog_Stack *);
 #endif
-void Cog_Stack_checkCapacity(Cog_Stack *);
+void Cog_Stack_init(Cog_Stack *);
 void Cog_Stack_push(Cog_Stack *, Cog_Value value);
 Cog_Value Cog_Stack_pop(Cog_Stack *);
 Cog_Value Cog_Stack_current(Cog_Stack *);

@@ -1,25 +1,26 @@
-#include "stdio.h"
+#include "nob.h"
 
 #include "compilation/compiler.h"
+#include "vm/vm.h"
 #include "bank.h"
 #include "globals.h"
 #include "analysis/module.h"
 #include "time.h"
 
-static void printInt_f(Cog_Stack *stack, __attribute__((unused)) size_t argc)
+static void printInt_f(VM *vm, __attribute__((unused)) size_t argc)
 {
-	printf("%ld", Cog_Stack_pop(stack).v_int);
+	printf("%ld", VM_pop(vm)->v_int);
 }
-static void printFloat_f(Cog_Stack *stack, __attribute__((unused)) size_t argc)
+static void printFloat_f(VM *vm, __attribute__((unused)) size_t argc)
 {
-	printf("%f", Cog_Stack_pop(stack).v_float);
+	printf("%f", VM_pop(vm)->v_float);
 }
-static void printChar_f(Cog_Stack *stack, __attribute__((unused)) size_t argc)
+static void printChar_f(VM *vm, __attribute__((unused)) size_t argc)
 {
-	Cog_Value v = Cog_Stack_pop(stack);
-	uint8_t charSize = nob_bytes_for_utf8[*(uint8_t*)&v.v_char];
+	Cog_Value *v = VM_pop(vm);
+	uint8_t charSize = nob_bytes_for_utf8[*(uint8_t*)&v->v_char];
 	for (size_t i = 0; i < charSize; ++i)
-		putchar((v.v_char >> (i * 8)) & 0xff);
+		putchar((v->v_char >> (i * 8)) & 0xff);
 }
 
 static void buildStd(Cog_Globals *globals)
@@ -96,6 +97,14 @@ static void buildStd(Cog_Globals *globals)
 		},
 		.type = &COG_TYPE_FLOAT_OBJ,
 		.name = "PI",
+		.type = &COG_TYPE_FLOAT_OBJ,
+		.isMutable = false,
+		.value = {
+#ifdef COG_DEBUG
+			.type = COG_VALUE_FLOAT,
+#endif
+			.v_float = 3.14159
+		}
 	};
 	da_append(globals, PI);
 }
