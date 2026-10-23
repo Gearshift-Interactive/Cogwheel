@@ -212,9 +212,9 @@ static void Stack_free(const Cog_Stack *this)
 static size_t readSizeT(VM *vm, const Cog_Chunk *chunk)
 {
 	size_t value;
-    memcpy(&value, &chunk->instr.code[vm->pc], sizeof(value));
-    vm->pc += sizeof(value);
-    return value;
+	memcpy(&value, &chunk->instr.code[vm->pc], sizeof(value));
+	vm->pc += sizeof(value);
+	return value;
 }
 static void call(VM *, const Cog_Closure *, size_t);
 static void Scope_enter(VM *vm, size_t varCount)
@@ -336,51 +336,27 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 	case COG_OP_SUB_FLOAT:
 		INFIX(COG_VALUE_FLOAT, v_float, -);
 		break;
-	case COG_OP_DIV_INT:
-		{
-			Cog_Value rhs = Cog_Stack_pop(&vm->stack);
-			Cog_Value lhs = Cog_Stack_pop(&vm->stack);
-			if (rhs.v_int == 0)
-				COG_PANIC("Division by zero");
-			Cog_Value result = {
-#ifdef COG_DEBUG
-				.type = COG_VALUE_INT,
-#endif
-				.v_int = lhs.v_int / rhs.v_int,
-			};
-			Cog_Stack_push(&vm->stack, result);
-		}
-		break;
-	case COG_OP_DIV_UINT:
-		{
-			Cog_Value rhs = Cog_Stack_pop(&vm->stack);
-			Cog_Value lhs = Cog_Stack_pop(&vm->stack);
-			if (rhs.v_uint == 0)
-				COG_PANIC("Division by zero");
-			Cog_Value result = {
-#ifdef COG_DEBUG
-				.type = COG_VALUE_UINT,
-#endif
-				.v_uint = lhs.v_uint / rhs.v_uint,
-			};
-			Cog_Stack_push(&vm->stack, result);
-		}
-		break;
-	case COG_OP_DIV_FLOAT:
-		{
-			Cog_Value rhs = Cog_Stack_pop(&vm->stack);
-			Cog_Value lhs = Cog_Stack_pop(&vm->stack);
-			if (rhs.v_float == 0)
-				COG_PANIC("Division by zero");
-			Cog_Value result = {
-#ifdef COG_DEBUG
-				.type = COG_VALUE_FLOAT,
-#endif
-				.v_float = lhs.v_float / rhs.v_float,
-			};
-			Cog_Stack_push(&vm->stack, result);
-		}
-		break;
+	case COG_OP_DIV_INT: {
+		Cog_Value *lhs = vm->stack.values + vm->stack.count - 2;
+		Cog_Value *rhs = vm->stack.values + vm->stack.count - 1;
+		if (rhs->v_int == 0) COG_PANIC("Division by zero");
+		lhs->v_int = lhs->v_int / rhs->v_int;
+		vm->stack.count--;
+	} break;
+	case COG_OP_DIV_UINT: {
+		Cog_Value *lhs = vm->stack.values + vm->stack.count - 2;
+		Cog_Value *rhs = vm->stack.values + vm->stack.count - 1;
+		if (rhs->v_uint == 0) COG_PANIC("Division by zero");
+		lhs->v_uint = lhs->v_uint / rhs->v_uint;
+		vm->stack.count--;
+	} break;
+	case COG_OP_DIV_FLOAT: {
+		Cog_Value *lhs = vm->stack.values + vm->stack.count - 2;
+		Cog_Value *rhs = vm->stack.values + vm->stack.count - 1;
+		if (rhs->v_float == 0) COG_PANIC("Division by zero");
+		lhs->v_float = lhs->v_float / rhs->v_float;
+		vm->stack.count--;
+	} break;
 	case COG_OP_MUL_INT:
 		INFIX(COG_VALUE_INT, v_int, *);
 		break;
@@ -391,105 +367,73 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 		INFIX(COG_VALUE_FLOAT, v_float, *);
 		break;
 	case COG_OP_POW_INT: {
-		int64_t rhs = Cog_Stack_pop(&vm->stack).v_int;
-		int64_t lhs = Cog_Stack_pop(&vm->stack).v_int;
-		Cog_Value result = {
-#ifdef COG_DEBUG
-			.type = COG_VALUE_INT,
-#endif
-			.v_int = round(pow(lhs, rhs)),
-		};
-		Cog_Stack_push(&vm->stack, result);
-		}
-		break;
+		Cog_Value *lhs = vm->stack.values + vm->stack.count - 2;
+		Cog_Value *rhs = vm->stack.values + vm->stack.count - 1;
+		lhs->v_int = round(pow(lhs->v_int, rhs->v_int));
+		vm->stack.count--;
+	} break;
 	case COG_OP_POW_UINT: {
-		uint64_t rhs = Cog_Stack_pop(&vm->stack).v_uint;
-		uint64_t lhs = Cog_Stack_pop(&vm->stack).v_uint;
-		Cog_Value result = {
-#ifdef COG_DEBUG
-			.type = COG_VALUE_UINT,
-#endif
-			.v_uint = round(pow(lhs, rhs)),
-		};
-		Cog_Stack_push(&vm->stack, result);
-		}
-		break;
+		Cog_Value *lhs = vm->stack.values + vm->stack.count - 2;
+		Cog_Value *rhs = vm->stack.values + vm->stack.count - 1;
+		lhs->v_uint = round(pow(lhs->v_uint, rhs->v_uint));
+		vm->stack.count--;
+	} break;
 	case COG_OP_POW_FLOAT: {
-		double rhs = Cog_Stack_pop(&vm->stack).v_float;
-		double lhs = Cog_Stack_pop(&vm->stack).v_float;
-		Cog_Value result = {
+		Cog_Value *lhs = vm->stack.values + vm->stack.count - 2;
+		Cog_Value *rhs = vm->stack.values + vm->stack.count - 1;
+		lhs->v_float = pow(lhs->v_float, rhs->v_float);
+		vm->stack.count--;
+	} break;
+	case COG_OP_CAST_ITOU: {
+		Cog_Value *v = vm->stack.values + vm->stack.count - 1;
+		v->v_uint = (uint64_t)v->v_int;
 #ifdef COG_DEBUG
-			.type = COG_VALUE_FLOAT,
+		v->type = COG_VALUE_UINT;
 #endif
-			.v_float = pow(lhs, rhs),
-		};
-		Cog_Stack_push(&vm->stack, result);
-		}
-		break;
-	case COG_OP_CAST_ITOU:
-		Cog_Stack_push(&vm->stack, (Cog_Value){
+	} break;
+	case COG_OP_CAST_ITOF: {
+		Cog_Value *v = vm->stack.values + vm->stack.count - 1;
+		v->v_float = (double)v->v_int;
 #ifdef COG_DEBUG
-			.type = COG_VALUE_UINT,
+		v->type = COG_VALUE_FLOAT;
 #endif
-			.v_uint = (uint64_t)Cog_Stack_pop(&vm->stack).v_int,
-		});
-		break;
-	case COG_OP_CAST_ITOF:
-		Cog_Stack_push(&vm->stack, (Cog_Value){
+	} break;
+	case COG_OP_CAST_UTOI: {
+		Cog_Value *v = vm->stack.values + vm->stack.count - 1;
+		v->v_int = (int64_t)v->v_uint;
 #ifdef COG_DEBUG
-			.type = COG_VALUE_FLOAT,
+		v->type = COG_VALUE_INT;
 #endif
-			.v_float = (double)Cog_Stack_pop(&vm->stack).v_int,
-		});
-		break;
-	case COG_OP_CAST_UTOI:
-		Cog_Stack_push(&vm->stack, (Cog_Value){
+	} break;
+	case COG_OP_CAST_UTOF: {
+		Cog_Value *v = vm->stack.values + vm->stack.count - 1;
+		v->v_float = (double)v->v_uint;
 #ifdef COG_DEBUG
-			.type = COG_VALUE_INT,
+		v->type = COG_VALUE_FLOAT;
 #endif
-			.v_int = (int64_t)Cog_Stack_pop(&vm->stack).v_uint,
-		});
-		break;
-	case COG_OP_CAST_UTOF:
-		Cog_Stack_push(&vm->stack, (Cog_Value){
+	} break;
+	case COG_OP_CAST_FTOI: {
+		Cog_Value *v = vm->stack.values + vm->stack.count - 1;
+		v->v_int = (int64_t)v->v_float;
 #ifdef COG_DEBUG
-			.type = COG_VALUE_FLOAT,
+		v->type = COG_VALUE_FLOAT;
 #endif
-			.v_float = (double)Cog_Stack_pop(&vm->stack).v_uint,
-		});
-		break;
-	case COG_OP_CAST_FTOI:
-		Cog_Stack_push(&vm->stack, (Cog_Value){
+	} break;
+	case COG_OP_CAST_FTOU: {
+		Cog_Value *v = vm->stack.values + vm->stack.count - 1;
+		v->v_uint = (uint64_t)v->v_float;
 #ifdef COG_DEBUG
-			.type = COG_VALUE_INT,
+		v->type = COG_VALUE_UINT;
 #endif
-			.v_int = (int64_t)Cog_Stack_pop(&vm->stack).v_float,
-		});
-		break;
-	case COG_OP_CAST_FTOU:
-		Cog_Stack_push(&vm->stack, (Cog_Value){
-#ifdef COG_DEBUG
-			.type = COG_VALUE_UINT,
-#endif
-			.v_uint = (uint64_t)Cog_Stack_pop(&vm->stack).v_float,
-		});
-		break;
-	case COG_OP_NEG_INT:
-		Cog_Stack_push(&vm->stack, (Cog_Value){
-#ifdef COG_DEBUG
-			.type = COG_VALUE_INT,
-#endif
-			.v_int = -(int64_t)Cog_Stack_pop(&vm->stack).v_int,
-		});
-		break;
-	case COG_OP_NEG_FLOAT:
-		Cog_Stack_push(&vm->stack, (Cog_Value){
-#ifdef COG_DEBUG
-			.type = COG_VALUE_FLOAT,
-#endif
-			.v_float = -(double)Cog_Stack_pop(&vm->stack).v_float,
-		});
-		break;
+	} break;
+	case COG_OP_NEG_INT: {
+		Cog_Value *v = vm->stack.values + vm->stack.count - 1;
+		v->v_int = -(v->v_int);
+	} break;
+	case COG_OP_NEG_FLOAT: {
+		Cog_Value *v = vm->stack.values + vm->stack.count - 1;
+		v->v_float = -(v->v_float);
+	} break;
 	case COG_OP_POP:
 		Cog_Stack_pop(&vm->stack);
 		break;
@@ -542,25 +486,21 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 			vm->pc += arg1 - sizeof(size_t);
 		break;
 #ifdef COG_DEBUG
-#	define COG_INFIX_LOG(FIELD, OP)               \
-		do {                                     \
-			Cog_Value rhs = Cog_Stack_pop(&vm->stack);   \
-			Cog_Value lhs = Cog_Stack_pop(&vm->stack);   \
-			Cog_Value result = {                     \
-				.type = COG_VALUE_BOOL,        \
-				.v_bool = lhs.FIELD OP rhs.FIELD, \
-			};                                   \
-			Cog_Stack_push(&vm->stack, result);      \
+#	define COG_INFIX_LOG(FIELD, OP) \
+		do { \
+			Cog_Value *rhs = vm->stack.values + vm->stack.count - 1; \
+			Cog_Value *lhs = vm->stack.values + vm->stack.count - 2; \
+			lhs->v_bool = lhs->FIELD OP rhs->FIELD; \
+			lhs->type = COG_VALUE_BOOL; \
+			vm->stack.count--;
 		} while (0)
 #else
 #	define COG_INFIX_LOG(FIELD, OP)               \
 		do {                                     \
-			Cog_Value rhs = Cog_Stack_pop(&vm->stack);   \
-			Cog_Value lhs = Cog_Stack_pop(&vm->stack);   \
-			Cog_Value result = {                     \
-				.v_bool = lhs.FIELD OP rhs.FIELD, \
-			};                                   \
-			Cog_Stack_push(&vm->stack, result);      \
+			Cog_Value *rhs = vm->stack.values + vm->stack.count - 1; \
+			Cog_Value *lhs = vm->stack.values + vm->stack.count - 2; \
+			lhs->v_bool = lhs->FIELD OP rhs->FIELD; \
+			vm->stack.count--; \
 		} while (0)
 #endif
 	case COG_OP_EQ_INT:
@@ -618,7 +558,7 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 		COG_INFIX_LOG(v_float, <=);
 		break;
 	case COG_OP_NOT:
-		curValue = Cog_Stack_currentPtr(&vm->stack);
+		curValue = vm->stack.values + vm->stack.count - 1;
 		curValue->v_bool = !curValue->v_bool;
 		break;
 	case COG_OP_JUMPB:
