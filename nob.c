@@ -98,17 +98,28 @@ static void Task_clean(size_t argc, char **argv)
 {
 	walk_dir(DIR_BIN, recursiveDelete_callback);
 }
+static void Task_profile(size_t argc, char **argv)
+{
+	if (argc)
+	{
+		nob_log(ERROR, "\"profile\" doesn't take any arguments");
+		return;
+	}
+	cmd_append(&cmd, "gprof", FILE_BIN);
+	if (!cmd_run(&cmd)) exit(1);
+}
 static void Task_help(size_t argc, char **argv)
 {
 	printf(
 		"Usage: nob ((<command> [<args>]) ...)\n"
 		"Available commands:\n"
-		"  clean    - delete all compiled binaries\n"
-		"  build    - compile the binary file\n"
+		"  clean      - delete all compiled binaries\n"
+		"  build      - compile the binary file\n"
 		"    -release - release mode\n"
 		"    -profile - profile mode\n"
-		"  run      - run standalone\n"
-		"  help     - show this message\n"
+		"  run        - run standalone\n"
+		"  profile    - display profiler information\m"
+		"  help       - show this message\n"
 	);
 }
 typedef struct {
@@ -134,6 +145,8 @@ int Command_run(Command command)
 		Task_help(command.argc, command.argv);
 	else if (!strcmp(command.command, "run"))
 		Task_run(command.argc, command.argv);
+	else if (!strcmp(command.command, "profile"))
+		Task_profile(command.argc, command.argv);
 	else {
 		nob_log(ERROR, "Invalid command: %s", command.command);
 		Task_help(0, NULL);
