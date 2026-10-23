@@ -2,3 +2,4 @@ build/
 bin/
 nob
 nob.old
+gmon.out
