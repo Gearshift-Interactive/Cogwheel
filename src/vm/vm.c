@@ -97,14 +97,10 @@ void VM_push(VM *this, Cog_Value value)
 	if (this->stackTop == this->stackEnd)
 	{
 		size_t capacity = this->stackEnd - this->stackBase;
-		size_t top = this->stackEnd - this->stackTop;
-		this->stackBase = realloc(this->stackBase, capacity * 2);
-#ifdef COG_DEBUG
-		if (!this->stackBase)
-			COG_PANIC("Out of memory");
-#endif
+		this->stackBase = realloc(this->stackBase, sizeof(Cog_Value) * capacity * 2);
+		if (!this->stackBase) COG_PANIC("Out of memory");
 		this->stackEnd = this->stackBase + capacity * 2;
-		this->stackTop = this->stackBase + top;
+		this->stackTop = this->stackBase + capacity;
 	}
 	*this->stackTop++ = value;
 }
