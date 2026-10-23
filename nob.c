@@ -16,8 +16,9 @@
 	"-I"DIR_SRC, "-I.", FILE_OBJ_NOB, "-DCOG_STANDALONE", "-lm"
 #define ARGS_NOB "gcc", "-x", "c", "-DNOB_IMPLEMENTATION", "-c", "nob.h"
 #define ARGS_DEBUG "-ggdb", "-fsanitize=address", "-DCOG_DEBUG"
+#define ARGS_PROF "-pg"
 
-struct { NOBU_DA(char *) } filesToBuild;
+struct { NOBU_DA(char *); } filesToBuild;
 
 Cmd cmd = {0};
 
@@ -37,6 +38,7 @@ static void Task_buildNob(size_t argc, char **argv) {
 	for (size_t i = 0; i < argc; i++)
 		if (!strcmp(argv[i], "release"))
 			debug = false;
+		else if (!strcmp(argv[i], "profile"));
 		else {
 			nob_log(ERROR, "Invalid `build` argument: %s", argv[i]);
 			return;
@@ -50,9 +52,12 @@ static void Task_buildNob(size_t argc, char **argv) {
 static void Task_build(size_t argc, char **argv)
 {
 	bool debug = true;
+	bool profile = false;
 	for (size_t i = 0; i < argc; i++)
 		if (!strcmp(argv[i], "release"))
 			debug = false;
+		else if (!strcmp(argv[i], "profile"))
+			profile = true;
 		else {
 			nob_log(ERROR, "Invalid `build` argument: %s", argv[i]);
 			return;
@@ -65,6 +70,8 @@ static void Task_build(size_t argc, char **argv)
 	cmd_append(&cmd, ARGS);
 	if (debug)
 		cmd_append(&cmd, ARGS_DEBUG);
+	if (profile)
+		cmd_append(&cmd, ARGS_PROF);
 	walk_dir(DIR_SRC, addSourceFile_callback);
 	da_foreach(char*, file, &filesToBuild)
 		cmd_append(&cmd, *file);
@@ -99,6 +106,7 @@ static void Task_help(size_t argc, char **argv)
 		"  clean    - delete all compiled binaries\n"
 		"  build    - compile the binary file\n"
 		"    -release - release mode\n"
+		"    -profile - profile mode\n"
 		"  run      - run standalone\n"
 		"  help     - show this message\n"
 	);
