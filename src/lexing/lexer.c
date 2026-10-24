@@ -64,7 +64,7 @@ static const SymbolInfo KEYWORDS[] = {
 	{ "null", COG_TOKEN_NULL },
 	{ "with", COG_TOKEN_WITH },
 	{ "alias", COG_TOKEN_ALIAS },
-	// { "realloc", COG_TOKEN_REALLOC },
+	// { "realloc", COG_TOKEN_REALLOC },  // im not sure what i want to do with this yet
 	{ "public", COG_TOKEN_PUBLIC },
 	{ "import", COG_TOKEN_IMPORT },
 };

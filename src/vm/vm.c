@@ -143,7 +143,7 @@ static void printLevel(size_t level)
 }
 static void Chunk_printImpl(const Cog_Chunk *this, size_t level)
 {
-#define PRINTOUT(ARR, FORMAT, T) printf("%p===%p\n", (ARR).start, (ARR).end); fflush(stdout); if ((ARR).start != NULL && (ARR).end != NULL) for (T *i = (ARR).start; i < (ARR).end; i++) { printLevel(level); printf("  %ld - %"FORMAT",\n", i - (ARR).start, *i); }
+#define PRINTOUT(ARR, FORMAT, T) if ((ARR).start) for (T *i = (ARR).start; i < (ARR).end; i++) { printLevel(level); printf("  %ld - %"FORMAT",\n", (i - (ARR).start) / sizeof *i, *i); fflush(stdout); }
 	printLevel(level);
 	printf("INT_CONSTANTS:\n");
 	PRINTOUT(this->intConsts, PRIi64, int64_t)
@@ -155,48 +155,51 @@ static void Chunk_printImpl(const Cog_Chunk *this, size_t level)
 	PRINTOUT(this->floatConsts, "f", double)
 	printLevel(level);
 	printf("CHAR_CONSTANTS:\n");
-	for (uint32_t *i = this->charConsts.start; i < this->charConsts.end; i++)
-	{
-		printLevel(level);
-		printf("  %ld - ", i - this->charConsts.start);
-		uint32_t value = *i;
-		uint8_t charSize = nob_bytes_for_utf8[*(uint8_t*)&value];
-		for (size_t bi = 0; bi < charSize; ++bi)
-			putchar((value >> (bi * 8)) & 0xff);
-		putchar('\n');
-	}
+	if (this->charConsts.start)
+		for (uint32_t *i = this->charConsts.start; i < this->charConsts.end; i++)
+		{
+			printLevel(level);
+			printf("  %ld - ", i - this->charConsts.start);
+			uint32_t value = *i;
+			uint8_t charSize = nob_bytes_for_utf8[*(uint8_t*)&value];
+			for (size_t bi = 0; bi < charSize; ++bi)
+				putchar((value >> (bi * 8)) & 0xff);
+			putchar('\n');
+		}
 	printLevel(level);
 	printf("FUNCTIONS:\n");
-	for (Cog_Chunk *i = this->functions.start; i <= this->functions.end; i++)
-	{
-		printLevel(level);
-		Chunk_printImpl(i, level + 1);
-	}
+	if (this->functions.start)
+		for (Cog_Chunk *i = this->functions.start; i <= this->functions.end; i++)
+		{
+			printLevel(level);
+			Chunk_printImpl(i, level + 1);
+		}
 	printLevel(level);
 	printf("CODE:\n");
-	for (uint8_t *ip = this->instr.start; ip <= this->instr.end; ip++)
-	{
-		printLevel(level);
-		switch (*ip)
+	if (this->instr.start)
+		for (uint8_t *ip = this->instr.start; ip <= this->instr.end; ip++)
 		{
+			printLevel(level);
+			switch (*ip)
+			{
 #define COG_X(NAME, ARGL) \
-	case COG_OP_##NAME: \
-		printf("  %ld - %s", ip - this->instr.start, #NAME); \
-		if (ARGL) \
-		{ \
-			size_t argl = ARGL; \
-			printf(" - "); \
-			/* displaying args in little endidan */ \
-			for (size_t iini = 0; iini < argl; iini++) \
-				printf("%X", *(ip + 1 + iini)); \
-			ip += argl; \
-		} \
-		printf("\n"); \
-		break;
-	COG_OPCODE_TYPE
+		case COG_OP_##NAME: \
+			printf("  %ld - %s", ip - this->instr.start, #NAME); \
+			if (ARGL) \
+			{ \
+				size_t argl = ARGL; \
+				printf(" - "); \
+				/* displaying args in little endidan */ \
+				for (size_t iini = 0; iini < argl; iini++) \
+					printf("%X", *(ip + 1 + iini)); \
+				ip += argl; \
+			} \
+			printf("\n"); \
+			break;
+		COG_OPCODE_TYPE
 #undef COG_X
+			}
 		}
-	}
 }
 void Cog_Chunk_print(const Cog_Chunk *this)
 {
