@@ -97,14 +97,7 @@ static void buildStd(Cog_Globals *globals)
 		},
 		.type = &COG_TYPE_FLOAT_OBJ,
 		.name = "PI",
-		.type = &COG_TYPE_FLOAT_OBJ,
 		.isMutable = false,
-		.value = {
-#ifdef COG_DEBUG
-			.type = COG_VALUE_FLOAT,
-#endif
-			.v_float = 3.14159
-		}
 	};
 	da_append(globals, PI);
 }

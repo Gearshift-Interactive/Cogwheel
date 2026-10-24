@@ -1,5 +1,6 @@
 #include "compiler.h"
 #include "error.h"
+#include "chunk_builder.h"
 
 typedef enum {
 	CONT_NULL = 0,
@@ -58,11 +59,11 @@ static size_t Context_findParentDepth(Context *this, ContextType type)
 } while(0);
 #define CHUNK_PTR(I) Chunk_idxToPtr(this, I)
 
-static void *Chunk_idxToPtr(Cog_Chunk *this, size_t index)
+static void *Chunk_idxToPtr(Cog_ChunkBuilder *this, size_t index)
 {
 	return this->instr.items + index;
 }
-__attribute__((unused)) static void *Chunk_acquireData(Cog_Chunk *this, size_t size)
+__attribute__((unused)) static void *Chunk_acquireData(Cog_ChunkBuilder *this, size_t size)
 {
 	void *result = this->instr.items + this->instr.count;
 	for (size_t i = 0; i < size; i++) \
@@ -70,10 +71,10 @@ __attribute__((unused)) static void *Chunk_acquireData(Cog_Chunk *this, size_t s
 	return result;
 }
 
-static Cog_Chunk compileImpl(const Cog_Node *tree, bool shouldFree);
-static size_t compileNode(Cog_Chunk *this, const Cog_Node *node, Context *context);
+static Cog_ChunkBuilder compileImpl(const Cog_Node *tree, bool shouldFree);
+static size_t compileNode(Cog_ChunkBuilder *this, const Cog_Node *node, Context *context);
 
-static size_t compileCast(Cog_Chunk *this, const Cog_Node *node, __attribute__((unused)) Context *context)
+static size_t compileCast(Cog_ChunkBuilder *this, const Cog_Node *node, __attribute__((unused)) Context *context)
 {
 	size_t resultSize = 0;
 	Cog_Opcode op = 0;
@@ -128,7 +129,7 @@ static size_t compileCast(Cog_Chunk *this, const Cog_Node *node, __attribute__((
 	return resultSize;
 }
 
-static size_t compileAssignment(Cog_Chunk *this, const Cog_Node *node, Context *context)
+static size_t compileAssignment(Cog_ChunkBuilder *this, const Cog_Node *node, Context *context)
 {
 	fflush(stdout);
 	size_t resultSize = 0;
@@ -150,7 +151,7 @@ static size_t compileAssignment(Cog_Chunk *this, const Cog_Node *node, Context *
 	}
 	return resultSize;
 }
-static size_t compileInfix(Cog_Chunk *this, const Cog_Node *node, Context *context)
+static size_t compileInfix(Cog_ChunkBuilder *this, const Cog_Node *node, Context *context)
 {
 	size_t resultSize = 0;
 	if (node->infix.type == COG_INFIX_AND)
@@ -184,8 +185,8 @@ static size_t compileInfix(Cog_Chunk *this, const Cog_Node *node, Context *conte
 	switch (node->infix.type)
 	{
 	case COG_INFIX_FUNC: {
-		Cog_Chunk funcChunk = compileImpl(node->infix.right->scope.child, false);
-		da_append(&this->functions, funcChunk);
+		Cog_ChunkBuilder funcChunk = compileImpl(node->infix.right->scope.child, false);
+		da_append(&this->functions, Cog_ChunkBuilder_finalize(funcChunk));
 		PUSH_OP(COG_OP_CLOAD_FUNC);
 		PUSH_DATA(size_t, this->functions.count - 1);
 	} break;
@@ -407,7 +408,7 @@ static size_t compileInfix(Cog_Chunk *this, const Cog_Node *node, Context *conte
 	}
 	return resultSize;
 }
-static size_t compileNode(Cog_Chunk *this, const Cog_Node *node, Context *context)
+static size_t compileNode(Cog_ChunkBuilder *this, const Cog_Node *node, Context *context)
 {
 	if (node->unreachable)
 		return 0;
@@ -751,9 +752,9 @@ static size_t compileNode(Cog_Chunk *this, const Cog_Node *node, Context *contex
 	return resultSize;
 }
 
-static Cog_Chunk compileImpl(const Cog_Node *tree, bool shouldFree)
+static Cog_ChunkBuilder compileImpl(const Cog_Node *tree, bool shouldFree)
 {
-	Cog_Chunk result = {0};
+	Cog_ChunkBuilder result = {0};
 	Context context = {0};
 	compileNode(&result, tree, &context);
 	if (shouldFree)
@@ -762,5 +763,5 @@ static Cog_Chunk compileImpl(const Cog_Node *tree, bool shouldFree)
 }
 Cog_Chunk Cog_compile(const Cog_Node *tree)
 {
-	return compileImpl(tree, true);
+	return Cog_ChunkBuilder_finalize(compileImpl(tree, true));
 }

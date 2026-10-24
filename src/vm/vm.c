@@ -120,17 +120,20 @@ inline Cog_Value *VM_countBack(VM *this, size_t number)
 void Cog_Chunk_free(const Cog_Chunk *this)
 {
 #define FREE_IF_PRESENT(PTR) if (PTR) free(PTR)
-	FREE_IF_PRESENT(this->intConsts.items);
-	FREE_IF_PRESENT(this->uintConsts.items);
-	FREE_IF_PRESENT(this->floatConsts.items);
-	FREE_IF_PRESENT(this->instr.code);
-	FREE_IF_PRESENT(this->charConsts.items);
+	FREE_IF_PRESENT(this->intConsts.start);
+	FREE_IF_PRESENT(this->uintConsts.start);
+	FREE_IF_PRESENT(this->floatConsts.start);
+	FREE_IF_PRESENT(this->instr.start);
+	FREE_IF_PRESENT(this->charConsts.start);
 #undef FREE_IF_PRESENT
-	if (this->functions.items)
+	if (this->functions.start)
 	{
-		da_foreach(Cog_Chunk, chunk, &this->functions)
-			Cog_Chunk_free(chunk);
-		free(this->functions.items);
+		for (
+			Cog_Chunk *chunk = this->functions.start;
+			chunk <= this->functions.end;
+			chunk++
+		) Cog_Chunk_free(chunk);
+		free(this->functions.start);
 	}
 }
 static void printLevel(size_t level)
@@ -140,35 +143,23 @@ static void printLevel(size_t level)
 }
 static void Chunk_printImpl(const Cog_Chunk *this, size_t level)
 {
-#define da_enumerate(I, ARR) for (size_t I = 0; I < (ARR)->count; I++)
+#define PRINTOUT(ARR, FORMAT, T) printf("%p===%p\n", (ARR).start, (ARR).end); fflush(stdout); if ((ARR).start != NULL && (ARR).end != NULL) for (T *i = (ARR).start; i < (ARR).end; i++) { printLevel(level); printf("  %ld - %"FORMAT",\n", i - (ARR).start, *i); }
 	printLevel(level);
 	printf("INT_CONSTANTS:\n");
-	da_enumerate(ii, &this->intConsts)
-	{
-		printLevel(level);
-		printf("  %ld - %"PRIi64",\n", ii, this->intConsts.items[ii]);
-	}
+	PRINTOUT(this->intConsts, PRIi64, int64_t)
 	printLevel(level);
 	printf("UINT_CONSTANTS:\n");
-	da_enumerate(ui, &this->uintConsts)
-	{
-		printLevel(level);
-		printf("  %ld - %"PRIu64",\n", ui, this->uintConsts.items[ui]);
-	}
+	PRINTOUT(this->uintConsts, PRIu64, uint64_t)
 	printLevel(level);
 	printf("FLOAT_CONSTANTS:\n");
-	da_enumerate(fi, &this->floatConsts)
-	{
-		printLevel(level);
-		printf("  %ld - %f,\n", fi, this->floatConsts.items[fi]);
-	}
+	PRINTOUT(this->floatConsts, "f", double)
 	printLevel(level);
 	printf("CHAR_CONSTANTS:\n");
-	da_enumerate(ci, &this->charConsts)
+	for (uint32_t *i = this->charConsts.start; i < this->charConsts.end; i++)
 	{
 		printLevel(level);
-		printf("  %ld - ", ci);
-		uint32_t value = this->charConsts.items[ci];
+		printf("  %ld - ", i - this->charConsts.start);
+		uint32_t value = *i;
 		uint8_t charSize = nob_bytes_for_utf8[*(uint8_t*)&value];
 		for (size_t bi = 0; bi < charSize; ++bi)
 			putchar((value >> (bi * 8)) & 0xff);
@@ -176,29 +167,29 @@ static void Chunk_printImpl(const Cog_Chunk *this, size_t level)
 	}
 	printLevel(level);
 	printf("FUNCTIONS:\n");
-	da_enumerate(fni, &this->functions)
+	for (Cog_Chunk *i = this->functions.start; i <= this->functions.end; i++)
 	{
 		printLevel(level);
-		Chunk_printImpl(&this->functions.items[fni], level + 1);
+		Chunk_printImpl(i, level + 1);
 	}
 	printLevel(level);
 	printf("CODE:\n");
-	da_enumerate(ini, &this->instr)
+	for (uint8_t *ip = this->instr.start; ip <= this->instr.end; ip++)
 	{
 		printLevel(level);
-		switch (this->instr.code[ini])
+		switch (*ip)
 		{
 #define COG_X(NAME, ARGL) \
 	case COG_OP_##NAME: \
-		printf("  %ld - %s", ini, #NAME); \
+		printf("  %ld - %s", ip - this->instr.start, #NAME); \
 		if (ARGL) \
 		{ \
 			size_t argl = ARGL; \
 			printf(" - "); \
 			/* displaying args in little endidan */ \
 			for (size_t iini = 0; iini < argl; iini++) \
-				printf("%X", this->instr.code[ini + 1 + iini]); \
-			ini += argl; \
+				printf("%X", *(ip + 1 + iini)); \
+			ip += argl; \
 		} \
 		printf("\n"); \
 		break;
@@ -206,7 +197,6 @@ static void Chunk_printImpl(const Cog_Chunk *this, size_t level)
 #undef COG_X
 		}
 	}
-#undef da_enumerate
 }
 void Cog_Chunk_print(const Cog_Chunk *this)
 {
@@ -219,10 +209,10 @@ void Cog_Chunk_print(const Cog_Chunk *this)
 // }
 static size_t readSizeT(VM *vm, const Cog_Chunk *chunk)
 {
-	size_t value;
-	memcpy(&value, &chunk->instr.code[vm->pc], sizeof(value));
-	vm->pc += sizeof(value);
-	return value;
+	NOB_UNUSED(chunk);
+	size_t *result = (size_t *)vm->ip;
+	vm->ip += sizeof *result;
+	return *result;
 }
 static void call(VM *, const Cog_Closure *, size_t);
 static void Scope_enter(VM *vm, size_t varCount)
@@ -290,9 +280,9 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 		lhs->FIELD = lhs->FIELD OP VM_current(vm)->FIELD; \
 		vm->stackTop--; \
 	} while(0);
-	Cog_Opcode current = (Cog_Opcode)chunk->instr.code[vm->pc];
+	Cog_Opcode current = *(Cog_Opcode *)vm->ip;
 	size_t arg1, arg2;
-	vm->pc++;
+	vm->ip++;
 	Cog_Value *curValue;
 	switch (current)
 	{
@@ -306,7 +296,7 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 #ifdef COG_DEBUG
 			.type = COG_VALUE_INT,
 #endif
-			.v_int = chunk->intConsts.items[arg1],
+			.v_int = chunk->intConsts.start[arg1],
 		});
 		break;
 	case COG_OP_CLOAD_UINT:
@@ -315,7 +305,7 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 #ifdef COG_DEBUG
 			.type = COG_VALUE_UINT,
 #endif
-			.v_uint = chunk->uintConsts.items[arg1],
+			.v_uint = chunk->uintConsts.start[arg1],
 		});
 		break;
 	case COG_OP_CLOAD_FLOAT:
@@ -324,7 +314,7 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 #ifdef COG_DEBUG
 			.type = COG_VALUE_FLOAT,
 #endif
-			.v_float = chunk->floatConsts.items[arg1],
+			.v_float = chunk->floatConsts.start[arg1],
 		});
 		break;
 	case COG_OP_ADD_INT:
@@ -487,12 +477,12 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 		break;
 	case COG_OP_JUMPF:
 		arg1 = readSizeT(vm, chunk);
-		vm->pc += arg1 - sizeof(size_t);
+		vm->ip += arg1 - sizeof(size_t);
 		break;
 	case COG_OP_JUMPF_IFN:
 		arg1 = readSizeT(vm, chunk);
 		if (!VM_pop(vm)->v_bool)
-			vm->pc += arg1 - sizeof(size_t);
+			vm->ip += arg1 - sizeof(size_t);
 		break;
 #ifdef COG_DEBUG
 #	define COG_INFIX_LOG(FIELD, OP) \
@@ -572,7 +562,7 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 		break;
 	case COG_OP_JUMPB:
 		arg1 = readSizeT(vm, chunk);
-		vm->pc -= arg1 + sizeof(size_t);
+		vm->ip -= arg1 + sizeof(size_t);
 		break;
 	case COG_OP_POP_IFPR:
 		if (vm->stackBase != vm->stackTop)
@@ -657,7 +647,7 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 	} break;
 	case COG_OP_CLOAD_FUNC: {
 		size_t chunkIndex = readSizeT(vm, chunk);
-		Cog_Chunk *funcChunk = &chunk->functions.items[chunkIndex];
+		Cog_Chunk *funcChunk = &chunk->functions.start[chunkIndex];
 		// Scope_release(funcChunk->vmData);
 		// funcChunk->vmData = vm->scope;
 		if (vm->scope)
@@ -689,7 +679,7 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 #ifdef COG_DEBUG
 			.type = COG_VALUE_CHAR,
 #endif
-			.v_char = chunk->charConsts.items[arg1],
+			.v_char = chunk->charConsts.start[arg1],
 		});
 		break;
 	case COG_OP_GC_REALLOC: {
@@ -789,15 +779,15 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 	case COG_OP_JUMPF_IFN_R:
 		arg1 = readSizeT(vm, chunk);
 		if (!VM_current(vm)->v_bool)
-			vm->pc += arg1 - sizeof(size_t);
+			vm->ip += arg1 - sizeof(size_t);
 		break;
 	case COG_OP_JUMPF_IF_R:
 		arg1 = readSizeT(vm, chunk);
 		if (VM_current(vm)->v_bool)
-			vm->pc += arg1 - sizeof(size_t);
+			vm->ip += arg1 - sizeof(size_t);
 		break;
 	default:
-		COG_PANIC("Unsupported operation at %ld", vm->pc - 1);
+		COG_PANIC("Unsupported operation at %ld", chunk->instr.end - vm->ip - 1);
 		break;
 	}
 #undef INFIX
@@ -806,10 +796,10 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 
 static void execute(VM *vm, const Cog_Chunk *chunk)
 {
-	while (!vm->done && vm->pc < chunk->instr.count)
+	while (!vm->done && vm->ip <= chunk->instr.end)
 	{
 #ifdef COG_DEBUG
-		printf("%zu ", vm->pc);
+		printf("%zu ", vm->ip - chunk->instr.start);
 		VM_print(vm);
 		fflush(stdout);
 #endif
@@ -818,10 +808,10 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 }
 static void call(VM *vm, const Cog_Closure *closure, size_t argc)
 {
-	size_t oldPc    = vm->pc;
+	uint8_t *oldIp  = vm->ip;
 	Scope *oldScope = vm->scope;
 
-	vm->pc    = 0;
+	vm->ip    = closure->chunk->instr.start;
 	vm->scope = closure->env;
 
 	Scope_enter(vm, argc);
@@ -830,7 +820,7 @@ static void call(VM *vm, const Cog_Closure *closure, size_t argc)
 	execute(vm, closure->chunk);
 	if (vm->done) return;
 	Scope_exit(vm);
-	vm->pc    = oldPc;
+	vm->ip    = oldIp;
 	vm->scope = oldScope;
 }
 int Cog_run(const Cog_Chunk *chunk, Cog_Globals *globals)
@@ -840,6 +830,7 @@ int Cog_run(const Cog_Chunk *chunk, Cog_Globals *globals)
 	Scope_enter(&vm, globals->count);
 	for (size_t i = 0; i < globals->count; i++)
 		scopeWrite(&vm, 0, i, globals->items[i].value);
+	vm.ip = chunk->instr.start;
 	execute(&vm, chunk);
 	VM_stackFree(&vm);
 	GC_freeAll(&vm.gc);

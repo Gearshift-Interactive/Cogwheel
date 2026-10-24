@@ -2,18 +2,16 @@
 
 #include "nob.h"
 
-#define COG_CONST_ARRAY(T) struct { size_t count, capacity; T *items; }
+#define COG_CHUNK_CONST_ARRAY(T) struct { T *start, *end; }
 
 typedef struct Cog_Chunk {
-	COG_CONST_ARRAY(int64_t) intConsts;
-	COG_CONST_ARRAY(uint64_t) uintConsts;
-	COG_CONST_ARRAY(double) floatConsts;
-	COG_CONST_ARRAY(struct Cog_Chunk) functions;
-	COG_CONST_ARRAY(uint32_t) charConsts;
+	COG_CHUNK_CONST_ARRAY(int64_t) intConsts;
+	COG_CHUNK_CONST_ARRAY(uint64_t) uintConsts;
+	COG_CHUNK_CONST_ARRAY(double) floatConsts;
+	COG_CHUNK_CONST_ARRAY(struct Cog_Chunk) functions;
+	COG_CHUNK_CONST_ARRAY(uint32_t) charConsts;
 	struct {
-		union { size_t count, length; };
-		size_t capacity;
-		union { uint8_t *code, *items; };
+		uint8_t *start, *end;
 	} instr;
 	size_t refCount;
 } Cog_Chunk;
@@ -52,7 +50,7 @@ typedef struct VM {
 	Cog_Value *stackTop; // points **past** the last used element of the stack
 	Cog_Value *stackEnd; // points to the last **allocated** item of the stack
 	Scope *scope;
-	size_t pc;
+	uint8_t *ip;
 	int retCode;
 	bool done;
 	GC gc;
