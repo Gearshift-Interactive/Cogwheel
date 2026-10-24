@@ -3,10 +3,10 @@ import util;
 var arrayPrettyPrint = (int?[] array) -> {
     util::println("[");
     mut var i = 0u;
-    while (i < sizeof array)
+    while (i < #array)
     {
         util::print("  ", $array[i]!,
-            if (i == sizeof array - 1u)
+            if (i == #array - 1u)
                 "\n"
             else
                 ",\n"
@@ -19,10 +19,10 @@ var arrayPrettyString = (int?[] array) -> {
     mut var result = "";
     result = result + "[\n";
     mut var i = 0u;
-    while (i < sizeof array)
+    while (i < #array)
     {
         result = result + "  " + $array[i]! +
-            if (i == sizeof array - 1u)
+            if (i == #array - 1u)
                 "\n"
             else
                 ",\n";

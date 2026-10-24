@@ -2,11 +2,11 @@ alias String = char[];
 
 public var print = (String... strs) -> {
     mut var j = 0u;
-    while (j < sizeof strs)
+    while (j < #strs)
     {
         var str = strs[j];
         mut var i = 0u;
-        while (i < sizeof str)
+        while (i < #str)
         {
             putChar(str[i]);
             i = i + 1u;
@@ -16,7 +16,7 @@ public var print = (String... strs) -> {
 };
 public var println = (String... strs) -> {
     mut var i = 0u;
-    while (i < sizeof strs)
+    while (i < #strs)
     {
         print(strs[i]);
         i = i + 1u;
@@ -26,7 +26,7 @@ public var println = (String... strs) -> {
 public var panic = (String... message) -> {
     print("[PANIC] ");
     mut var i = 0u;
-    while (i < sizeof message)
+    while (i < #message)
     {
         print(message[i]);
         i = i + 1u;

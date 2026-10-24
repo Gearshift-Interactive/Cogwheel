@@ -21,7 +21,7 @@ alias String = char[];
 
 var print = (String str) -> {
     mut var i = 0u;
-    while (i < sizeof str)
+    while (i < #str)
     {
         putChar(str[i]);
         i = i + 1u;
@@ -151,7 +151,7 @@ You can also initialize arrays with no values, but this will require to specify 
 ```
 var someArray = new [] with uint?;
 ```
-You can use `sizeof` operator to get the amount of elements in the given array.
+You can use `#` operator to get the amount of elements in the given array.
 
 Array indexes and sizes can only be of type `uint`
 
@@ -177,7 +177,7 @@ just a bunch of syntactical sugar: Strings here are basically an array of charac
 ```
 var print = (char[] str) -> {
     mut var i = 0u;
-    while (i < sizeof str)
+    while (i < #str)
     {
         putChar(str[i]);
         i = i + 1u;
@@ -195,7 +195,7 @@ There is an operator, that converts every atomic type into a string with its' re
 ```
 var print = (String str) -> {
     mut var i = 0u;
-    while (i < sizeof str)
+    while (i < #str)
     {
         putChar(str[i]);
         i = i + 1u;
@@ -359,7 +359,7 @@ Here is an example of a basic variadic function:
 var sum = (int a, int... values) -> {
     mut var result = a;
     mut var i = 0u;
-    while (i < sizeof values)
+    while (i < #values)
     {
         result = result + values[i];
         i = i + 1u;
@@ -377,11 +377,11 @@ You can separate your project into multiple different files. Each file is a modu
 alias String = char[];
 public var print = (String... strs) -> {
     mut var j = 0u;
-    while (j < sizeof strs)
+    while (j < #strs)
     {
         var str = strs[j];
         mut var i = 0u;
-        while (i < sizeof str)
+        while (i < #str)
         {
             putChar(str[i]);
             i = i + 1u;
@@ -391,7 +391,7 @@ public var print = (String... strs) -> {
 };
 public var println = (String... strs) -> {
     mut var i = 0u;
-    while (i < sizeof strs)
+    while (i < #strs)
     {
         print(strs[i]);
         i = i + 1u;
