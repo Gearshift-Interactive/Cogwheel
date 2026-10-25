@@ -1,3 +1,4 @@
+![Logo](branding/logo.svg)
 # Cogwheel
 Cogwheel is a general purpose programming language which is:
 - fast
