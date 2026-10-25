@@ -38,7 +38,7 @@ typedef struct Cog_Value {
 		bool v_bool;
 		void *v_heap;
 		void *v_func; // don't use ts for globals
-		void (*v_nfunc)(VM *vm, size_t argc);
+		void (*v_nfunc)(Cog_VM *vm, size_t argc);
 		uint32_t v_char;
 	};
 #ifdef COG_DEBUG

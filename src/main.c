@@ -7,17 +7,17 @@
 #include "analysis/module.h"
 #include "time.h"
 
-static void printInt_f(VM *vm, __attribute__((unused)) size_t argc)
+static void printInt_f(Cog_VM *vm, __attribute__((unused)) size_t argc)
 {
-	printf("%ld", VM_pop(vm)->v_int);
+	printf("%ld", Cog_VM_pop(vm)->v_int);
 }
-static void printFloat_f(VM *vm, __attribute__((unused)) size_t argc)
+static void printFloat_f(Cog_VM *vm, __attribute__((unused)) size_t argc)
 {
-	printf("%f", VM_pop(vm)->v_float);
+	printf("%f", Cog_VM_pop(vm)->v_float);
 }
-static void printChar_f(VM *vm, __attribute__((unused)) size_t argc)
+static void printChar_f(Cog_VM *vm, __attribute__((unused)) size_t argc)
 {
-	Cog_Value *v = VM_pop(vm);
+	Cog_Value *v = Cog_VM_pop(vm);
 	uint8_t charSize = nob_bytes_for_utf8[*(uint8_t*)&v->v_char];
 	for (size_t i = 0; i < charSize; ++i)
 		putchar((v->v_char >> (i * 8)) & 0xff);

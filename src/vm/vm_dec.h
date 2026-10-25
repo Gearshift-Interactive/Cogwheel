@@ -16,42 +16,42 @@ typedef struct Cog_Chunk {
 	size_t refCount;
 } Cog_Chunk;
 
-typedef struct Scope {
-	struct Scope *parent;
+typedef struct Cog_Scope {
+	struct Cog_Scope *parent;
 	size_t size;
 	size_t refCount;
 	Cog_Value *values;
-} Scope;
+} Cog_Scope;
 
 typedef struct Cog_Closure {
 	Cog_Chunk *chunk;
-	Scope *env;
+	Cog_Scope *env;
 } Cog_Closure;
 
 typedef struct {
 	bool marked;
 	size_t count;
 	Cog_Value *items;
-} HeapObject;
+} Cog_HeapObject;
 
 typedef struct {
 	struct {
-		HeapObject **items;
+		Cog_HeapObject **items;
 		size_t count, capacity;
 	} allObjects;
 	struct {
 		Cog_Closure **items;
 		size_t count, capacity;
 	} closures;
-} GC;
+} Cog_GC;
 
 typedef struct VM {
 	Cog_Value *stackBase; // points to the first item of the stack
 	Cog_Value *stackTop; // points **past** the last used element of the stack
 	Cog_Value *stackEnd; // points to the last **allocated** item of the stack
-	Scope *scope;
+	Cog_Scope *scope;
 	uint8_t *ip;
 	int retCode;
 	bool done;
-	GC gc;
-} VM;
+	Cog_GC gc;
+} Cog_VM;

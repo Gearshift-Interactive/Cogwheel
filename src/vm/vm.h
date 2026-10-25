@@ -124,12 +124,10 @@ typedef enum {
 	COG_OP_COUNT
 } Cog_Opcode;
 
-#undef COG_CONST_ARRAY
-
 void Cog_Chunk_free(const Cog_Chunk *);
 void Cog_Chunk_print(const Cog_Chunk *);
 int Cog_run(const Cog_Chunk *, Cog_Globals *);
-void VM_push(VM *, Cog_Value value);
-Cog_Value *VM_pop(VM *);
-Cog_Value *VM_current(VM *);
-Cog_Value *VM_countBack(VM *, size_t number);
+void Cog_VM_push(Cog_VM *, Cog_Value value);
+Cog_Value *Cog_VM_pop(Cog_VM *);
+Cog_Value *Cog_VM_current(Cog_VM *);
+Cog_Value *Cog_VM_countBack(Cog_VM *, size_t number);

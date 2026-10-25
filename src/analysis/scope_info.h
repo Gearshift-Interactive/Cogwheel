@@ -1,6 +1,6 @@
 #include "var_info.h"
 
-typedef struct ScopeInfo {
+typedef struct Cog_ScopeInfo {
 	struct {
 		Cog_VarInfo *items;
 		size_t count, capacity;
@@ -13,20 +13,20 @@ typedef struct ScopeInfo {
 	// 	Cog_AliasInfo *items;
 	// 	size_t count, capacity;
 	// } namespaces;
-	struct ScopeInfo *parent;
+	struct Cog_ScopeInfo *parent;
 	bool isGlobals;
-} ScopeInfo;
+} Cog_ScopeInfo;
 
-ScopeInfo *ScopeInfo_make();
-bool ScopeInfo_isVarPresent(const ScopeInfo *this, const Cog_TokenPosition *name);
-bool ScopeInfo_isVarPresentShallow(const ScopeInfo *this, const Cog_TokenPosition *name);
-bool ScopeInfo_isVarPresentPublic(const ScopeInfo *this, const Cog_TokenPosition *name);
-size_t ScopeInfo_getVarIndex(const ScopeInfo *this, const Cog_TokenPosition *name);
-size_t ScopeInfo_getVarDepth(const ScopeInfo *this, const Cog_TokenPosition *name);
-Cog_VarInfo *ScopeInfo_getInfo(const ScopeInfo *this, size_t index, size_t depth);
-void ScopeInfo_declare(ScopeInfo *this, Cog_VarInfo info, bool public);
-void ScopeInfo_declareAlias(ScopeInfo *this, const Cog_TokenPosition *name, Cog_Type *type);
-bool ScopeInfo_aliasExists(ScopeInfo *this, const Cog_TokenPosition *name);
-Cog_Type *ScopeInfo_getAliasType(ScopeInfo *this, const Cog_TokenPosition *name);
-void ScopeInfo_free(const ScopeInfo *this);
+Cog_ScopeInfo *Cog_ScopeInfo_make();
+bool Cog_ScopeInfo_isVarPresent(const Cog_ScopeInfo *this, const Cog_TokenPosition *name);
+bool Cog_ScopeInfo_isVarPresentShallow(const Cog_ScopeInfo *this, const Cog_TokenPosition *name);
+bool Cog_ScopeInfo_isVarPresentPublic(const Cog_ScopeInfo *this, const Cog_TokenPosition *name);
+size_t Cog_ScopeInfo_getVarIndex(const Cog_ScopeInfo *this, const Cog_TokenPosition *name);
+size_t Cog_ScopeInfo_getVarDepth(const Cog_ScopeInfo *this, const Cog_TokenPosition *name);
+Cog_VarInfo *Cog_ScopeInfo_getInfo(const Cog_ScopeInfo *this, size_t index, size_t depth);
+void Cog_ScopeInfo_declare(Cog_ScopeInfo *this, Cog_VarInfo info, bool public);
+void Cog_ScopeInfo_declareAlias(Cog_ScopeInfo *this, const Cog_TokenPosition *name, Cog_Type *type);
+bool Cog_ScopeInfo_aliasExists(Cog_ScopeInfo *this, const Cog_TokenPosition *name);
+Cog_Type *Cog_ScopeInfo_getAliasType(Cog_ScopeInfo *this, const Cog_TokenPosition *name);
+void Cog_ScopeInfo_free(const Cog_ScopeInfo *this);
 

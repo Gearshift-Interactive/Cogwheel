@@ -8,11 +8,11 @@
 #	include "parsing/parser.h"
 #endif
 
-static void Scope_retain(Scope *this)
+static void Scope_retain(Cog_Scope *this)
 {
 	this->refCount++;
 }
-static void Scope_release(Scope *this)
+static void Scope_release(Cog_Scope *this)
 {
 	if (!this) return;
 	if (--this->refCount == 0)
@@ -24,9 +24,9 @@ static void Scope_release(Scope *this)
 	}
 }
 
-static Cog_Value GC_alloc(GC *this, size_t valueCount)
+static Cog_Value GC_alloc(Cog_GC *this, size_t valueCount)
 {
-	HeapObject *obj = calloc(1, sizeof *obj);
+	Cog_HeapObject *obj = calloc(1, sizeof *obj);
 	obj->count = valueCount;
 	obj->items = calloc(valueCount, sizeof(Cog_Value));
 	da_append(&this->allObjects, obj);
@@ -38,7 +38,7 @@ static Cog_Value GC_alloc(GC *this, size_t valueCount)
 		.v_heap = obj,
 	};
 }
-static Cog_Value GC_allocClosure(GC *this, Cog_Chunk *chunk, Scope *env)
+static Cog_Value GC_allocClosure(Cog_GC *this, Cog_Chunk *chunk, Cog_Scope *env)
 {
 	Cog_Closure *closure = calloc(1, sizeof *closure);
 	closure->chunk = chunk;
@@ -52,9 +52,9 @@ static Cog_Value GC_allocClosure(GC *this, Cog_Chunk *chunk, Scope *env)
 		.v_func = closure,
 	};
 }
-static void GC_freeAll(GC *this)
+static void GC_freeAll(Cog_GC *this)
 {
-	da_foreach(HeapObject*, obj, &this->allObjects)
+	da_foreach(Cog_HeapObject*, obj, &this->allObjects)
 	{
 		free((*obj)->items);
 		free(*obj);
@@ -71,7 +71,7 @@ static void GC_freeAll(GC *this)
 }
 
 #ifdef COG_DEBUG
-static void VM_print(VM *this)
+static void Cog_VM_print(VM *this)
 {
 	printf("--STACK--\n");
 	if (this->stackBase != this->stackTop)
@@ -82,17 +82,17 @@ static void VM_print(VM *this)
 		printf("  *empty*\n");
 }
 #endif
-static void VM_init(VM *this)
+static void Cog_VM_init(Cog_VM *this)
 {
 	this->stackBase = malloc(sizeof(Cog_Value) * 64);
 	this->stackEnd = this->stackBase + 64;
 	this->stackTop = this->stackBase;
 }
-static void VM_stackFree(VM *this)
+static void Cog_VM_stackFree(Cog_VM *this)
 {
 	free(this->stackBase);
 }
-void VM_push(VM *this, Cog_Value value)
+void Cog_VM_push(Cog_VM *this, Cog_Value value)
 {
 	if (this->stackTop == this->stackEnd)
 	{
@@ -104,15 +104,15 @@ void VM_push(VM *this, Cog_Value value)
 	}
 	*this->stackTop++ = value;
 }
-inline Cog_Value *VM_pop(VM *this)
+inline Cog_Value *Cog_VM_pop(Cog_VM *this)
 {
 	return --this->stackTop;
 }
-inline Cog_Value *VM_current(VM *this)
+inline Cog_Value *Cog_VM_current(Cog_VM *this)
 {
 	return this->stackTop - 1;
 }
-inline Cog_Value *VM_countBack(VM *this, size_t number)
+inline Cog_Value *Cog_VM_countBack(Cog_VM *this, size_t number)
 {
 	return this->stackTop - 1 - number;
 }
@@ -210,17 +210,17 @@ void Cog_Chunk_print(const Cog_Chunk *this)
 // 	if (this->values)
 // 		free(this->values);
 // }
-static size_t readSizeT(VM *vm, const Cog_Chunk *chunk)
+static size_t readSizeT(Cog_VM *vm, const Cog_Chunk *chunk)
 {
 	NOB_UNUSED(chunk);
 	size_t *result = (size_t *)vm->ip;
 	vm->ip += sizeof *result;
 	return *result;
 }
-static void call(VM *, const Cog_Closure *, size_t);
-static void Scope_enter(VM *vm, size_t varCount)
+static void call(Cog_VM *, const Cog_Closure *, size_t);
+static void Scope_enter(Cog_VM *vm, size_t varCount)
 {
-	Scope *parent = vm->scope;
+	Cog_Scope *parent = vm->scope;
 	vm->scope = calloc(1, sizeof(*(vm->scope)));
 	vm->scope->values = calloc(varCount, sizeof(Cog_Value));
 	Scope_retain(vm->scope);
@@ -228,27 +228,27 @@ static void Scope_enter(VM *vm, size_t varCount)
 		Scope_retain(parent);
 	vm->scope->parent = parent;
 }
-static void Scope_exit(VM *vm)
+static void Scope_exit(Cog_VM *vm)
 {
-	Scope *scope = vm->scope;
+	Cog_Scope *scope = vm->scope;
 	vm->scope = scope->parent;
 	Scope_release(scope);
 }
-static Cog_Value scopeRead(VM *vm, size_t depth, size_t id)
+static Cog_Value scopeRead(Cog_VM *vm, size_t depth, size_t id)
 {
-	Scope *scope = vm->scope;
+	Cog_Scope *scope = vm->scope;
 	for (size_t i = 0; i < depth; i++)
 		scope = scope->parent;
 	return scope->values[id];
 }
-static void scopeWrite(VM *vm, size_t depth, size_t id, Cog_Value value)
+static void scopeWrite(Cog_VM *vm, size_t depth, size_t id, Cog_Value value)
 {
-	Scope *scope = vm->scope;
+	Cog_Scope *scope = vm->scope;
 	for (size_t i = 0; i < depth; i++)
 		scope = scope->parent;
 	scope->values[id] = value;
 }
-static Cog_Value cstrToCogstr(VM *vm, const char *cstr, size_t length)
+static Cog_Value cstrToCogstr(Cog_VM *vm, const char *cstr, size_t length)
 {
 	struct {
 		Cog_Value *items;
@@ -271,24 +271,24 @@ static Cog_Value cstrToCogstr(VM *vm, const char *cstr, size_t length)
 		da_append(&resultb, character);
 	}
 	Cog_Value result = GC_alloc(&vm->gc, resultb.count);
-	memcpy(((HeapObject*)result.v_heap)->items, resultb.items, resultb.count * sizeof *resultb.items);
+	memcpy(((Cog_HeapObject*)result.v_heap)->items, resultb.items, resultb.count * sizeof *resultb.items);
 	free(resultb.items);
 	return result;
 }
 
-static void execute(VM *vm, const Cog_Chunk *chunk)
+static void execute(Cog_VM *vm, const Cog_Chunk *chunk)
 {
 	while (!vm->done && vm->ip < chunk->instr.end)
 	{
 #ifdef COG_DEBUG
 		printf("%zu ", vm->ip - chunk->instr.start);
-		VM_print(vm);
+		Cog_VM_print(vm);
 		fflush(stdout);
 #endif
 #define INFIX(TYPE, FIELD, OP) \
 		do { \
-			Cog_Value *lhs = VM_countBack(vm, 1); \
-			lhs->FIELD = lhs->FIELD OP VM_current(vm)->FIELD; \
+			Cog_Value *lhs = Cog_VM_countBack(vm, 1); \
+			lhs->FIELD = lhs->FIELD OP Cog_VM_current(vm)->FIELD; \
 			vm->stackTop--; \
 		} while(0);
 		Cog_Opcode current = (Cog_Opcode)*vm->ip;
@@ -298,12 +298,12 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 		switch (current)
 		{
 		case COG_OP_EXIT:
-			vm->retCode = VM_pop(vm)->v_int;
+			vm->retCode = Cog_VM_pop(vm)->v_int;
 			vm->done = true;
 			break;
 		case COG_OP_CLOAD_INT:
 			arg1 = readSizeT(vm, chunk);
-			VM_push(vm, (Cog_Value){
+			Cog_VM_push(vm, (Cog_Value){
 #ifdef COG_DEBUG
 				.type = COG_VALUE_INT,
 #endif
@@ -312,7 +312,7 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 			break;
 		case COG_OP_CLOAD_UINT:
 			arg1 = readSizeT(vm, chunk);
-			VM_push(vm, (Cog_Value){
+			Cog_VM_push(vm, (Cog_Value){
 #ifdef COG_DEBUG
 				.type = COG_VALUE_UINT,
 #endif
@@ -321,7 +321,7 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 			break;
 		case COG_OP_CLOAD_FLOAT:
 			arg1 = readSizeT(vm, chunk);
-			VM_push(vm, (Cog_Value){
+			Cog_VM_push(vm, (Cog_Value){
 #ifdef COG_DEBUG
 				.type = COG_VALUE_FLOAT,
 #endif
@@ -347,22 +347,22 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 			INFIX(COG_VALUE_FLOAT, v_float, -);
 			break;
 		case COG_OP_DIV_INT: {
-			Cog_Value *lhs = VM_countBack(vm, 1);
-			Cog_Value *rhs = VM_current(vm);
+			Cog_Value *lhs = Cog_VM_countBack(vm, 1);
+			Cog_Value *rhs = Cog_VM_current(vm);
 			if (rhs->v_int == 0) COG_PANIC("Division by zero");
 			lhs->v_int = lhs->v_int / rhs->v_int;
 			vm->stackTop--;
 		} break;
 		case COG_OP_DIV_UINT: {
-			Cog_Value *lhs = VM_countBack(vm, 1);
-			Cog_Value *rhs = VM_current(vm);
+			Cog_Value *lhs = Cog_VM_countBack(vm, 1);
+			Cog_Value *rhs = Cog_VM_current(vm);
 			if (rhs->v_uint == 0) COG_PANIC("Division by zero");
 			lhs->v_uint = lhs->v_uint / rhs->v_uint;
 			vm->stackTop--;
 		} break;
 		case COG_OP_DIV_FLOAT: {
-			Cog_Value *lhs = VM_countBack(vm, 1);
-			Cog_Value *rhs = VM_current(vm);
+			Cog_Value *lhs = Cog_VM_countBack(vm, 1);
+			Cog_Value *rhs = Cog_VM_current(vm);
 			if (rhs->v_float == 0) COG_PANIC("Division by zero");
 			lhs->v_float = lhs->v_float / rhs->v_float;
 			vm->stackTop--;
@@ -377,75 +377,75 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 			INFIX(COG_VALUE_FLOAT, v_float, *);
 			break;
 		case COG_OP_POW_INT: {
-			Cog_Value *lhs = VM_countBack(vm, 1);
-			Cog_Value *rhs = VM_current(vm);
+			Cog_Value *lhs = Cog_VM_countBack(vm, 1);
+			Cog_Value *rhs = Cog_VM_current(vm);
 			lhs->v_int = round(pow(lhs->v_int, rhs->v_int));
 			vm->stackTop--;
 		} break;
 		case COG_OP_POW_UINT: {
-			Cog_Value *lhs = VM_countBack(vm, 1);
-			Cog_Value *rhs = VM_current(vm);
+			Cog_Value *lhs = Cog_VM_countBack(vm, 1);
+			Cog_Value *rhs = Cog_VM_current(vm);
 			lhs->v_uint = round(pow(lhs->v_uint, rhs->v_uint));
 			vm->stackTop--;
 		} break;
 		case COG_OP_POW_FLOAT: {
-			Cog_Value *lhs = VM_countBack(vm, 1);
-			Cog_Value *rhs = VM_current(vm);
+			Cog_Value *lhs = Cog_VM_countBack(vm, 1);
+			Cog_Value *rhs = Cog_VM_current(vm);
 			lhs->v_float = pow(lhs->v_float, rhs->v_float);
 			vm->stackTop--;
 		} break;
 		case COG_OP_CAST_ITOU: {
-			Cog_Value *v = VM_current(vm);
+			Cog_Value *v = Cog_VM_current(vm);
 			v->v_uint = (uint64_t)v->v_int;
 #ifdef COG_DEBUG
 			v->type = COG_VALUE_UINT;
 #endif
 		} break;
 		case COG_OP_CAST_ITOF: {
-			Cog_Value *v = VM_current(vm);
+			Cog_Value *v = Cog_VM_current(vm);
 			v->v_float = (double)v->v_int;
 #ifdef COG_DEBUG
 			v->type = COG_VALUE_FLOAT;
 #endif
 		} break;
 		case COG_OP_CAST_UTOI: {
-			Cog_Value *v = VM_current(vm);
+			Cog_Value *v = Cog_VM_current(vm);
 			v->v_int = (int64_t)v->v_uint;
 #ifdef COG_DEBUG
 			v->type = COG_VALUE_INT;
 #endif
 		} break;
 		case COG_OP_CAST_UTOF: {
-			Cog_Value *v = VM_current(vm);
+			Cog_Value *v = Cog_VM_current(vm);
 			v->v_float = (double)v->v_uint;
 #ifdef COG_DEBUG
 			v->type = COG_VALUE_FLOAT;
 #endif
 		} break;
 		case COG_OP_CAST_FTOI: {
-			Cog_Value *v = VM_current(vm);
+			Cog_Value *v = Cog_VM_current(vm);
 			v->v_int = (int64_t)v->v_float;
 #ifdef COG_DEBUG
 			v->type = COG_VALUE_FLOAT;
 #endif
 		} break;
 		case COG_OP_CAST_FTOU: {
-			Cog_Value *v = VM_current(vm);
+			Cog_Value *v = Cog_VM_current(vm);
 			v->v_uint = (uint64_t)v->v_float;
 #ifdef COG_DEBUG
 			v->type = COG_VALUE_UINT;
 #endif
 		} break;
 		case COG_OP_NEG_INT: {
-			Cog_Value *v = VM_current(vm);
+			Cog_Value *v = Cog_VM_current(vm);
 			v->v_int = -(v->v_int);
 		} break;
 		case COG_OP_NEG_FLOAT: {
-			Cog_Value *v = VM_current(vm);
+			Cog_Value *v = Cog_VM_current(vm);
 			v->v_float = -(v->v_float);
 		} break;
 		case COG_OP_POP:
-			VM_pop(vm);
+			Cog_VM_pop(vm);
 			break;
 		case COG_OP_SCOPE_ENTER:
 			arg1 = readSizeT(vm, chunk);
@@ -457,15 +457,15 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 		case COG_OP_SCOPE_READ:
 			arg1 = readSizeT(vm, chunk);  // depth
 			arg2 = readSizeT(vm, chunk);  // id
-			VM_push(vm, scopeRead(vm, arg1, arg2));
+			Cog_VM_push(vm, scopeRead(vm, arg1, arg2));
 			break;
 		case COG_OP_SCOPE_WRITE:
 			arg1 = readSizeT(vm, chunk);  // depth
 			arg2 = readSizeT(vm, chunk);  // id
-			scopeWrite(vm, arg1, arg2, *VM_current(vm));
+			scopeWrite(vm, arg1, arg2, *Cog_VM_current(vm));
 			break;
 		case COG_OP_CLOAD_TRUE:
-			VM_push(vm, (Cog_Value){
+			Cog_VM_push(vm, (Cog_Value){
 #ifdef COG_DEBUG
 				.type = COG_VALUE_BOOL,
 #endif
@@ -473,7 +473,7 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 			});
 			break;
 		case COG_OP_CLOAD_FALSE:
-			VM_push(vm, (Cog_Value){
+			Cog_VM_push(vm, (Cog_Value){
 #ifdef COG_DEBUG
 				.type = COG_VALUE_BOOL,
 #endif
@@ -492,14 +492,14 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 			break;
 		case COG_OP_JUMPF_IFN:
 			arg1 = readSizeT(vm, chunk);
-			if (!VM_pop(vm)->v_bool)
+			if (!Cog_VM_pop(vm)->v_bool)
 				vm->ip += arg1 - sizeof(size_t);
 			break;
 #ifdef COG_DEBUG
 #	define COG_INFIX_LOG(FIELD, OP) \
 			do { \
-				Cog_Value *rhs = VM_current(vm); \
-				Cog_Value *lhs = VM_countBack(vm, 1); \
+				Cog_Value *rhs = Cog_VM_current(vm); \
+				Cog_Value *lhs = Cog_VM_countBack(vm, 1); \
 				lhs->v_bool = lhs->FIELD OP rhs->FIELD; \
 				lhs->type = COG_VALUE_BOOL; \
 				vm->stackTop--; \
@@ -507,8 +507,8 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 #else
 #	define COG_INFIX_LOG(FIELD, OP)               \
 			do {                                     \
-				Cog_Value *rhs = VM_current(vm); \
-				Cog_Value *lhs = VM_countBack(vm, 1); \
+				Cog_Value *rhs = Cog_VM_current(vm); \
+				Cog_Value *lhs = Cog_VM_countBack(vm, 1); \
 				lhs->v_bool = lhs->FIELD OP rhs->FIELD; \
 				vm->stackTop--; \
 			} while (0)
@@ -568,7 +568,7 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 			COG_INFIX_LOG(v_float, <=);
 			break;
 		case COG_OP_NOT:
-			curValue = VM_current(vm);
+			curValue = Cog_VM_current(vm);
 			curValue->v_bool = !curValue->v_bool;
 			break;
 		case COG_OP_JUMPB:
@@ -577,65 +577,65 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 			break;
 		case COG_OP_POP_IFPR:
 			if (vm->stackBase != vm->stackTop)
-				VM_pop(vm);
+				Cog_VM_pop(vm);
 			break;
 		case COG_OP_GC_ALLOC:
 			arg1 = readSizeT(vm, chunk);
-			VM_push(vm, GC_alloc(&vm->gc, arg1));
+			Cog_VM_push(vm, GC_alloc(&vm->gc, arg1));
 			break;
 		case COG_OP_GC_ACCESS:
 			COG_PANIC("UNIMPLEMENTED");
 			break;
 		case COG_OP_GC_ACCESS_FROMSTACK: {
-			Cog_Value *index = VM_pop(vm);
-			Cog_Value *target = VM_pop(vm);
-			HeapObject *obj = target->v_heap;
+			Cog_Value *index = Cog_VM_pop(vm);
+			Cog_Value *target = Cog_VM_pop(vm);
+			Cog_HeapObject *obj = target->v_heap;
 			if (index->v_uint < obj->count)
-				VM_push(vm, obj->items[index->v_uint]);
+				Cog_VM_push(vm, obj->items[index->v_uint]);
 			else
 				COG_PANIC("Buffer overflow");
 		} break;
 		case COG_OP_GC_ASSIGN: {
-			Cog_Value *value = VM_pop(vm);
-			Cog_Value *target = VM_current(vm);
+			Cog_Value *value = Cog_VM_pop(vm);
+			Cog_Value *target = Cog_VM_current(vm);
 			arg1 = readSizeT(vm, chunk);
-			HeapObject *obj = target->v_heap;
+			Cog_HeapObject *obj = target->v_heap;
 			if (arg1 < obj->count)
 				obj->items[arg1] = *value;
 			else
 				COG_PANIC("Buffer overflow");
 		} break;
 		case COG_OP_GC_ASSIGN_FROMSTACK: {
-			Cog_Value *value = VM_pop(vm);
-			Cog_Value *index = VM_pop(vm);
-			Cog_Value *target = VM_current(vm);
-			HeapObject *obj = target->v_heap;
+			Cog_Value *value = Cog_VM_pop(vm);
+			Cog_Value *index = Cog_VM_pop(vm);
+			Cog_Value *target = Cog_VM_current(vm);
+			Cog_HeapObject *obj = target->v_heap;
 			if (index->v_uint < obj->count)
 				obj->items[index->v_uint] = *value;
 			else
 				COG_PANIC("Buffer overflow");
 		} break;
 		case COG_OP_GC_ASSIGNCOPY: {
-			Cog_Value *target = VM_countBack(vm, 2);
-			Cog_Value *value = VM_countBack(vm, 1);
+			Cog_Value *target = Cog_VM_countBack(vm, 2);
+			Cog_Value *value = Cog_VM_countBack(vm, 1);
 			arg1 = readSizeT(vm, chunk);
-			HeapObject *obj = target->v_heap;
+			Cog_HeapObject *obj = target->v_heap;
 			if (arg1 < obj->count)
 				obj->items[arg1] = *value;
 			else
 				COG_PANIC("Buffer overflow");
 		} break;
 		case COG_OP_GC_SIZEOF: {
-			Cog_Value *value = VM_pop(vm);
-			VM_push(vm, (Cog_Value){
+			Cog_Value *value = Cog_VM_pop(vm);
+			Cog_VM_push(vm, (Cog_Value){
 #ifdef COG_DEBUG
 				.type = COG_VALUE_UINT,
 #endif
-				.v_uint = ((HeapObject*)value->v_heap)->count,
+				.v_uint = ((Cog_HeapObject*)value->v_heap)->count,
 			});
 		} break;
 		case COG_OP_CLOAD_NULL:
-			VM_push(vm, (Cog_Value){
+			Cog_VM_push(vm, (Cog_Value){
 #ifdef COG_DEBUG
 				.type = COG_VALUE_NULL,
 #endif
@@ -643,12 +643,12 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 			});
 			break;
 		case COG_OP_OPT_UNWRAP: {
-			Cog_Value *value = VM_current(vm);
+			Cog_Value *value = Cog_VM_current(vm);
 			if (value->isNull)
 				COG_PANIC("Unwrap failed");
 		} break;
 		case COG_OP_OPT_CHECK: {
-			Cog_Value *value = VM_current(vm);
+			Cog_Value *value = Cog_VM_current(vm);
 			*value = (Cog_Value){
 #ifdef COG_DEBUG
 				.type = COG_VALUE_BOOL,
@@ -663,30 +663,30 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 			// funcChunk->vmData = vm->scope;
 			if (vm->scope)
 				Scope_retain(vm->scope);
-			VM_push(vm, GC_allocClosure(&vm->gc, funcChunk, vm->scope));
+			Cog_VM_push(vm, GC_allocClosure(&vm->gc, funcChunk, vm->scope));
 		} break;
 		case COG_OP_CALL: {
 			size_t argc = readSizeT(vm, chunk);
-			Cog_Value *function = VM_pop(vm);
+			Cog_Value *function = Cog_VM_pop(vm);
 			call(vm, function->v_func, argc);
 		} break;
 		case COG_OP_GC_ALLOC_FROMSTACK: {
-			Cog_Value *size = VM_pop(vm);
-			VM_push(vm, GC_alloc(&vm->gc, size->v_uint));
+			Cog_Value *size = Cog_VM_pop(vm);
+			Cog_VM_push(vm, GC_alloc(&vm->gc, size->v_uint));
 		} break;
 		case COG_OP_GC_FILL: {
-			Cog_Value *value = VM_pop(vm);
-			HeapObject *obj = VM_current(vm)->v_heap;
+			Cog_Value *value = Cog_VM_pop(vm);
+			Cog_HeapObject *obj = Cog_VM_current(vm)->v_heap;
 			for (size_t i = 0; i < obj->count; i++)
 				obj->items[i] = *value;
 		} break;
 		case COG_OP_CALLN: {
-			Cog_Value *function = VM_pop(vm);
+			Cog_Value *function = Cog_VM_pop(vm);
 			function->v_nfunc(vm, readSizeT(vm, chunk));
 		} break;
 		case COG_OP_CLOAD_CHAR:
 			arg1 = readSizeT(vm, chunk);
-			VM_push(vm, (Cog_Value){
+			Cog_VM_push(vm, (Cog_Value){
 #ifdef COG_DEBUG
 				.type = COG_VALUE_CHAR,
 #endif
@@ -694,10 +694,10 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 			});
 			break;
 		case COG_OP_GC_REALLOC: {
-			Cog_Value *fillValue = VM_pop(vm);
-			Cog_Value *newSize = VM_pop(vm);
-			Cog_Value *array = VM_current(vm);
-			HeapObject *obj = array->v_heap;
+			Cog_Value *fillValue = Cog_VM_pop(vm);
+			Cog_Value *newSize = Cog_VM_pop(vm);
+			Cog_Value *array = Cog_VM_current(vm);
+			Cog_HeapObject *obj = array->v_heap;
 			if (newSize->v_uint == obj->count)
 				break;
 			size_t oldSize = obj->count;
@@ -709,54 +709,54 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 				obj->items[i] = *fillValue;
 		} break;
 		case COG_OP_GC_CONCAT: {
-			HeapObject *obj2 = VM_pop(vm)->v_heap;
-			HeapObject *obj1 = VM_pop(vm)->v_heap;
+			Cog_HeapObject *obj2 = Cog_VM_pop(vm)->v_heap;
+			Cog_HeapObject *obj1 = Cog_VM_pop(vm)->v_heap;
 			Cog_Value result = GC_alloc(&vm->gc, obj1->count + obj2->count);
-			HeapObject *resultHeap = result.v_heap;
+			Cog_HeapObject *resultHeap = result.v_heap;
 			for (size_t i = 0; i < obj1->count; i++)
 				resultHeap->items[i] = obj1->items[i];
 			for (size_t i = 0; i < obj2->count; i++)
 				resultHeap->items[obj1->count + i] = obj2->items[i];
-			VM_push(vm, result);
+			Cog_VM_push(vm, result);
 		} break;
 		case COG_OP_GC_REPEAT: {
-			Cog_Value *repeatTimes = VM_pop(vm);
-			HeapObject *obj = VM_pop(vm)->v_heap;
+			Cog_Value *repeatTimes = Cog_VM_pop(vm);
+			Cog_HeapObject *obj = Cog_VM_pop(vm)->v_heap;
 			Cog_Value result = GC_alloc(&vm->gc, obj->count * repeatTimes->v_uint);
-			HeapObject *resultHeap = result.v_heap;
+			Cog_HeapObject *resultHeap = result.v_heap;
 			for (size_t i = 0; i < resultHeap->count; i++)
 				resultHeap->items[i] = obj->items[i % obj->count];
-			VM_push(vm, result);
+			Cog_VM_push(vm, result);
 		} break;
 		case COG_OP_TOSTRING_INT: {
-			const int64_t value = VM_pop(vm)->v_int;
+			const int64_t value = Cog_VM_pop(vm)->v_int;
 			const size_t charCount = snprintf(NULL, 0, "%"PRId64, value) + 1;
 			char *const string = calloc(charCount, sizeof(char));
 			const size_t length = snprintf(string, charCount, "%"PRId64, value);
 			const Cog_Value result = cstrToCogstr(vm, string, length);
 			free(string);
-			VM_push(vm, result);
+			Cog_VM_push(vm, result);
 		} break;
 		case COG_OP_TOSTRING_UINT: {
-			const uint64_t value = VM_pop(vm)->v_uint;
+			const uint64_t value = Cog_VM_pop(vm)->v_uint;
 			const size_t charCount = snprintf(NULL, 0, "%"PRIu64, value) + 1;
 			char *const string = calloc(charCount, sizeof(char));
 			const size_t length = snprintf(string, charCount, "%"PRIu64, value);
 			const Cog_Value result = cstrToCogstr(vm, string, length);
 			free(string);
-			VM_push(vm, result);
+			Cog_VM_push(vm, result);
 		} break;
 		case COG_OP_TOSTRING_FLOAT: {
-			const double value = VM_pop(vm)->v_float;
+			const double value = Cog_VM_pop(vm)->v_float;
 			const size_t charCount = snprintf(NULL, 0, "%f", value) + 1;
 			char *const string = calloc(charCount, sizeof(char));
 			const size_t length = snprintf(string, charCount, "%f", value);
 			const Cog_Value result = cstrToCogstr(vm, string, length);
 			free(string);
-			VM_push(vm, result);
+			Cog_VM_push(vm, result);
 		} break;
 		case COG_OP_TOSTRING_BOOL: {
-			const bool value = VM_pop(vm)->v_bool;
+			const bool value = Cog_VM_pop(vm)->v_bool;
 			const Cog_Value result = cstrToCogstr(vm,
 				value
 				? "true"
@@ -765,12 +765,12 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 				? 4
 				: 5
 			);
-			VM_push(vm, result);
+			Cog_VM_push(vm, result);
 		} break;
 		case COG_OP_EQ_CHAR: {
-			Cog_Value *value1 = VM_pop(vm);
-			Cog_Value *value2 = VM_pop(vm);
-			VM_push(vm, (Cog_Value) {
+			Cog_Value *value1 = Cog_VM_pop(vm);
+			Cog_Value *value2 = Cog_VM_pop(vm);
+			Cog_VM_push(vm, (Cog_Value) {
 #ifdef COG_DEBUG
 				.type = COG_VALUE_BOOL,
 #endif
@@ -778,9 +778,9 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 			});
 		} break;
 		case COG_OP_NEQ_CHAR: {
-			Cog_Value *value1 = VM_pop(vm);
-			Cog_Value *value2 = VM_pop(vm);
-			VM_push(vm, (Cog_Value) {
+			Cog_Value *value1 = Cog_VM_pop(vm);
+			Cog_Value *value2 = Cog_VM_pop(vm);
+			Cog_VM_push(vm, (Cog_Value) {
 #ifdef COG_DEBUG
 				.type = COG_VALUE_BOOL,
 #endif
@@ -789,12 +789,12 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 		} break;
 		case COG_OP_JUMPF_IFN_R:
 			arg1 = readSizeT(vm, chunk);
-			if (!VM_current(vm)->v_bool)
+			if (!Cog_VM_current(vm)->v_bool)
 				vm->ip += arg1 - sizeof(size_t);
 			break;
 		case COG_OP_JUMPF_IF_R:
 			arg1 = readSizeT(vm, chunk);
-			if (VM_current(vm)->v_bool)
+			if (Cog_VM_current(vm)->v_bool)
 				vm->ip += arg1 - sizeof(size_t);
 			break;
 		default:
@@ -805,17 +805,17 @@ static void execute(VM *vm, const Cog_Chunk *chunk)
 #undef COG_INFIX_LOG
 	}
 }
-static void call(VM *vm, const Cog_Closure *closure, size_t argc)
+static void call(Cog_VM *vm, const Cog_Closure *closure, size_t argc)
 {
 	uint8_t *oldIp  = vm->ip;
-	Scope *oldScope = vm->scope;
+	Cog_Scope *oldScope = vm->scope;
 
 	vm->ip    = closure->chunk->instr.start;
 	vm->scope = closure->env;
 
 	Scope_enter(vm, argc);
 	for (int i = argc - 1; i >= 0; i--)
-		scopeWrite(vm, 0, i, *VM_pop(vm));
+		scopeWrite(vm, 0, i, *Cog_VM_pop(vm));
 	execute(vm, closure->chunk);
 	if (vm->done) return;
 	Scope_exit(vm);
@@ -824,14 +824,14 @@ static void call(VM *vm, const Cog_Closure *closure, size_t argc)
 }
 int Cog_run(const Cog_Chunk *chunk, Cog_Globals *globals)
 {
-	VM vm = {0};
-	VM_init(&vm);
+	Cog_VM vm = {0};
+	Cog_VM_init(&vm);
 	Scope_enter(&vm, globals->count);
 	for (size_t i = 0; i < globals->count; i++)
 		scopeWrite(&vm, 0, i, globals->items[i].value);
 	vm.ip = chunk->instr.start;
 	execute(&vm, chunk);
-	VM_stackFree(&vm);
+	Cog_VM_stackFree(&vm);
 	GC_freeAll(&vm.gc);
 	Cog_Chunk_free(chunk);
 	while (vm.scope) Scope_exit(&vm);

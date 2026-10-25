@@ -7,7 +7,7 @@
 #include "namespace.h"
 
 typedef struct {
-	ScopeInfo *scope;
+	Cog_ScopeInfo *scope;
 	Cog_BlockContext *blockContext;
 	Cog_Namespace *namespace;
 } Context;
@@ -112,15 +112,15 @@ static Cog_Node *analyzeScopeFunc(Cog_Node *node, Context context)
 }
 static Cog_Node *analyzeScope(Cog_Node *node, Context context)
 {
-	ScopeInfo *scope = ScopeInfo_make();
+	Cog_ScopeInfo *scope = Cog_ScopeInfo_make();
 	scope->parent = context.scope;
 	context.scope = scope;
 	Cog_Node *result = analyzeScopeExt(node, context);
-	ScopeInfo_free(scope);
+	Cog_ScopeInfo_free(scope);
 	free(scope);
 	return result;
 }
-static void resolveAlias(ScopeInfo *scope, Cog_Type **type)
+static void resolveAlias(Cog_ScopeInfo *scope, Cog_Type **type)
 {
 	switch ((*type)->kind)
 	{
@@ -138,13 +138,13 @@ static void resolveAlias(ScopeInfo *scope, Cog_Type **type)
 				resolveAlias(scope, &arg->type);
 			break;
 		case COG_TYPE_ALIAS:
-			if (!ScopeInfo_aliasExists(scope, &(*type)->alias.name.pos))
+			if (!Cog_ScopeInfo_aliasExists(scope, &(*type)->alias.name.pos))
 			{
 				Cog_comptimeMessage(COG_MESSAGE_ERRORN, (*type)->alias.name.pos,
 					"Unknown type");
 				break;
 			}
-			*type = ScopeInfo_getAliasType(scope, &(*type)->alias.name.pos);
+			*type = Cog_ScopeInfo_getAliasType(scope, &(*type)->alias.name.pos);
 			break;
 		case COG_TYPE_UNKNOWN:
 #define COG_X(NAME, LITERAL) case COG_TYPE_##NAME:
@@ -164,7 +164,7 @@ static void appendNamespaces(Nob_String_Builder *sb, Cog_Namespace *namespace)
 }
 static void analyzeVarDecl(Cog_Node *node, Context context, bool public)
 {
-	ScopeInfo *scope = context.scope;
+	Cog_ScopeInfo *scope = context.scope;
 	analyze(&node->var_decl.value, context);
 	node->retType = node->var_decl.value->retType;
 	if (node->var_decl.type)
@@ -177,10 +177,10 @@ static void analyzeVarDecl(Cog_Node *node, Context context, bool public)
 			Cog_Type_toString(node->var_decl.value->retType),
 			Cog_Type_toString(node->var_decl.type)
 		);
-	if (public && ScopeInfo_isVarPresentPublic(scope, &node->var_decl.name.pos))
+	if (public && Cog_ScopeInfo_isVarPresentPublic(scope, &node->var_decl.name.pos))
 		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->var_decl.name.pos,
 			"Public variable is already declared");
-	else if (ScopeInfo_isVarPresentShallow(scope, &node->var_decl.name.pos))
+	else if (Cog_ScopeInfo_isVarPresentShallow(scope, &node->var_decl.name.pos))
 		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->var_decl.name.pos,
 			"Variable is already declared");
 	// printf("%s\n", Cog_Type_toString(node->var_decl.type));
@@ -200,9 +200,9 @@ static void analyzeVarDecl(Cog_Node *node, Context context, bool public)
 		Cog_Bank_handOff(sb.items);
 		varInfo.name = node->var_decl.name.pos = Cog_TokenPosition_fromString(sb.items);
 	}
-	ScopeInfo_declare(scope, varInfo, public);
-	node->var_decl.scopeIndex = ScopeInfo_getVarIndex(scope, &node->var_decl.name.pos);
-	node->var_decl.scopeDepth = ScopeInfo_getVarDepth(scope, &node->var_decl.name.pos);
+	Cog_ScopeInfo_declare(scope, varInfo, public);
+	node->var_decl.scopeIndex = Cog_ScopeInfo_getVarIndex(scope, &node->var_decl.name.pos);
+	node->var_decl.scopeDepth = Cog_ScopeInfo_getVarDepth(scope, &node->var_decl.name.pos);
 	if (
 		node->var_decl.isMutable &&
 		!checkMutable(node->var_decl.value) &&
@@ -264,7 +264,7 @@ static void analyzeInfix(Cog_Node *node, Context context)
 	{
 		node->retType = node->infix.right->retType;
 		// printf(">>>>%s\n", Cog_Type_toString(node->infix.right->retType));
-		// Cog_VarInfo *info = ScopeInfo_getInfo(scope, left->symbol.scopeIndex, left->symbol.scopeDepth);
+		// Cog_VarInfo *info = Cog_ScopeInfo_getInfo(scope, left->symbol.scopeIndex, left->symbol.scopeDepth);
 		if (!Cog_Type_areCompatible(left->retType, right->retType))
 			Cog_comptimeMessage(COG_MESSAGE_ERRORN, right->pos,
 				"Can't assign a value of type \"%s\""
@@ -297,7 +297,7 @@ static void analyzeInfix(Cog_Node *node, Context context)
 			return;
 		}
 		Cog_BlockContext childBlockContext = {0};
-		ScopeInfo *childScope = ScopeInfo_make();
+		Cog_ScopeInfo *childScope = Cog_ScopeInfo_make();
 		childScope->parent = context.scope;
 		bool gotVarArg = false;
 		da_foreach(Cog_Node*, arg, &left->tuple)
@@ -316,7 +316,7 @@ static void analyzeInfix(Cog_Node *node, Context context)
 				type->kind = COG_TYPE_ARRAY;
 				type->array.underlying = (*arg)->funcParam.type;
 				Cog_Bank_handOff(type);
-				ScopeInfo_declare(childScope, (Cog_VarInfo){
+				Cog_ScopeInfo_declare(childScope, (Cog_VarInfo){
 					.name = (*arg)->funcParam.name.pos,
 					.type = type,
 					.mutable = (*arg)->funcParam.isMutable,
@@ -325,7 +325,7 @@ static void analyzeInfix(Cog_Node *node, Context context)
 				continue;
 			}
 			else
-				ScopeInfo_declare(childScope, (Cog_VarInfo){
+				Cog_ScopeInfo_declare(childScope, (Cog_VarInfo){
 					.name = (*arg)->funcParam.name.pos,
 					.type = (*arg)->funcParam.type,
 					.mutable = (*arg)->funcParam.isMutable,
@@ -341,7 +341,7 @@ static void analyzeInfix(Cog_Node *node, Context context)
 		childContext.scope = childScope;
 		childContext.blockContext = &childBlockContext;
 		node->infix.right = analyzeScopeFunc(node->infix.right, childContext);
-		ScopeInfo_free(childScope);
+		Cog_ScopeInfo_free(childScope);
 		free(childScope);
 		node->retType = calloc(1, sizeof *node->retType);
 		Cog_Bank_handOff(node->retType);
@@ -875,7 +875,7 @@ static void analyzeFNumberLit(Cog_Node *node, Context context) {
 }
 static void analyzeSymbol(Cog_Node *node, Context context)
 {
-	if (!ScopeInfo_isVarPresent(context.scope, &node->symbol.token.pos))
+	if (!Cog_ScopeInfo_isVarPresent(context.scope, &node->symbol.token.pos))
 	{
 		Cog_Namespace *foundIn =
 			Cog_Namespace_searchItem(context.namespace, node->symbol.token.pos);
@@ -894,9 +894,9 @@ static void analyzeSymbol(Cog_Node *node, Context context)
 		Cog_Bank_handOff(sb.items);
 		node->symbol.token.pos = Cog_TokenPosition_fromString(sb.items);
 	}
-	size_t varIndex = ScopeInfo_getVarIndex(context.scope, &node->symbol.token.pos);
-	size_t varDepth = ScopeInfo_getVarDepth(context.scope, &node->symbol.token.pos);
-	Cog_VarInfo *varInfo = ScopeInfo_getInfo(context.scope, varIndex, varDepth);
+	size_t varIndex = Cog_ScopeInfo_getVarIndex(context.scope, &node->symbol.token.pos);
+	size_t varDepth = Cog_ScopeInfo_getVarDepth(context.scope, &node->symbol.token.pos);
+	Cog_VarInfo *varInfo = Cog_ScopeInfo_getInfo(context.scope, varIndex, varDepth);
 	node->retType = (Cog_Type*)varInfo->type;
 	node->symbol.scopeIndex = varIndex;
 	node->symbol.scopeDepth = varDepth;
@@ -986,7 +986,7 @@ static void analyzeParameter(Cog_Node *node, Context context)
 static void analyzeAlias(Cog_Node *node, Context context)
 {
 	NOB_UNUSED(context);
-	if (ScopeInfo_aliasExists(context.scope, &node->alias.name.pos))
+	if (Cog_ScopeInfo_aliasExists(context.scope, &node->alias.name.pos))
 	{
 		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->alias.name.pos,
 			"Alias %s already exists",
@@ -994,7 +994,7 @@ static void analyzeAlias(Cog_Node *node, Context context)
 		return;
 	}
 	resolveAlias(context.scope, &node->alias.type);
-	ScopeInfo_declareAlias(context.scope, &node->alias.name.pos, node->alias.type);
+	Cog_ScopeInfo_declareAlias(context.scope, &node->alias.name.pos, node->alias.type);
 	node->unreachable = true;
 	node->retType = &COG_TYPE_VOID_OBJ;
 }
@@ -1178,11 +1178,11 @@ static void analyze(Cog_Node **node, Context context)
 void Cog_analyze(Cog_Node **node, Cog_Globals *globals)
 {
 	Cog_BlockContext blockContext = {0};
-	ScopeInfo scope = {
+	Cog_ScopeInfo scope = {
 		.isGlobals = true,
 	};
 	da_foreach(Cog_GlobalValue, value, globals)
-		ScopeInfo_declare(
+		Cog_ScopeInfo_declare(
 			&scope, (Cog_VarInfo){
 				.name = Cog_TokenPosition_fromString(value->name),
 				.type = value->type,
