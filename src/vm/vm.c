@@ -130,7 +130,7 @@ void Cog_Chunk_free(const Cog_Chunk *this)
 	{
 		for (
 			Cog_Chunk *chunk = this->functions.start;
-			chunk <= this->functions.end;
+			chunk < this->functions.end;
 			chunk++
 		) Cog_Chunk_free(chunk);
 		free(this->functions.start);
@@ -283,7 +283,7 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 		lhs->FIELD = lhs->FIELD OP VM_current(vm)->FIELD; \
 		vm->stackTop--; \
 	} while(0);
-	Cog_Opcode current = *(Cog_Opcode *)vm->ip;
+	Cog_Opcode current = (Cog_Opcode)*vm->ip;
 	size_t arg1, arg2;
 	vm->ip++;
 	Cog_Value *curValue;
@@ -799,7 +799,7 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 
 static void execute(VM *vm, const Cog_Chunk *chunk)
 {
-	while (!vm->done && vm->ip <= chunk->instr.end)
+	while (!vm->done && vm->ip < chunk->instr.end)
 	{
 #ifdef COG_DEBUG
 		printf("%zu ", vm->ip - chunk->instr.start);
