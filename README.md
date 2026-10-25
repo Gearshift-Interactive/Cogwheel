@@ -1,5 +1,6 @@
-![Logo](branding/logo.svg)
-# Cogwheel
+<div align="center">
+	<img src="branding/logo-text.svg" alt="Logo">
+</div>
 Cogwheel is a general purpose programming language which is:
 - fast
 - modern
