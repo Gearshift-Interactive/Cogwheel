@@ -1,6 +1,7 @@
 <div align="center">
 	<img src="branding/logo-text-full.svg" alt="Logo" width="50%">
 </div>
+
 Cogwheel is a general purpose programming language which is:
 - fast
 - modern
