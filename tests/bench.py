@@ -4,12 +4,12 @@ i: int = 0
 value: int = 0
 
 while i < ITERATIONS:
-    summ = summ + value
+	summ = summ + value
 
-    value = value + 1
+	value = value + 1
 	if value == 100:
-        value = 0
+		value = 0
 
-    i = i + 1
+	i = i + 1
 
-print("Arithmetic checksum: " + sum)
+print(f"Arithmetic checksum: {summ}")
