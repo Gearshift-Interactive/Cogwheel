@@ -169,7 +169,7 @@ static void Chunk_printImpl(const Cog_Chunk *this, size_t level)
 	printLevel(level);
 	printf("FUNCTIONS:\n");
 	if (this->functions.start)
-		for (Cog_Chunk *i = this->functions.start; i <= this->functions.end; i++)
+		for (Cog_Chunk *i = this->functions.start; i < this->functions.end; i++)
 		{
 			printLevel(level);
 			Chunk_printImpl(i, level + 1);
@@ -177,7 +177,7 @@ static void Chunk_printImpl(const Cog_Chunk *this, size_t level)
 	printLevel(level);
 	printf("CODE:\n");
 	if (this->instr.start)
-		for (uint8_t *ip = this->instr.start; ip <= this->instr.end; ip++)
+		for (uint8_t *ip = this->instr.start; ip < this->instr.end; ip++)
 		{
 			printLevel(level);
 			switch (*ip)
@@ -790,7 +790,7 @@ static void runInstruction(VM *vm, const Cog_Chunk *chunk)
 			vm->ip += arg1 - sizeof(size_t);
 		break;
 	default:
-		COG_PANIC("Unsupported operation at %ld", chunk->instr.end - vm->ip - 1);
+		COG_PANIC("Unsupported operation at %ld", vm->ip - 1 - chunk->instr.start);
 		break;
 	}
 #undef INFIX
