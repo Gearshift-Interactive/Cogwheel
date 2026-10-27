@@ -13,9 +13,10 @@
 #define FILE_OBJ_NOB DIR_BIN"/"FILENAME_OBJ_NOB
 
 #define ARGS "gcc", "-std=c11", "-pedantic-errors", "-Wall", "-Wextra",\
-	"-I"DIR_SRC, "-I.", FILE_OBJ_NOB, "-DCOG_STANDALONE", "-lm", "-O3"
+	"-I"DIR_SRC, "-I.", FILE_OBJ_NOB, "-DCOG_STANDALONE", "-lm",
 #define ARGS_NOB "gcc", "-x", "c", "-DNOB_IMPLEMENTATION", "-c", "nob.h"
 #define ARGS_DEBUG "-ggdb", "-fsanitize=address", "-DCOG_DEBUG"
+#define ARGS_RELEASE "-O3"
 #define ARGS_PROF "-pg"
 
 struct { NOBU_DA(char *); } filesToBuild;
@@ -44,8 +45,7 @@ static void Task_buildNob(size_t argc, char **argv) {
 			return;
 		}
 	cmd_append(&cmd, ARGS_NOB);
-	if (debug)
-		cmd_append(&cmd, ARGS_DEBUG);
+	cmd_append(&cmd, debug? ARGS_DEBUG : ARGS_RELEASE);
 	cmd_append(&cmd, "-o", FILE_OBJ_NOB);
 	if (!cmd_run(&cmd)) exit(1);
 }
@@ -68,8 +68,7 @@ static void Task_build(size_t argc, char **argv)
 	int result = 0;
 	memset(&filesToBuild, 0, sizeof(filesToBuild));
 	cmd_append(&cmd, ARGS);
-	if (debug)
-		cmd_append(&cmd, ARGS_DEBUG);
+	cmd_append(&cmd, debug? ARGS_DEBUG : ARGS_RELEASE);
 	if (profile)
 		cmd_append(&cmd, ARGS_PROF);
 	walk_dir(DIR_SRC, addSourceFile_callback);
