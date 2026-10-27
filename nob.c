@@ -45,7 +45,10 @@ static void Task_buildNob(size_t argc, char **argv) {
 			return;
 		}
 	cmd_append(&cmd, ARGS_NOB);
-	cmd_append(&cmd, debug? ARGS_DEBUG : ARGS_RELEASE);
+	if (debug)
+		cmd_append(&cmd, ARGS_DEBUG);
+	else
+		cmd_append(&cmd, ARGS_RELEASE);
 	cmd_append(&cmd, "-o", FILE_OBJ_NOB);
 	if (!cmd_run(&cmd)) exit(1);
 }
@@ -68,7 +71,10 @@ static void Task_build(size_t argc, char **argv)
 	int result = 0;
 	memset(&filesToBuild, 0, sizeof(filesToBuild));
 	cmd_append(&cmd, ARGS);
-	cmd_append(&cmd, debug? ARGS_DEBUG : ARGS_RELEASE);
+	if (debug)
+		cmd_append(&cmd, ARGS_DEBUG);
+	else
+		cmd_append(&cmd, ARGS_RELEASE);
 	if (profile)
 		cmd_append(&cmd, ARGS_PROF);
 	walk_dir(DIR_SRC, addSourceFile_callback);
