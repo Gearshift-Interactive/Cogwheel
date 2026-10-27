@@ -1091,7 +1091,7 @@ static Cog_Node *clampNamespace(Cog_Node *node, Context context)
 	Cog_Node *right = node->infix.right;
 	if (left->type != COG_NODE_SYMBOL)
 	{
-		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->infix.left->pos,
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->infix.left->pos,
 			"Invalid syntax, expected a valid namespace name");
 		return NULL;
 	}
@@ -1108,7 +1108,7 @@ static Cog_Node *clampNamespace(Cog_Node *node, Context context)
 	if (right->type != COG_NODE_SYMBOL)
 	{
 		free(result);
-		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->infix.right->pos,
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->infix.right->pos,
 			"Invalid syntax, expected a namespace access or a valid namespace member name");
 		return NULL;
 	}
@@ -1127,8 +1127,16 @@ static Cog_Node *clampNamespace(Cog_Node *node, Context context)
 }
 static void analyzeNamespaceAccess(Cog_Node **node, Context context)
 {
-	if (!isValidNamespace(*node, context.namespace, true, false))
+	Cog_Namespace *namespace;
+	if (!(namespace = isValidNamespace(*node, context.namespace, true, false)))
 	{
+		(*node)->retType = &COG_TYPE_VOID_OBJ;
+		return;
+	}
+	if (!Cog_ScopeInfo_isImported(context.scope, namespace))
+	{
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, (*node)->infix.left->pos,
+			"Undefined namespace");
 		(*node)->retType = &COG_TYPE_VOID_OBJ;
 		return;
 	}
