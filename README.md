@@ -10,6 +10,21 @@ while still being relatively fast and flexible.
 > to use yet. Also Windows support is completely untested, currently tests are only performed
 > on Linux.
 
+# Quick Start
+
+To obtain the programming language you would clone this repository and build the binary file:
+```bash
+git clone --depth 1 https://github.com/Gearshift-Interactive/Cogwheel
+cd Cogwheel
+./nob build
+```
+You will find the executable in bin/ directory.
+
+**Requirements**:
+- **OS**: Linux (Windows will be available later)
+- **Compiler**: GNU C Compiler
+- thats it
+
 ## Hello World example
 
 ```
@@ -30,17 +45,17 @@ var println = (String str) -> {
 println("Hello, World!");
 ```
 
-## Usage
+# Usage
 
 The is also a code example for [basic vector math](./examples/vector.cog) and [pretty printing](./examples/prettyPrint.cog).
 
-### Statements
+## Statements
 
 **All** statements require a trailing semicolon.
 
-### Data Types
+## Data Types
 
-#### Numeric
+### Numeric
 
 There are 3 numeric data types:
 - `int`: signed integer
@@ -69,7 +84,7 @@ All infix operations can only be performed on two numbers of the same type:
 - `24.23 * 32.9f`: OK
 - `56u / 5.23f`: ERR
 
-#### Boolean
+### Boolean
 
 There is `boolean` data type, that can only store two states: `true` or `false`.
 There are also `and` and `or` infix and `not` prefix operators.
@@ -82,7 +97,7 @@ There are also these operators for numeric comparison that all always return boo
 - `>=`: Greater than or equal to
 - `<=`: Less than or equal to
 
-### Character
+## Character
 
 Character value stores a single string character.
 ```
@@ -101,7 +116,7 @@ Characters support following escapse sequences:
 
 And it also supports UTF-8 characters
 
-### Variables
+## Variables
 
 You can declare a variable with it's type, followed by its name, an equal sign and a value:
 ```
@@ -127,7 +142,7 @@ var something = 10; // int
 var somethingTheSequel = new [10u; 0u]; // uint[]
 ```
 
-#### Arrays
+### Arrays
 
 Arrays are a sequence of values with fixed size.
 ```
@@ -166,7 +181,7 @@ var numbers = numbers1 * 2u;
 ```
 `numbers` is a new array, with values from old ones shallowly copied. Old arrays are not modified.
 
-### Strings
+## Strings
 
 Strings are basically nonexistent in this language at runtime. All the strings are is
 just a bunch of syntactical sugar: Strings here are basically an array of characters:
@@ -185,7 +200,7 @@ That's it.
 Strings can also accept all chars' escape sequences, but `\'` was replaces with `\"`.
 
 
-### Stringification
+## Stringification
 
 There is an operator, that converts every atomic type into a string with its' representations:
 ```
@@ -204,7 +219,7 @@ print($true);
 // to ^ string
 ```
 
-### Options
+## Options
 
 Option is a kind of value, that can have either an actual value of given type or `null`.
 ```
@@ -225,7 +240,7 @@ else
 	exit -1;
 ```
 
-### Free Blocks
+## Free Blocks
 
 Free blocks can be used as an expression:
 ```
@@ -237,7 +252,7 @@ int variable = {
 ```
 Block itself creates a new scope, and returns the yielded value.
 
-### Type aliases
+## Type aliases
 
 You can create type aliases to an existing types like this:
 ```
@@ -255,7 +270,7 @@ var Vector_elementwise = (VectorAction action) -> (Vector a, Vector... other) ->
 };
 ```
 
-### If statement
+## If statement
 
 If statement is an expression that evalueates to different branches depending on the tesult of the given condition.
 ```
@@ -269,7 +284,7 @@ if (cond) {
 // free if statement can have only "then" branch
 ```
 
-### While loop
+## While loop
 
 While loop executes an expression while the given condition returns `true`.
 ```
@@ -300,7 +315,7 @@ exit while (i < 100) {
 ```
 `else` block evaluates when the loop was executed without `break`s, or wasn't executed at all.
 
-### Functions
+## Functions
 
 Functions can be created with **function literals** like this:
 ```
@@ -344,7 +359,8 @@ var add = (int a) -> (int b) -> a + b;
 exit add(2)(4);
 ```
 
-#### Variadic arguments
+### Variadic arguments
+
 You can define a variadic argument using elipsis:
 ```
 var sum = (int... values) -> { /* * */ };
@@ -365,7 +381,7 @@ var sum = (int a, int... values) -> {
 ```
 Variadic argument must be the last argument.
 
-#### Modules
+### Modules
 
 You can separate your project into multiple different files. Each file is a module.
 ```
@@ -405,9 +421,9 @@ functions `print` and `println` are declared `public`, that means, that they can
 outside of this module. All imported modules are namespaced, so you need to prefix modules public
 values with it's name.
 
-### Keywords
+## Keywords
 
-#### `exit`
+### `exit`
 `exit` keyword lets you immediately close the program with the given exit code.
 ```
 int var1 = 12 + 24;

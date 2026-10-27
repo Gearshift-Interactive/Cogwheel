@@ -116,15 +116,21 @@ static void Task_profile(size_t argc, char **argv)
 static void Task_help(size_t argc, char **argv)
 {
 	printf(
-		"Usage: nob ((<command> [<args>]) ...)\n"
-		"Available commands:\n"
+		"Usage: ./nob ((<command> [<args>]) ...)\n"
+		"AvailableCommands:\n"
 		"  clean      - delete all compiled binaries\n"
 		"  build      - compile the binary file\n"
 		"    -release - release mode\n"
 		"    -profile - profile mode\n"
 		"  run        - run standalone\n"
+		"               you can pass arguments to the running\n"
+		"               binary with \"-\" prefix, see examples\n"
 		"  profile    - display profiler information\n"
 		"  help       - show this message\n"
+		"Examples:\n"
+		"  ./nob clean build -release run -examples/vector.cog\n"
+		"  ./nob build run -tests/test.cog\n"
+		"  ./nob clean build -release -profile run -tests/bench.cog profile\n"
 	);
 }
 typedef struct {
