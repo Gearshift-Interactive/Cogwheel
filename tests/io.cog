@@ -1,0 +1,10 @@
+import print;
+public var println = (char[]... strs) -> {
+    mut var i = 0u;
+    while (i < #strs)
+    {
+        print::print(strs[i]);
+        i = i + 1u;
+    };
+    putChar('\n');
+};

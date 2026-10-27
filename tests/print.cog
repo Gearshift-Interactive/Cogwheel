@@ -1,0 +1,14 @@
+public var print = (char[]... strs) -> {
+    mut var j = 0u;
+    while (j < #strs)
+    {
+        var str = strs[j];
+        mut var i = 0u;
+        while (i < #str)
+        {
+            putChar(str[i]);
+            i = i + 1u;
+        };
+        j = j + 1u;
+    };
+};

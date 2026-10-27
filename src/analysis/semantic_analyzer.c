@@ -1035,47 +1035,54 @@ static void analyzeNamespace(Cog_Node *node, Context context)
 	analyze(&node->namespace.value, childContext);
 	node->retType = node->namespace.value->retType;
 }
-static void analyzeImpl(Cog_Node *node, Context context)
+static Cog_Namespace *isValidNamespace
+	(Cog_Node *node, Cog_Namespace *currentNamespace, bool isFreestanding, bool importMode)
 {
-	node->retType = &COG_TYPE_VOID_OBJ;
-	switch (node->type)
+	Cog_Namespace *foundNamespace;
+	if (node->type == COG_NODE_SYMBOL && importMode)
 	{
-	case COG_NODE_NUMBER_LIT: analyzeNumberLit(node, context); break;
-	case COG_NODE_UNUMBER_LIT: analyzeUNumberLit(node, context); break;
-	case COG_NODE_FNUMBER_LIT: analyzeFNumberLit(node, context); break;
-	case COG_NODE_SYMBOL: analyzeSymbol(node, context); break;
-	case COG_NODE_BLOCK: analyzeBlock(node, context); break;
-	case COG_NODE_INFIX: analyzeInfix(node, context); break;
-	case COG_NODE_EXIT: analyzeExit(node, context); break;
-	case COG_NODE_CAST: analyzeCast(node, context); break;
-	case COG_NODE_NEGATION: analyzeNegation(node, context); break;
-	case COG_NODE_VAR_DECL: analyzeVarDecl(node, context, false); break;
-	case COG_NODE_SCOPE: COG_PANIC("Node of type SCOPE should not be present in not analyzed ast");
-	case COG_NODE_FALSE_:
-	case COG_NODE_TRUE_: analyzeBool(node, context); break;
-	case COG_NODE_YIELD: analyzeYield(node, context); break;
-	case COG_NODE_IF: analyzeIf(node, context); break;
-	case COG_NODE_NOT: analyzeNot(node, context); break;
-	case COG_NODE_WHILE: analyzeWhile(node, context); break;
-	case COG_NODE_BREAK: analyzeBreak(node, context); break;
-	case COG_NODE_NEW: analyzeNew(node, context); break;
-	case COG_NODE_SUBSCRIPT: analyzeSubscript(node, context); break;
-	case COG_NODE_SIZEOF: analyzeSizeof(node, context); break;
-	case COG_NODE_NULL: analyzeNull(node, context); break;
-	case COG_NODE_UNWRAP: analyzeUnwrap(node, context); break;
-	case COG_NODE_CHECK: analyzeCheck(node, context); break;
-	case COG_NODE_TUPLE: analyzeTuple(node, context); break;
-	case COG_NODE_PARAMETER: analyzeParameter(node, context); break;
-	case COG_NODE_CALL: analyzeCall(node, context); break;
-	case COG_NODE_ALIAS: analyzeAlias(node, context); break;
-	case COG_NODE_CHAR: analyzeChar(node, context); break;
-	case COG_NODE_STRING: analyzeString(node, context); break;
-	case COG_NODE_REALLOC: analyzeRealloc(node, context); break;
-	case COG_NODE_TOSTRING: analyzeToString(node, context); break;
-	case COG_NODE_PUBLIC: Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Illegal node"); break;
-	case COG_NODE_NAMESPACE: analyzeNamespace(node, context); break;
-	case COG_NODE_IMPORT: break;
+		foundNamespace = Cog_Namespace_searchChild
+			(currentNamespace, node->symbol.token.pos, isFreestanding);
+		return foundNamespace;
 	}
+	if (node->infix.left->type != COG_NODE_SYMBOL)
+	{
+		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->infix.left->pos,
+			"Invalid syntax, expected a valid namespace name");
+		return NULL;
+	}
+	foundNamespace = Cog_Namespace_searchChild
+		(currentNamespace, node->infix.left->symbol.token.pos, isFreestanding);
+	if (!foundNamespace)
+	{
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->infix.left->pos,
+			"Undefined namespace");
+		return NULL;
+	}
+	if (
+		node->infix.right->type == COG_NODE_INFIX &&
+		node->infix.right->infix.type == COG_INFIX_NAMESPACE
+	)
+		return isValidNamespace(node->infix.right, foundNamespace, false, importMode);
+	if (node->infix.right->type != COG_NODE_SYMBOL)
+	{
+		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->infix.right->pos,
+			"Invalid syntax, expected a namespace access or"
+			" a valid namespace member name");
+		return NULL;
+	}
+	// wow
+	bool itemPresent = (bool)Cog_Namespace_searchItemData
+		(foundNamespace, node->infix.right->symbol.token.pos);
+	if (itemPresent)
+		return foundNamespace;
+	if (!importMode)
+	{
+		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->infix.right->pos,
+			"Undefined variable");
+		return NULL;
+	}
+	return Cog_Namespace_searchChild(foundNamespace, node->infix.right->symbol.token.pos, isFreestanding);
 }
 static Cog_Node *clampNamespace(Cog_Node *node, Context context)
 {
@@ -1118,51 +1125,65 @@ static Cog_Node *clampNamespace(Cog_Node *node, Context context)
 	free(node);
 	return result;
 }
-static bool isValidNamespace(Cog_Node *node, Cog_Namespace *currentNamespace, bool isFreestanding)
-{
-	if (node->infix.left->type != COG_NODE_SYMBOL)
-	{
-		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->infix.left->pos,
-			"Invalid syntax, expected a valid namespace name");
-		return false;
-	}
-	Cog_Namespace *foundNamespace = Cog_Namespace_searchChild
-		(currentNamespace, node->infix.left->symbol.token.pos, isFreestanding);
-	if (!foundNamespace)
-	{
-		Cog_comptimeMessage(COG_MESSAGE_ERRORN, node->infix.left->pos,
-			"Undefined namespace");
-		return false;
-	}
-	if (
-		node->infix.right->type == COG_NODE_INFIX &&
-		node->infix.right->infix.type == COG_INFIX_NAMESPACE
-	)
-		return isValidNamespace(node->infix.right, foundNamespace, false);
-	if (node->infix.right->type != COG_NODE_SYMBOL)
-	{
-		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->infix.right->pos,
-			"Invalid syntax, expected a namespace access or"
-			" a valid namespace member name");
-		return false;
-	}
-	// wow
-	bool itemPresent = (bool)Cog_Namespace_searchItemData
-		(foundNamespace, node->infix.right->symbol.token.pos);
-	if (!itemPresent)
-		Cog_comptimeMessage(COG_MESSAGE_ERROR, node->infix.right->pos,
-			"Undefined variable");
-	return itemPresent;
-}
 static void analyzeNamespaceAccess(Cog_Node **node, Context context)
 {
-	if (!isValidNamespace(*node, context.namespace, true))
+	if (!isValidNamespace(*node, context.namespace, true, false))
 	{
 		(*node)->retType = &COG_TYPE_VOID_OBJ;
 		return;
 	}
 	*node = clampNamespace(*node, context);
 	analyze(node, context);
+}
+static void analyzeImport(Cog_Node *node, Context context)
+{
+	Cog_Namespace *foundNamespace;
+	if (!(foundNamespace = isValidNamespace(node->import.value, context.namespace, true, true)))
+		return;
+	Cog_ScopeInfo_import(context.scope, foundNamespace);
+	node->retType = &COG_TYPE_VOID_OBJ;
+}
+static void analyzeImpl(Cog_Node *node, Context context)
+{
+	node->retType = &COG_TYPE_VOID_OBJ;
+	switch (node->type)
+	{
+	case COG_NODE_NUMBER_LIT: analyzeNumberLit(node, context); break;
+	case COG_NODE_UNUMBER_LIT: analyzeUNumberLit(node, context); break;
+	case COG_NODE_FNUMBER_LIT: analyzeFNumberLit(node, context); break;
+	case COG_NODE_SYMBOL: analyzeSymbol(node, context); break;
+	case COG_NODE_BLOCK: analyzeBlock(node, context); break;
+	case COG_NODE_INFIX: analyzeInfix(node, context); break;
+	case COG_NODE_EXIT: analyzeExit(node, context); break;
+	case COG_NODE_CAST: analyzeCast(node, context); break;
+	case COG_NODE_NEGATION: analyzeNegation(node, context); break;
+	case COG_NODE_VAR_DECL: analyzeVarDecl(node, context, false); break;
+	case COG_NODE_SCOPE: COG_PANIC("Node of type SCOPE should not be present in not analyzed ast");
+	case COG_NODE_FALSE_:
+	case COG_NODE_TRUE_: analyzeBool(node, context); break;
+	case COG_NODE_YIELD: analyzeYield(node, context); break;
+	case COG_NODE_IF: analyzeIf(node, context); break;
+	case COG_NODE_NOT: analyzeNot(node, context); break;
+	case COG_NODE_WHILE: analyzeWhile(node, context); break;
+	case COG_NODE_BREAK: analyzeBreak(node, context); break;
+	case COG_NODE_NEW: analyzeNew(node, context); break;
+	case COG_NODE_SUBSCRIPT: analyzeSubscript(node, context); break;
+	case COG_NODE_SIZEOF: analyzeSizeof(node, context); break;
+	case COG_NODE_NULL: analyzeNull(node, context); break;
+	case COG_NODE_UNWRAP: analyzeUnwrap(node, context); break;
+	case COG_NODE_CHECK: analyzeCheck(node, context); break;
+	case COG_NODE_TUPLE: analyzeTuple(node, context); break;
+	case COG_NODE_PARAMETER: analyzeParameter(node, context); break;
+	case COG_NODE_CALL: analyzeCall(node, context); break;
+	case COG_NODE_ALIAS: analyzeAlias(node, context); break;
+	case COG_NODE_CHAR: analyzeChar(node, context); break;
+	case COG_NODE_STRING: analyzeString(node, context); break;
+	case COG_NODE_REALLOC: analyzeRealloc(node, context); break;
+	case COG_NODE_TOSTRING: analyzeToString(node, context); break;
+	case COG_NODE_PUBLIC: Cog_comptimeMessage(COG_MESSAGE_ERROR, node->pos, "Illegal node"); break;
+	case COG_NODE_NAMESPACE: analyzeNamespace(node, context); break;
+	case COG_NODE_IMPORT: analyzeImport(node, context); break;
+	}
 }
 static void analyze(Cog_Node **node, Context context)
 {
