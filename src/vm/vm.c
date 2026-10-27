@@ -71,7 +71,7 @@ static void GC_freeAll(Cog_GC *this)
 }
 
 #ifdef COG_DEBUG
-static void Cog_VM_print(VM *this)
+static void Cog_VM_print(Cog_VM *this)
 {
 	printf("--STACK--\n");
 	if (this->stackBase != this->stackTop)
