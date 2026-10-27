@@ -16,7 +16,7 @@ Cogwheel is a general purpose programming language which is:
 This language was designed to be used for scripting, modding and developing high level applications
 while still being relatively fast and flexible.
 
-> [!WARN]
+> [!WARNING]
 > This project is in very early development stage. It might be very buggy and not very practical
 > to use yet. Also Windows support is completely untested, currently tests are only performed
 > on Linux.
