@@ -20,10 +20,9 @@ cd Cogwheel
 ```
 You will find the executable in bin/ directory.
 
-**Requirements**:
+**System Requirements** for building the binary:
 - **OS**: Linux (Windows will be available later)
 - **Compiler**: GNU C Compiler
-- thats it
 
 ## Hello World example
 
