@@ -17,8 +17,8 @@ To obtain the programming language you would clone this repository and build the
 git clone --depth 1 https://github.com/Gearshift-Interactive/Cogwheel
 cd Cogwheel
 ./nob build
+bin/cogwheel examples/vector.cog
 ```
-You will find the executable in bin/ directory.
 
 **System Requirements** for building the binary:
 - **OS**: Linux (Windows will be available later)
