@@ -1,7 +1,7 @@
 
 <img src="branding/logo-text-full.svg" alt="Logo" width="50%" align="left">
 
-Cogwheel is a fast modern type-safe null-safe embeddable interpreted multiparadigm strongly-typed strictly-typed bytecode-compiled object-oriented procedural functional **general purpose programming language**.
+Cogwheel is a fast modern type-safe null-safe embeddable interpreted multiparadigm strongly-typed strictly-typed bytecode-compiled **general purpose programming language**.
 This language was designed to be used for scripting, modding and developing high level applications
 while still being relatively fast and flexible.
 
