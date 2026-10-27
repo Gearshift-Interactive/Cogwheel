@@ -4,19 +4,19 @@
 #include "globals.h"
 #include "namespace.h"
 
+struct Cog_Module;
+
+typedef NOBU_DA(struct Cog_Module *) Cog_ModuleList;
+
 typedef struct Cog_Module {
 	const char *filePath;
 	Nob_String_Builder fileContent;
 	Cog_Node *ast;
-	struct {
-		struct Cog_Module **items;
-		size_t capacity, count;
-	} importedModules;
+	Cog_ModuleList importedModules;
 	bool placed;
 } Cog_Module;
 
-struct Cog_AllModules { NOBU_DA_BARE(Cog_Module *) };
-extern struct Cog_AllModules Cog_allModules;
+extern Cog_ModuleList Cog_allModules;
 
 // Loads modules recursively
 Cog_Module *Cog_loadModule(char *filePath);

@@ -1,6 +1,5 @@
-// import print;
-import io;
-var print = print::print;
-print("Hello, World!");
-print::print("something");
-io::println("Hello, World!");
+var main = () -> {
+    import io;
+    io::println("Hello, World!");
+};
+main();

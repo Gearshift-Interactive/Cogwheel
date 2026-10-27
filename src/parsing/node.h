@@ -194,10 +194,10 @@ Cog_Node *Cog_Node_make(Cog_TokenPosition);
 Cog_Node *Cog_Node_makeRaw(void);
 void Cog_Node_printImpl(const Cog_Node *node, const size_t indent);
 void Cog_Node_print(const Cog_Node *);
-void *Cog_Node_preOrderTraversal(Cog_Node *, Cog_Node_VisitCallback, void *userdata);
 // 1. Visit the current node (call callback)
 // 2. Recursively traverse current node's subtrees
-void *Cog_Node_postOrderTraversal(Cog_Node *, Cog_Node_VisitCallback, void *userdata);
+void *Cog_Node_preOrderTraversal(Cog_Node *, Cog_Node_VisitCallback, void *userdata);
 // 1. Recursively traverse current node's subtrees
 // 2. Visit the current node (call callback)
+void *Cog_Node_postOrderTraversal(Cog_Node *, Cog_Node_VisitCallback, void *userdata);
 void Cog_Node_free(const Cog_Node *);

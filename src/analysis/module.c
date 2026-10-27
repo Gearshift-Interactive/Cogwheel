@@ -5,7 +5,7 @@
 #include "parsing/parser.h"
 #include "semantic_analyzer.h"
 
-struct Cog_AllModules Cog_allModules = {0};
+Cog_ModuleList Cog_allModules = {0};
 
 // Cog_Node *Cog_Module_reassembled(const Cog_Module *this)
 // {
@@ -96,14 +96,17 @@ static Cog_Module *resolveModulePath(Cog_Module *this, Cog_Node* path)
 			return *module;
 	return Cog_loadModule(sb.items);
 }
+static Cog_Node_VisitResult collectImport(Cog_Node *node, void *userdata)
+{
+	if (node->type != COG_NODE_IMPORT)
+		return (Cog_Node_VisitResult){ COG_NODE_VISIT_CONTINUE, userdata };
+	Cog_Module *this = userdata;
+	nob_da_append(&this->importedModules, resolveModulePath(this, node->import.value));
+	return (Cog_Node_VisitResult){ COG_NODE_VISIT_SKIP, userdata };
+}
 static void Cog_Module_collectImports(Cog_Module *this)
 {
-	nob_da_foreach(Cog_Node*, childNode, &this->ast->block)
-		if ((*childNode)->type == COG_NODE_IMPORT)
-			nob_da_append(
-				&this->importedModules,
-				resolveModulePath(this, (*childNode)->import.value)
-			);
+	Cog_Node_preOrderTraversal(this->ast, collectImport, this);
 }
 Cog_Module *Cog_loadModule(char *filePath)
 {
