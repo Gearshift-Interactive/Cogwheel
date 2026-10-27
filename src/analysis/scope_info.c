@@ -97,6 +97,20 @@ Cog_Type *Cog_ScopeInfo_getAliasType(Cog_ScopeInfo *this, const Cog_TokenPositio
 	}
 	return NULL;
 }
+void Cog_ScopeInfo_import(Cog_ScopeInfo *this, Cog_Namespace *namespace)
+{
+	nob_da_append(&this->imports, namespace);
+}
+bool Cog_ScopeInfo_isImported(Cog_ScopeInfo *this, Cog_Namespace *namespace)
+{
+	for (const Cog_ScopeInfo *current = this; current; current = current->parent)
+	{
+		nob_da_foreach(Cog_Namespace *, import, &current->imports)
+			if (*import = namespace)
+				return true;
+	}
+	return false;
+}
 void Cog_ScopeInfo_free(const Cog_ScopeInfo *this)
 {
 	if (this->vars.items) free(this->vars.items);
