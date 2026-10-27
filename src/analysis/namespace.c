@@ -67,6 +67,13 @@ Cog_VarInfo *Cog_Namespace_searchItemData(Cog_Namespace *this, Cog_TokenPosition
 			return item;
 	return NULL;
 }
+bool Cog_Namespace_isChildSomewhere(Cog_Namespace *parent, Cog_Namespace *child)
+{
+	nob_da_foreach(Cog_Namespace *, kid, &parent->children)
+		if (*kid == child || Cog_Namespace_isChildSomewhere(*kid, child))
+			return true;
+	return false;
+}
 void Cog_Namespace_free(Cog_Namespace *this)
 {
 	nob_da_foreach(Cog_Namespace *, child, &this->children)

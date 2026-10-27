@@ -106,7 +106,7 @@ bool Cog_ScopeInfo_isImported(Cog_ScopeInfo *this, Cog_Namespace *namespace)
 	for (const Cog_ScopeInfo *current = this; current; current = current->parent)
 	{
 		nob_da_foreach(Cog_Namespace *, import, &current->imports)
-			if (*import == namespace)
+			if (*import == namespace || Cog_Namespace_isChildSomewhere(*import, namespace))
 				return true;
 	}
 	return false;
