@@ -1,29 +1,99 @@
 # Core language
 
-- [ ] Namespaces
-	- [x] Nested namespaces
-	- [x] Namespace variable items
-	- [ ] Namespace alias items
+- [ ] Base types
+	- [x] `int`, `uint`, `float`
+	- [x] Number literals with postfixes (`u`, `f`)
+	- [x] Numeric casts
+	- [x] Unary minus
+	- [x] Basic arithmetic operators (`+`, `-`, `*`, `/`, `^`)
+    - [ ] Universal number literal
+- [x] Booleans
+	- [x] `boolean` type
+	- [x] Logical operators
+	- [x] Comparison operators
+	- [x] Short-circuit evaluation for `and`/`or`
+- [x] Variables
+	- [x] Variable declarations with type
+	- [x] `var` keyword for type inference
+	- [x] `mut` for mutable variables
+	- [x] Assignment returns value
+- [x] Control flow
+	- [x] If expressions
+	- [x] While loops
+	- [x] `break` for loops
+	- [x] `break` with value and `else` clause
+    - [ ] For loop
+    - [ ] `continue` for loops
+- [x] Free blocks
+	- [x] Block expressions
+	- [x] `yield` keyword
+	- [x] Block scoping
+- [ ] Error handling, flow analysis & debugging
+	- [x] `exit` keyword
+	- [x] Error messages
+	- [x] Basic flow analysis
+	- [x] Unreachable code detection
+    - [ ] Error messages hinting
+    - [ ] Remove error cascading
+- [x] Arrays
+	- [x] Array initialization with count+value
+	- [x] Array initialization with explicit values
+	- [x] Array size operator
+	- [x] Array concatenation (`+`)
+	- [x] Array repetition (`*`)
+- [ ] Options
+	- [x] Option types
+	- [x] `null` literal
+	- [x] Check operator
+	- [x] Unwrap operator
+    - [ ] `or` for options
+- [ ] Functions
+	- [x] Function literals
+	- [x] Function types
+	- [x] Closures
+	- [x] Mutable/immutable function arguments
+	- [x] Variadic arguments
+	- [x] Currying support
+    - [ ] Function definition
+	- [ ] Recursion
+	- [ ] `return` keyword
+    - [ ] Optional arguments
+    - [ ] key = value argument passing
+- [ ] Characters
+	- [x] `char` type with escape sequences
+	- [x] UTF-8 support
+	- [x] Basic character comparison
+    - [ ] Full character comparison
+- [x] Strings
+	- [x] String literals with escape sequences
+	- [x] Stringification operator
+- [x] Type aliases
 - [ ] Modules
-	- [x] AST amalgamation
-	- [x] Modules namespacing
-	- [x] Transitive imports fix
+	- [x] Public symbols
+	- [x] Module imports
+	- [x] Module namespacing
+	- [x] Multiple imports support
 	- [x] Local imports
+	- [x] AST amalgamation
+	- [x] Transitive imports fix
 	- [ ] Modules in folders
 	- [ ] Module pseudonames
 	- [ ] Public imports
 	- [ ] Additional linkage
-- [ ] Function definition
-	- [ ] Function expression
-	- [ ] Recursion
-	- [ ] `return` keyword
-- [ ] For loop
+- [ ] Namespaces
+	- [x] Namespace base (3f5a735)
+	- [x] Nested namespaces (7edc6c6, af9e141)
+	- [x] Namespace variable items (91dd20f)
+	- [x] Namespace shortening (9f02efa)
+	- [x] Namespace validation (35319c4)
+	- [x] Scope info tracks imports (8e933ed)
+	- [ ] Namespace alias items
 - [ ] Tuples
 	- [ ] Type
 	- [ ] Initialization
 	- [ ] Field access
 - [ ] Compound assignment operators
-- [ ] Increment and dectement operators
+	- [ ] Increment and dectement operators
 - [ ] Records
 	- [ ] Type
 	- [ ] Declaration
@@ -95,4 +165,3 @@ Written in Cogwheel
 - [ ] String manipulation
 - [ ] JSON
 - [ ] TOML
-
