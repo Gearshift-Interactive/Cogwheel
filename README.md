@@ -48,7 +48,7 @@ println("Hello, World!");
 
 To learn the language you can see some examples, that are included in this repo:
 - [Basic vector math](./examples/vector.cog)
-- [Pretty printing](./examples/prettyPrint.cog).
+- [Pretty printing](./examples/prettyPrint.cog)
 
 Or you can visit the [tutorial](TUTORIAL.md) for detailed and structured list of language features.
 
