@@ -29,7 +29,7 @@ bin/cogwheel examples/vector.cog
 ```
 alias String = char[];
 
-var print = (String str) -> {
+var print = (str: String) -> {
     mut var i = 0u;
     while (i < #str)
     {
@@ -37,7 +37,7 @@ var print = (String str) -> {
         i = i + 1u;
     };
 };
-var println = (String str) -> {
+var println = (str: String) -> {
     print(str);
     putChar('\n');
 };
