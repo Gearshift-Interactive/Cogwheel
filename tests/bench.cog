@@ -1,6 +1,6 @@
 alias String = char[];
 
-public var print = (String... strs) -> {
+public var print = (strs: String...) -> {
     mut var j = 0u;
     while (j < #strs)
     {
@@ -14,7 +14,7 @@ public var print = (String... strs) -> {
         j = j + 1u;
     };
 };
-public var println = (String... strs) -> {
+public var println = (strs: String...) -> {
     mut var i = 0u;
     while (i < #strs)
     {
@@ -24,10 +24,10 @@ public var println = (String... strs) -> {
     putChar('\n');
 };
 
-int ITERATIONS = 10000000;
-mut int sum = 0;
-mut int i = 0;
-mut int value = 0;
+var ITERATIONS = 10000000;
+mut var sum = 0;
+mut var i = 0;
+mut var value = 0;
 
 while (i < ITERATIONS)
 {

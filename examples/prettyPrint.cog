@@ -1,6 +1,6 @@
 import util;
 
-var arrayPrettyPrint = (int?[] array) -> {
+var arrayPrettyPrint = (array: int?[]) -> {
     util::println("[");
     mut var i = 0u;
     while (i < #array)
@@ -15,7 +15,7 @@ var arrayPrettyPrint = (int?[] array) -> {
     };
     util::println("]");
 };
-var arrayPrettyString = (int?[] array) -> {
+var arrayPrettyString = (array: int?[]) -> {
     mut var result = "";
     result = result + "[\n";
     mut var i = 0u;
