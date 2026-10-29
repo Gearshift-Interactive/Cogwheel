@@ -54,9 +54,9 @@
 	- [x] Mutable/immutable function arguments
 	- [x] Variadic arguments
 	- [x] Currying support
-    - [ ] Function definition
-	- [ ] Recursion
+    - [ ] Block functions
 	- [ ] `return` keyword
+	- [ ] Recursion
     - [ ] Optional arguments
     - [ ] key = value argument passing
 - [ ] Characters
@@ -81,12 +81,12 @@
 	- [ ] Public imports
 	- [ ] Additional linkage
 - [ ] Namespaces
-	- [x] Namespace base (3f5a735)
-	- [x] Nested namespaces (7edc6c6, af9e141)
-	- [x] Namespace variable items (91dd20f)
-	- [x] Namespace shortening (9f02efa)
-	- [x] Namespace validation (35319c4)
-	- [x] Scope info tracks imports (8e933ed)
+	- [x] Namespace base
+	- [x] Nested namespaces
+	- [x] Namespace variable items
+	- [x] Namespace shortening
+	- [x] Namespace validation
+	- [x] Scope info tracks imports
 	- [ ] Namespace alias items
 - [ ] Tuples
 	- [ ] Type
