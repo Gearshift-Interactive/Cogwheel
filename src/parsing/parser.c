@@ -70,16 +70,18 @@ static const Cog_TokenType ATOMIC_TYPE_TOKENS[] = {
 	COG_TOKEN_INT_T, COG_TOKEN_UINT_T, COG_TOKEN_FLOAT_T, COG_TOKEN_BOOL_T, COG_TOKEN_VOID, COG_TOKEN_CHAR_T
 };
 
+static Cog_Type *parseAlias(Cog_Token t)
+{
+	Cog_Type *result = calloc(1, sizeof *result);
+	result->kind = COG_TYPE_ALIAS;
+	result->alias.name = t;
+	Cog_Bank_handOff(result);
+	return result;
+}
 static Cog_Type *tokenToType(Cog_Token t)
 {
 	if (t.type == COG_TOKEN_SYMBOL)
-	{
-		Cog_Type *result = calloc(1, sizeof *result);
-		result->kind = COG_TYPE_ALIAS;
-		result->alias.name = t;
-		Cog_Bank_handOff(result);
-		return result;
-	}
+		return parseAlias(t);
 	for (size_t i = 0; i < ARRAY_LEN(COG_TOKEN_TO_TYPE); i++)
 		if (COG_TOKEN_TO_TYPE[i].tt == t.type)
 			return COG_TOKEN_TO_TYPE[i].t;
@@ -279,7 +281,11 @@ static Cog_Node *parseAtom(Cog_TokenStream *tokens)
 		}
 		default: {
 			Cog_TokenPosition tp = consumed.pos;
+#ifdef COG_DEBUG
+			Cog_comptimeMessage(COG_MESSAGE_ERROR, tp, "Unexpected token for atom");
+#else
 			Cog_comptimeMessage(COG_MESSAGE_ERROR, tp, "Unexpected token");
+#endif
 			return NULL;
 		}
 	}
@@ -382,20 +388,34 @@ static Cog_Type *parseType(Cog_TokenStream *tokens)
 				Cog_Bank_handOff(result->function.args.items);
 			TokenStream_consumeExpect(tokens, COG_TOKEN_RPAREN);
 		}
+		else if (consumed.type == COG_TOKEN_NP_ACCESS)
+		{
+			Cog_Type *newResult = Cog_Bank_alloc(sizeof *result);
+			newResult->kind = COG_TYPE_NAMESPACE;
+			newResult->namespace.left = result;
+			result = newResult;
+			consumed = Cog_TokenStream_consume(tokens);
+			if (consumed.type != COG_TOKEN_SYMBOL)
+				Cog_comptimeMessage(COG_MESSAGE_ERROR, consumed.pos,
+					"Expected a valid namespace or alias identifier");
+			result->namespace.right = parseAlias(consumed);
+		}
 		peek = Cog_TokenStream_peek(tokens)->type;
 	}
 	return result;
 }
 static size_t typeSize(Cog_TokenStream *tokens, size_t offset)
 {
-#define UPDATE_PEEK peek = Cog_TokenStream_peekForward(tokens, result + offset)->type
+#define UPDATE_PEEK peek = Cog_TokenStream_peekForward(tokens, result + offset)->type; peek2 = Cog_TokenStream_peekForward(tokens, result + offset + 1)->type
 	size_t result = 0;
 	Cog_TokenType peek = Cog_TokenStream_peek(tokens)->type;
-	if (!(TokenType_isAtomicType(peek) || peek == COG_TOKEN_SYMBOL))
+	Cog_TokenType peek2 = Cog_TokenStream_peekForward(tokens, 1)->type;
+	if (!(TokenType_isAtomicType(peek) || (peek == COG_TOKEN_SYMBOL && peek2 == COG_TOKEN_NP_ACCESS)))
 		return result;
 	result++;
 	while (
-		peek == COG_TOKEN_LBRACKET || peek == COG_TOKEN_QUESTION || peek == COG_TOKEN_LPAREN
+		peek == COG_TOKEN_LBRACKET || peek == COG_TOKEN_QUESTION ||
+		peek == COG_TOKEN_LPAREN || (peek2 == COG_TOKEN_NP_ACCESS)
 	) {
 		result++;
 		UPDATE_PEEK;
@@ -436,6 +456,14 @@ static size_t typeSize(Cog_TokenStream *tokens, size_t offset)
 				result++;
 			else return 0;
 		}
+		else if (peek == COG_TOKEN_NP_ACCESS)
+		{
+			result++;
+			UPDATE_PEEK;
+			if (peek != COG_TOKEN_SYMBOL)
+				return 0;
+			result++;
+		}
 		UPDATE_PEEK;
 	}
 	return result;
@@ -455,44 +483,44 @@ static void compactTuple(Cog_Node **node)
 	free(old->tuple.items);
 	free(old);
 }
+static Cog_Node *parseFuncParam(Cog_TokenStream* tokens, Cog_Token parameterName, bool isMut)
+{
+	Cog_Node *result = Cog_Node_make(Cog_TokenStream_consume(tokens).pos);
+	result->type == COG_NODE_PARAMETER;
+	result->funcParam.name = parameterName;
+	result->funcParam.type = parseType(tokens);
+	result->funcParam.isMutable = isMut;
+	if (Cog_TokenStream_peek(tokens)->type == COG_TOKEN_ELIPSIS)
+	{
+		result->funcParam.isVarArg = true;
+		Cog_TokenStream_consume(tokens);
+	}
+	return result;
+}
 static Cog_Node *parseVarDecl(Cog_TokenStream *tokens)
 {
 	bool mut = false;
-	bool varArg = false;
 	if (Cog_TokenStream_peek(tokens)->type == COG_TOKEN_MUT)
 	{
 		Cog_TokenStream_consume(tokens);
 		mut = true;
+		if (Cog_TokenStream_peek(tokens)->type != COG_TOKEN_VAR)
+			return parseFuncParam(tokens, TokenStream_consumeExpect(tokens, COG_TOKEN_SYMBOL), true);
 	}
-	Cog_Token *typeTok = Cog_TokenStream_peek(tokens);
-	Cog_Token varArgToken;
-	Cog_Type *type;
-	if (Cog_TokenStream_peek(tokens)->type == COG_TOKEN_VAR)
+	Cog_Token varToken = TokenStream_consumeExpect(tokens, COG_TOKEN_VAR);
+	Cog_Token varName = TokenStream_consumeExpect(tokens, COG_TOKEN_SYMBOL);
+	Cog_Type *type = NULL;
+	if (Cog_TokenStream_peek(tokens)->type == COG_TOKEN_COLON)
 	{
-		type = NULL;
 		Cog_TokenStream_consume(tokens);
-	}
-	else
 		type = parseType(tokens);
-	Cog_Node *result = Cog_Node_make(typeTok->pos);
+	}
+	Cog_Node *result = Cog_Node_make(varToken.pos);
 	if (Cog_TokenStream_peek(tokens)->type == COG_TOKEN_ELIPSIS)
 	{
-		varArgToken = Cog_TokenStream_consume(tokens);
-		varArg = true;
-	}
-	Cog_Token varName = TokenStream_consumeExpect(tokens, COG_TOKEN_SYMBOL);
-	if (isTailToken(Cog_TokenStream_peek(tokens)->type))
-	{
-		result->type = COG_NODE_PARAMETER;
-		result->funcParam.name = varName;
-		result->funcParam.type = type;
-		result->funcParam.isMutable = mut;
-		result->funcParam.isVarArg = varArg;
-		return result;
-	}
-	else if (varArg)
-		Cog_comptimeMessage(COG_MESSAGE_ERROR, varArgToken.pos,
+		Cog_comptimeMessage(COG_MESSAGE_ERRORN, Cog_TokenStream_consume(tokens).pos,
 			"Unexpected elipsis in variable definition");
+	}
 	result->type = COG_NODE_VAR_DECL;
 	result->var_decl.name = varName;
 	TokenStream_consumeExpect(tokens, COG_TOKEN_ASSIGN);
@@ -584,26 +612,6 @@ static Cog_Node *parseTuple
 	result->tuple.capacity = exprs.capacity;
 	return result;
 }
-static bool checkVarDecl(Cog_TokenStream *tokens)
-{
-	Cog_Token *peek = Cog_TokenStream_peek(tokens);
-	if (
-		TokenType_isAtomicType(peek->type) ||
-		peek->type == COG_TOKEN_MUT ||
-		peek->type == COG_TOKEN_VAR
-	) return true;
-	size_t sizeOfType = typeSize(tokens, 0);
-	if (!sizeOfType)
-		return false;
-	else if (
-		Cog_TokenStream_peekForward(tokens, sizeOfType)->type == COG_TOKEN_SYMBOL ||
-		(
-			Cog_TokenStream_peekForward(tokens, sizeOfType)->type == COG_TOKEN_ELIPSIS &&
-			Cog_TokenStream_peekForward(tokens, sizeOfType + 1)->type == COG_TOKEN_SYMBOL
-		)
-	) return true;
-	return false;
-}
 static Cog_Node *parseExprHead(Cog_TokenStream *tokens)
 {
 	Cog_Token *peek = Cog_TokenStream_peek(tokens);
@@ -644,7 +652,7 @@ static Cog_Node *parseExprHead(Cog_TokenStream *tokens)
 		// TokenStream_consumeExpect(tokens, COG_TOKEN_RPAREN);
 		return result;
 	}
-	else if (checkVarDecl(tokens))
+	else if (peek->type == COG_TOKEN_VAR || peek->type == COG_TOKEN_MUT)
 	{
 		return parseVarDecl(tokens);
 	}
@@ -884,6 +892,14 @@ static Cog_Node *parseExprTail(Cog_TokenStream *tokens, float parentBind, Cog_No
 			left = newLeft;
 			TokenStream_consumeExpect(tokens, COG_TOKEN_RPAREN);
 			continue;
+		}
+		if (op->type == COG_TOKEN_COLON) // function parameter
+		{
+			if (left->type != COG_NODE_SYMBOL)
+				Cog_comptimeMessage(COG_MESSAGE_ERROR, left->pos, "Invalid Syntax");
+			Cog_Node *result = parseFuncParam(tokens, left->symbol.token, false);
+			Cog_Node_free(left);
+			return result;
 		}
 		BindingPower bind = getBindingFor(*op);
 		if (bind.right < parentBind) break;

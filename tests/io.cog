@@ -1,5 +1,5 @@
 import print;
-public var println = (char[]... strs) -> {
+public var println = (strs: char[]...) -> {
     mut var i = 0u;
     while (i < #strs)
     {

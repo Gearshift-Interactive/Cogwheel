@@ -44,6 +44,7 @@
 	COG_X(ARROW) \
 	COG_X(ELIPSIS) \
 	COG_X(TOSTRING) \
+	COG_X(COLON) \
 	/* atomic types */ \
 	COG_X(INT_T) \
 	COG_X(UINT_T) \

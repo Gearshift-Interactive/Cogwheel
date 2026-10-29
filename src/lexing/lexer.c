@@ -38,6 +38,7 @@ static const SymbolInfo PUNCTUATION[] = {
 	{ "!", COG_TOKEN_EXCLAMATION },
 	{ "$", COG_TOKEN_TOSTRING },
 	{ "#", COG_TOKEN_SIZEOF },
+	{ ":", COG_TOKEN_COLON },
 };
 static const SymbolInfo KEYWORDS[] = {
 	{ "int", COG_TOKEN_INT_T },

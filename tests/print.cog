@@ -1,4 +1,5 @@
-public var print = (char[]... strs) -> {
+alias String = char[];
+public var print = (strs: String...) -> {
     mut var j = 0u;
     while (j < #strs)
     {

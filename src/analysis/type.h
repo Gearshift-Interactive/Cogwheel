@@ -21,6 +21,7 @@ typedef enum {
 	COG_TYPE_OPTION,
 	COG_TYPE_FUNCTION,
 	COG_TYPE_ALIAS,
+	COG_TYPE_NAMESPACE,
 } Cog_TypeKind;
 
 struct Cog_Type;
@@ -52,6 +53,9 @@ typedef struct Cog_Type {
 		struct {
 			Cog_Token name;
 		} alias;
+		struct {
+			struct Cog_Type *left, *right;
+		} namespace;
 	};
 } Cog_Type;
 

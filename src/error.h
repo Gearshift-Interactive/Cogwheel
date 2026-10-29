@@ -34,3 +34,7 @@ extern bool Cog_errorOccured;
 
 #define Cog_comptimeMessage(level, pos, ...) Cog_comptimeMessage_impl(__FILE__, __LINE__, level, pos, __VA_ARGS__)
 void Cog_comptimeMessage_impl(const char *file, size_t ln, Cog_MessageLevel level, Cog_TokenPosition pos, const char *fmt, ...);
+#ifdef COG_DEBUG
+// for use in gdb
+void Cog_debugToken(Cog_Token *token);
+#endif

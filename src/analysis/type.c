@@ -43,6 +43,7 @@ static const char *TypeKind_toString(const Cog_TypeKind tk)
 		case COG_TYPE_ARRAY: return "[]";
 		case COG_TYPE_OPTION: return "?";
 		case COG_TYPE_FUNCTION: return "()";
+		case COG_TYPE_NAMESPACE: return "::";
 	}
 	return "INVALID";
 }
@@ -88,6 +89,12 @@ const char *Cog_Type_toString(const Cog_Type *t)
 		}
 		da_append(&sb, ')');
 	}
+	else if (t->kind == COG_TYPE_NAMESPACE)
+	{
+		sb_append_cstr(&sb, Cog_Type_toString(t->namespace.left));
+		sb_append_cstr(&sb, "::");
+		sb_append_cstr(&sb, Cog_Type_toString(t->namespace.right));
+	}
 	nob_sb_append_null(&sb);
 	Cog_Bank_handOff(sb.items);
 	return sb.items;
@@ -98,8 +105,12 @@ bool Cog_Type_areCompatible(const Cog_Type *a, const Cog_Type *b)
 	// fflush(stdout);
 	if (!a || !b)
 		return false;
-	if (a->kind == COG_TYPE_ALIAS || b->kind == COG_TYPE_ALIAS)
-	{
+	if (
+		a->kind == COG_TYPE_ALIAS ||
+		b->kind == COG_TYPE_ALIAS ||
+		a->kind == COG_TYPE_NAMESPACE ||
+		b->kind == COG_TYPE_NAMESPACE
+	) {
 #ifdef COG_DEBUG
 		COG_PANIC("Can't compare unresolved aliases");
 #else
@@ -172,6 +183,7 @@ bool Cog_Type_isRef(const Cog_Type *t)
 		case COG_TYPE_ARRAY:
 			return true;
 		case COG_TYPE_ALIAS:
+		case COG_TYPE_NAMESPACE:
 			COG_PANIC("Can't know if an alias is a refference");
 	}
 	return false;

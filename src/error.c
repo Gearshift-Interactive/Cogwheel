@@ -126,3 +126,14 @@ void Cog_comptimeMessage_impl(__attribute__((unused)) const char *file, __attrib
 	if (level == COG_MESSAGE_ERROR)
 		exit(EXIT_FAILURE);
 }
+#ifdef COG_DEBUG
+void Cog_debugToken(Cog_Token *token)
+{
+	Cog_TokenPosition pos = token->pos;
+	printf("TYPE: %s\n", Cog_TokenType_toString(token->type));
+	const size_t lineNumber = TokenPosition_countLineNumber(pos);
+	const size_t linePos = TokenPosition_countLinePos(pos);
+	TokenPosition_pprint(pos, lineNumber, linePos);
+	printf("\n");
+}
+#endif
